@@ -1,0 +1,7 @@
+Highlights
+
+- Seven standard rational channels reduce predicted ownership from 41.4% to 18.3%
+- Age-varying consumption needs lower predicted ownership further to 7.4%
+- The full nine-channel model predicts 6.6%, within the observed 3-6% range
+- Exact Shapley decomposition shows pricing loads are the largest single channel (30.3 pp, 87%)
+- Social Security can both crowd in and crowd out private annuitization; group pricing raises ownership to 43.1%

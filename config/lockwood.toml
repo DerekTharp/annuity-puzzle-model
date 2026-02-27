@@ -1,0 +1,35 @@
+# Lockwood (2012) replication parameters.
+# Source: BAP_wtp.m and BAP_sim2.m replication code from RED.
+# "Bequest Motives and the Annuity Puzzle," Review of Economic Dynamics 15(2): 226-243.
+
+[preferences]
+gamma = 2.0           # CRRA (sigma=2 in Lockwood's code)
+beta = 0.9708737864   # 1/(1+r) = 1/1.03
+theta = 0.0           # bequest intensity (calibrated per experiment)
+kappa = 10.0          # bequest shifter (0.01 in $1K units = $10)
+
+[demographics]
+age_start = 65
+age_end = 110         # max_age=110 in BAP_wtp.m
+
+[income]
+r = 0.03              # real risk-free rate
+ss_mean = 18000.0     # not used directly; individuals have heterogeneous income
+
+[annuity]
+mwr = 1.0             # fair pricing for WTP calculation (0.90 for ownership sim)
+fixed_cost = 0.0      # varies by experiment
+
+[grids]
+n_wealth = 100        # Nx=100 in Lockwood
+n_annuity = 25        # finer grid for annuity income
+W_max = 1100000.0     # x_max in WTP code ($1.1M)
+W_min = 0.0
+wealth_grid_power = 2.0
+n_alpha = 101         # fine alpha grid for annuitization search
+
+[solver]
+tol = 1e-8
+
+[consumption]
+c_floor = 100.0       # $100 floor in WTP code (FLOOR=0.1 in $1K units)
