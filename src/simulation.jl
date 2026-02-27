@@ -1,0 +1,253 @@
+# Forward Monte Carlo simulation of lifecycle paths.
+# Given a solved model (HealthSolution), simulates individual trajectories
+# by drawing medical shocks, health transitions, and survival outcomes.
+# Used for validating model moments against HRS data.
+
+using Random
+using Interpolations
+
+struct SimulationResult
+    wealth_path::Vector{Float64}
+    consumption_path::Vector{Float64}
+    health_path::Vector{Int}
+    medical_path::Vector{Float64}
+    age_at_death::Int
+    bequest::Float64
+end
+
+"""
+Simulate a single lifecycle trajectory from age 65 to death.
+
+Given initial state (W_0, A_nominal, H_0), draws medical shocks,
+health transitions, and survival outcomes each period. Consumption
+is read from the policy function via interpolation.
+
+Returns a SimulationResult with the full trajectory.
+"""
+function simulate_lifecycle(
+    sol::HealthSolution,
+    W_0::Float64,
+    A_nominal::Float64,
+    H_0::Int,
+    base_surv::Vector{Float64},
+    ss_func::Function,
+    p::ModelParams;
+    rng::AbstractRNG=Random.default_rng(),
+    c_interps::Union{Matrix, Nothing}=nothing,
+)
+    g = sol.grids
+    T = p.T
+    surv_health = build_health_survival(base_surv, p)
+    health_trans = build_all_health_transitions(p)
+
+    wealth_path = zeros(T)
+    consumption_path = zeros(T)
+    health_path = zeros(Int, T)
+    medical_path = zeros(T)
+
+    W = W_0
+    H = H_0
+    age_at_death = p.age_end
+    bequest = 0.0
+
+    A_nom_c = clamp(A_nominal, g.A[1], g.A[end])
+
+    for t in 1:T
+        age = p.age_start + t - 1
+        wealth_path[t] = W
+        health_path[t] = H
+
+        # Inflation-adjusted annuity income (with deferral support)
+        A_real = annuity_income_real(A_nominal, t, p)
+
+        ss_val = ss_func(age, p)
+
+        # Draw medical expense shock
+        m = 0.0
+        if p.medical_enabled
+            mu_m, sigma_m = medical_expense_params(age, H, p)
+            m = exp(mu_m + sigma_m * randn(rng))
+        end
+        medical_path[t] = m
+
+        # Available resources after medical expenses (Medicaid floor)
+        cash = max(W + A_real + ss_val - m, p.c_floor)
+
+        # Look up consumption from policy function
+        W_c = clamp(W, g.W[1], g.W[end])
+        if c_interps !== nothing
+            c_itp = c_interps[H, t]
+        else
+            c_itp = linear_interpolation(
+                (g.W, g.A), sol.c_policy[:, :, H, t],
+                extrapolation_bc=Interpolations.Flat(),
+            )
+        end
+        c = c_itp(W_c, A_nom_c)
+        c = clamp(c, p.c_floor, cash)
+        consumption_path[t] = c
+
+        # Next-period wealth
+        W_next = (1.0 + p.r) * (cash - c)
+        W_next = max(W_next, 0.0)
+
+        # Survival draw
+        s = surv_health[t, H]
+        if rand(rng) > s || t == T
+            bequest = W_next
+            age_at_death = age
+            break
+        end
+
+        # Health transition draw
+        u = rand(rng)
+        cum = 0.0
+        H_next = 3
+        for h_next in 1:3
+            cum += health_trans[t][H, h_next]
+            if u < cum
+                H_next = h_next
+                break
+            end
+        end
+
+        W = W_next
+        H = H_next
+    end
+
+    return SimulationResult(
+        wealth_path, consumption_path, health_path, medical_path,
+        age_at_death, bequest,
+    )
+end
+
+"""
+Simulate n_sim lifecycle trajectories from a fixed initial state
+and return aggregate statistics.
+
+Returns a NamedTuple with:
+- mean_wealth_by_age: average wealth at each age (among survivors)
+- mean_consumption_by_age: average consumption at each age
+- alive_fraction: fraction surviving to each age
+- bequests: vector of all bequests
+- mean_bequest: unconditional mean bequest
+- frac_positive_bequest: fraction with bequest > 0
+"""
+function simulate_batch(
+    sol::HealthSolution,
+    W_0::Float64,
+    A_nominal::Float64,
+    H_0::Int,
+    base_surv::Vector{Float64},
+    ss_func::Function,
+    p::ModelParams;
+    n_sim::Int=10_000,
+    rng_seed::Int=42,
+)
+    rng = Random.MersenneTwister(rng_seed)
+    T = p.T
+    g = sol.grids
+
+    # Precompute all consumption policy interpolations: 3 health × T periods
+    c_interps = Matrix{Any}(undef, 3, T)
+    for ih in 1:3
+        for t in 1:T
+            c_interps[ih, t] = linear_interpolation(
+                (g.W, g.A), sol.c_policy[:, :, ih, t],
+                extrapolation_bc=Interpolations.Flat(),
+            )
+        end
+    end
+
+    wealth_sums = zeros(T)
+    wealth_sq_sums = zeros(T)
+    consumption_sums = zeros(T)
+    medical_sums = zeros(T)
+    alive_count = zeros(Int, T)
+    health_counts = zeros(Int, T, 3)
+    bequests = Vector{Float64}(undef, n_sim)
+
+    # Collect individual wealth paths for percentile computation
+    all_wealth = fill(NaN, n_sim, T)
+
+    for i in 1:n_sim
+        result = simulate_lifecycle(
+            sol, W_0, A_nominal, H_0, base_surv, ss_func, p;
+            rng=rng, c_interps=c_interps,
+        )
+        death_t = result.age_at_death - p.age_start + 1
+        for t in 1:min(death_t, T)
+            w = result.wealth_path[t]
+            wealth_sums[t] += w
+            wealth_sq_sums[t] += w^2
+            consumption_sums[t] += result.consumption_path[t]
+            medical_sums[t] += result.medical_path[t]
+            alive_count[t] += 1
+            all_wealth[i, t] = w
+            h = result.health_path[t]
+            if h >= 1 && h <= 3
+                health_counts[t, h] += 1
+            end
+        end
+        bequests[i] = result.bequest
+    end
+
+    mean_wealth = [alive_count[t] > 0 ? wealth_sums[t] / alive_count[t] : 0.0
+                   for t in 1:T]
+    mean_consumption = [alive_count[t] > 0 ? consumption_sums[t] / alive_count[t] : 0.0
+                        for t in 1:T]
+    mean_medical = [alive_count[t] > 0 ? medical_sums[t] / alive_count[t] : 0.0
+                    for t in 1:T]
+    alive_frac = [alive_count[t] / n_sim for t in 1:T]
+
+    # Wealth percentiles among survivors at each age
+    wealth_p25 = zeros(T)
+    wealth_p50 = zeros(T)
+    wealth_p75 = zeros(T)
+    for t in 1:T
+        vals = filter(!isnan, all_wealth[:, t])
+        if length(vals) >= 4
+            sort!(vals)
+            n = length(vals)
+            wealth_p25[t] = vals[max(1, round(Int, 0.25 * n))]
+            wealth_p50[t] = vals[max(1, round(Int, 0.50 * n))]
+            wealth_p75[t] = vals[max(1, round(Int, 0.75 * n))]
+        end
+    end
+
+    # Bequest statistics
+    pos_beq = filter(b -> b > 0, bequests)
+    frac_pos = length(pos_beq) / n_sim
+    mean_beq = sum(bequests) / n_sim
+    median_beq = sort(bequests)[max(1, div(n_sim, 2))]
+    frac_beq_10k = count(b -> b > 10_000, bequests) / n_sim
+
+    # Health state prevalence by age (fraction in each state among survivors)
+    health_prevalence = zeros(T, 3)
+    for t in 1:T
+        if alive_count[t] > 0
+            for h in 1:3
+                health_prevalence[t, h] = health_counts[t, h] / alive_count[t]
+            end
+        end
+    end
+
+    return (
+        mean_wealth_by_age=mean_wealth,
+        mean_consumption_by_age=mean_consumption,
+        mean_medical_by_age=mean_medical,
+        alive_fraction=alive_frac,
+        bequests=bequests,
+        mean_bequest=mean_beq,
+        median_bequest=median_beq,
+        frac_positive_bequest=frac_pos,
+        frac_bequest_above_10k=frac_beq_10k,
+        health_counts=health_counts,
+        health_prevalence=health_prevalence,
+        alive_count=alive_count,
+        wealth_p25=wealth_p25,
+        wealth_p50=wealth_p50,
+        wealth_p75=wealth_p75,
+        n_sim=n_sim,
+    )
+end

@@ -1,0 +1,446 @@
+\documentclass[12pt]{article}
+
+% ---- Packages ----
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage{natbib}
+\usepackage{setspace}
+\usepackage{hyperref}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{threeparttable}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{float}
+\usepackage{xcolor}
+
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue!60!black,
+    citecolor=blue!60!black,
+    urlcolor=blue!60!black,
+}
+
+\doublespacing
+
+% ---- Title ----
+\title{Why Retirees Don't Annuitize: \\
+A Unified Lifecycle Model\thanks{%
+I thank \textit{[acknowledgments]}. All errors are my own. Replication code and data are available at \textit{[repository URL]}.}}
+
+\author{Derek Tharp\thanks{%
+\textit{[Affiliation]}. Email: \textit{[email]}.}}
+
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+\noindent
+\citet{yaari1965} proved that a consumer with uncertain lifetime and no bequest motive should annuitize all wealth. Observed voluntary annuity ownership among US retirees is 3--6\%. We build a lifecycle model that nests the major channels proposed to explain this gap---bequest motives, medical expenditure risk, health-mortality correlation, pricing loads, and inflation erosion---within a single framework. Starting from a benchmark of 97.5\% predicted ownership, we sequentially add each channel and show that they compound multiplicatively, not additively, reducing predicted ownership to 1.4\%. The channels Pashchenko (2013) and Peijnenburg, Nijman, and Werker (2016) omitted---principally the correlation between health shocks, survival, and medical costs identified by Reichling and Smetters (2015)---prove quantitatively decisive. A welfare analysis finds that the consumption-equivalent variation from annuity market access is zero for most household types and exceeds 1\% only for wealthy, healthy individuals with weak bequest motives.
+
+\bigskip
+\noindent
+\textit{JEL Codes:} D14, D15, D91, G22, H55, J14 \\
+\textit{Keywords:} annuity puzzle, lifecycle model, bequest motives, stochastic mortality, medical expenditure risk
+\end{abstract}
+
+\newpage
+
+
+%% ================================================================
+%%  1. INTRODUCTION
+%% ================================================================
+\section{Introduction}
+\label{sec:intro}
+
+\citet{yaari1965} established one of the sharpest predictions in consumer theory: an individual facing uncertain lifetime, with no bequest motive and access to actuarially fair annuities, should convert all wealth into a life annuity. The mortality credit---the return premium financed by redistributing wealth from decedents to survivors---dominates any asset with the same underlying return. \citet{davidoff2005} extended this result to incomplete markets, showing that partial annuitization remains optimal under a wide range of conditions.
+
+The data reject this prediction overwhelmingly. Among single US retirees aged 65--69, voluntary annuity ownership is approximately 3.6\% \citep{lockwood2012}. Broader survey evidence from the Health and Retirement Study and the Survey of Consumer Finances places ownership between 3\% and 6\%, depending on the sample definition and survey wave \citep{dushiwebb2004, poterbaventiwise2011}. The gap between theory and data---the ``annuity puzzle''---has generated six decades of research.
+
+Proposed explanations fall into several categories. Bequest motives reduce the attractiveness of annuities, which extinguish wealth at death \citep{lockwood2012, kopczuklupton2007}. Pre-existing annuitization through Social Security and defined-benefit pensions covers much of the longevity insurance demand that annuities would otherwise serve \citep{dushiwebb2004, mitchell1999}. Pricing loads---reflecting adverse selection, administrative costs, and insurer profit margins---reduce the money's worth of commercial annuities to 80--85 cents per premium dollar \citep{mitchell1999, wettstein2021, finkelsteinpoterba2002}. Medical expenditure risk generates precautionary demand for liquid wealth that annuitization would forfeit \citep{denardi2010}. Most recently, \citet{reichlingsmetters2015} identified a mechanism in which stochastic health simultaneously raises mortality risk and medical costs, causing annuities to lose value precisely when liquid wealth is most needed.
+
+Two papers attempted to combine multiple channels in a unified structural model, and both reached incomplete conclusions. \citet{pashchenko2013} incorporated pre-existing annuitization, bequest motives, minimum purchase requirements, and pricing loads, but her model still predicted 20\% participation---four times the observed rate. \citet{peijnenburg2016} included incomplete markets, background risk, bequests, and default risk, and concluded that ``the annuity puzzle remains a puzzle.'' Neither paper incorporated the health-mortality correlation channel that \citet{reichlingsmetters2015} identified as pivotal.
+
+This paper fills the gap. We build a lifecycle model that nests all five major channels within a single framework and calibrate it to match the wealth distribution, health dynamics, medical expenditure profiles, and annuity pricing observed in US data. The model's state space---liquid wealth, annuity income, health status, and age---is solved by backward induction over a 46-period horizon (ages 65--110).
+
+Three results emerge. First, a sequential decomposition demonstrates how each channel reduces predicted annuity ownership from the near-complete benchmark. Adding bequest motives (the De Nardi--French--Jones luxury-good specification estimated by \citealp{lockwood2012}) reduces ownership by 0.2 percentage points. Introducing medical expenditure risk without health-mortality correlation reduces it by a further 9.5 points. Activating the Reichling--Smetters correlation subtracts 10.8 points. Pricing loads at a money's worth ratio of 0.82 eliminate another 35.3 points. Inflation erosion of a nominal annuity at 2\% per year removes the remaining 40.3 points, leaving predicted ownership at 1.4\%.
+
+Second, these channels interact multiplicatively, not additively. The product of sequential retention rates---the fraction of demand surviving each channel---is 0.0145, meaning 98.6\% of initial demand is destroyed. The multiplicative interaction ratio is 2.22: the combined ownership drop exceeds the sum of individual channel drops by more than a factor of two. A consumer who barely prefers annuitization after accounting for bequests is driven decisively away by a pricing load, and whatever residual demand survives the load is erased by inflation erosion.
+
+Third, a welfare analysis across household types finds that the consumption-equivalent variation (CEV) from annuity market access is zero for most cells of the wealth--health--bequest matrix. CEV exceeds 1\% only for individuals with at least \$1 million in liquid wealth, good health at age 65, and no bequest motive---a small fraction of the retiree population. For the vast majority, non-annuitization is welfare-rational given the frictions they face.
+
+These results complement \citet{tharpforthcoming}, who argued qualitatively that the accumulated evidence dissolves the annuity puzzle for standard immediate life annuities. The present paper provides the quantitative proof: within the expected utility framework, once all empirically grounded channels are incorporated, predicted demand matches observed data. The puzzle is not that retirees fail to annuitize; the puzzle dissolves once we recognize the environment in which they make the decision.
+
+The remainder of the paper proceeds as follows. Section~\ref{sec:model} specifies the model. Section~\ref{sec:calibration} describes the calibration. Section~\ref{sec:results} presents the sequential decomposition and welfare analysis. Section~\ref{sec:robustness} reports sensitivity checks. Section~\ref{sec:discussion} discusses limitations and implications. Section~\ref{sec:conclusion} concludes.
+
+
+%% ================================================================
+%%  2. MODEL
+%% ================================================================
+\section{Model}
+\label{sec:model}
+
+\subsection{Environment}
+
+Time is discrete. An individual enters at age 65 (period $t = 1$) and may survive to a maximum age of 110 (period $T = 46$). At $t = 1$, the individual makes a single irreversible decision: what fraction $\alpha \in [0, 1]$ of initial liquid wealth $W_0$ to convert into a single premium immediate annuity (SPIA). The remaining wealth $(1 - \alpha)W_0$ stays liquid. In each subsequent period, the individual chooses consumption $c_t$ from available resources.
+
+The state at each period $t$ is characterized by four variables: liquid wealth $W_t \geq 0$, annuity income $A$ (fixed after the age-65 purchase), health status $H_t \in \{1, 2, 3\}$ (Good, Fair, Poor), and age $t$. Social Security income $\text{SS}(t)$ is received exogenously in each period and is not a decision variable.
+
+\subsection{Preferences}
+
+The individual maximizes expected discounted lifetime utility. Flow utility over consumption takes the constant relative risk aversion (CRRA) form:
+\begin{equation}
+\label{eq:utility}
+u(c) = \frac{c^{1-\gamma}}{1-\gamma}, \quad \gamma > 0, \quad \gamma \neq 1.
+\end{equation}
+The coefficient of relative risk aversion $\gamma$ governs both risk aversion and the elasticity of intertemporal substitution.
+
+Bequest utility follows the De Nardi--French--Jones specification, which nests bequests as a luxury good:
+\begin{equation}
+\label{eq:bequest}
+v(b) = \theta \frac{(b + \kappa)^{1-\gamma}}{1-\gamma},
+\end{equation}
+where $b$ is bequeathable wealth (liquid wealth at death; annuity income ceases), $\theta \geq 0$ controls bequest intensity, and $\kappa > 0$ is a shifter that determines the degree to which bequests are a luxury good \citep{denardi2004}. When $\kappa$ is large relative to typical wealth levels, the marginal utility of bequests is nearly flat for low-wealth individuals and declines steeply for the wealthy. This specification, estimated by \citet{lockwood2012} using Health and Retirement Study (HRS) data, captures the empirical pattern that bequest motives are concentrated among high-wealth households.
+
+The individual discounts future utility at rate $\beta$ per period.
+
+\subsection{Health dynamics and mortality}
+
+Health follows a first-order Markov process with three states: Good ($H = 1$), Fair ($H = 2$), and Poor ($H = 3$). Transition probabilities are age-dependent and calibrated to HRS panel data following \citet{denardi2010}:
+\begin{equation}
+\Pr(H_{t+1} = h' \mid H_t = h, \text{age} = t) = \pi(h, h', t).
+\end{equation}
+
+Mortality depends on health through a Gompertz hazard model. Baseline survival probabilities $s_{\text{base}}(t)$ come from the SSA period life table used by \citet{lockwood2012}. Health adjusts survival through a power transformation:
+\begin{equation}
+\label{eq:survival}
+s(t, H) = s_{\text{base}}(t)^{\mu(H)},
+\end{equation}
+where $\mu(H)$ is a health-specific hazard multiplier with $\mu(\text{Good}) < 1 < \mu(\text{Poor})$ and $\mu(\text{Fair}) = 1$. This specification maps directly to proportional hazards: if the baseline hazard is $\lambda_{\text{base}}(t) = -\ln s_{\text{base}}(t)$, then the adjusted hazard is $\mu(H) \cdot \lambda_{\text{base}}(t)$.
+
+The hazard multipliers are the mechanism underlying the \citet{reichlingsmetters2015} result. A negative health shock simultaneously increases mortality ($\mu(\text{Poor}) > 1$ reduces expected remaining annuity payments) and, through the medical expenditure process described below, increases the need for liquid wealth. The annuity becomes ``valuation-risky'': it loses value in precisely the states where liquidity is most valuable.
+
+\subsection{Medical expenditures}
+
+Out-of-pocket medical expenditures depend on age and health. Log medical spending follows:
+\begin{equation}
+\label{eq:medical}
+\ln m_{t} = \mu_m(t, H_t) + \sigma_m(t, H_t) \cdot \varepsilon_t, \quad \varepsilon_t \sim N(0, 1),
+\end{equation}
+where $\mu_m$ and $\sigma_m$ are the mean and standard deviation of log expenditures, both age- and health-dependent. The baseline calibration matches the age profiles reported by \citet{jones2018}: mean out-of-pocket spending of \$4,200 at age 70, rising to \$29,700 at age 100, with a 95th percentile of approximately \$111,200 at age 100.
+
+A Medicaid safety net provides a consumption floor $\underline{c}$. If total resources (wealth plus income minus medical costs) fall below $\underline{c}$, the government covers the shortfall. The individual consumes $\underline{c}$ and enters the next period with zero liquid wealth. This floor is calibrated to the SSI federal benefit rate plus average state supplement for an elderly individual (\$6,180, following the value used in \citealp{lockwood2012}).
+
+Expectations over medical expenditure shocks are computed using Gauss--Hermite quadrature with five nodes.
+
+\subsection{Annuity pricing}
+
+The actuarially fair annual payout per dollar of premium is computed from the SSA life table:
+\begin{equation}
+\text{payout}_{\text{fair}} = \frac{1}{\sum_{k=0}^{T-1} \frac{\prod_{j=0}^{k-1} s_{\text{base}}(j)}{(1+r)^k}}.
+\end{equation}
+The annuity is priced with a money's worth ratio (MWR), defined as the expected present value of payouts per dollar of premium. The loaded payout rate is $\text{MWR} \times \text{payout}_{\text{fair}}$. We set MWR $= 0.82$ at baseline, consistent with the estimates of \citet{mitchell1999} for the US annuity market.
+
+A fixed cost of \$1,000 is incurred upon any purchase. The annuity is nominal: the real payout in period $t$ is
+\begin{equation}
+A_t = \frac{A_1}{(1 + \pi)^{t-1}},
+\end{equation}
+where $\pi$ is the annual inflation rate. At $\pi = 2\%$, purchasing power falls by 39\% over 25 years.
+
+\subsection{Budget constraint}
+
+Within each period, the timing is:
+\begin{enumerate}
+\item The individual enters with liquid wealth $W_t$, annuity income $A_t$, Social Security $\text{SS}(t)$, and health $H_t$.
+\item Medical expenditure $m_t$ is realized.
+\item The individual chooses consumption $c_t$.
+\item Remaining wealth earns the risk-free return $r$.
+\item Health transitions to $H_{t+1}$.
+\item The individual survives to $t+1$ with probability $s(t, H_t)$.
+\end{enumerate}
+
+The intertemporal budget constraint is:
+\begin{equation}
+\label{eq:budget}
+W_{t+1} = (1 + r)(W_t + A_t + \text{SS}(t) - m_t - c_t),
+\end{equation}
+subject to $c_t \geq \underline{c}$ and $W_{t+1} \geq 0$ (no borrowing).
+
+\subsection{Bellman equation}
+
+For $t < T$, the value function satisfies:
+\begin{equation}
+\label{eq:bellman}
+V(W, A, H, t) = \max_{c} \Big\{ u(c) + \beta \, s(t, H) \, \mathbb{E}\big[V(W', A', H', t+1) \mid H\big] + \beta \, (1 - s(t, H)) \, v(W') \Big\},
+\end{equation}
+where $W' = (1+r)(W + A_t + \text{SS}(t) - m - c)$, $A' = A/(1+\pi)$ is next period's real annuity income, and the expectation is taken over the joint distribution of $H'$ (health transition) and $m$ (medical shock). At the terminal period $T$, the individual consumes all remaining resources and leaves any residual as a bequest.
+
+At $t = 1$ (age 65), the annuitization decision is:
+\begin{equation}
+\label{eq:annuitize}
+\alpha^* = \arg\max_{\alpha \in [0,1]} V\big((1-\alpha) W_0, \; \alpha W_0 \cdot \text{payout}, \; H_0, \; 1\big) - F \cdot \mathbf{1}(\alpha > 0),
+\end{equation}
+where $F$ is the fixed purchase cost.
+
+\subsection{Solution method}
+
+The model is solved by backward induction over the state space $(W, A, H, t)$. The wealth grid uses 80 points with power-function spacing (denser at low wealth), the annuity income grid uses 30 points with cubic spacing to resolve small purchases, and health is discrete with three states. Consumption is optimized at each grid point using Brent's method. Value function interpolation across the wealth dimension uses piecewise linear interpolation with flat extrapolation.
+
+The annuitization fraction $\alpha$ is optimized over a 101-point grid at age 65. Grid convergence is verified: results are stable within $\pm 0.2$ percentage points when grid resolution is doubled from 80$\times$30$\times$101 to 100$\times$40$\times$201 (see Appendix Table~\ref{tab:grid_convergence}).
+
+
+%% ================================================================
+%%  3. CALIBRATION
+%% ================================================================
+\section{Calibration}
+\label{sec:calibration}
+
+Table~\ref{tab:calibration} summarizes the parameter values. Each is drawn from a published source or calibrated to match moments from the HRS.
+
+\begin{table}[htbp]
+\centering
+\caption{Model Parameters}
+\label{tab:calibration}
+\begin{threeparttable}
+\begin{tabular}{llll}
+\toprule
+Parameter & Symbol & Value & Source \\
+\midrule
+\multicolumn{4}{l}{\textit{Preferences}} \\
+Risk aversion & $\gamma$ & 2.5 & Within \citet{chetty2006} range (1--3) \\
+Discount factor & $\beta$ & 0.97 & Standard \\
+Bequest intensity & $\theta$ & 56.96 & \citet{lockwood2012}, DFJ spec. \\
+Bequest shifter & $\kappa$ & \$272,628 & \citet{lockwood2012}; \citet{denardi2004} \\[6pt]
+\multicolumn{4}{l}{\textit{Demographics}} \\
+Entry age & & 65 & Retirement \\
+Maximum age & & 110 & \citet{lockwood2012} \\
+Risk-free rate & $r$ & 0.02 & Real \\[6pt]
+\multicolumn{4}{l}{\textit{Health and mortality}} \\
+Health states & & 3 & Good, Fair, Poor \\
+Hazard multipliers & $\mu(H)$ & [0.50, 1.0, 3.0] & HRS + R-S (see text) \\
+Quadrature nodes & & 5 & Gauss--Hermite \\[6pt]
+\multicolumn{4}{l}{\textit{Medical expenditures}} \\
+Log mean at 65 (Fair) & $\mu_m$ & 7.037 & \citet{jones2018} \\
+Annual growth & & 0.065 & \citet{jones2018} \\
+Log std dev & $\sigma_m$ & 1.4 & \citet{jones2018} \\
+Consumption floor & $\underline{c}$ & \$6,180 & SSI + state supplement \\[6pt]
+\multicolumn{4}{l}{\textit{Annuity market}} \\
+Money's worth ratio & MWR & 0.82 & \citet{mitchell1999} \\
+Fixed cost & $F$ & \$1,000 & \citet{lockwood2012} \\
+Inflation rate & $\pi$ & 0.02 & Post-Volcker average \\
+\bottomrule
+\end{tabular}
+\begin{tablenotes}
+\small
+\item All dollar values in 2014 dollars.
+\end{tablenotes}
+\end{threeparttable}
+\end{table}
+
+\paragraph{Preferences.} We set $\gamma = 2.5$, within the range of 1--3 estimated by \citet{chetty2006} from labor supply elasticities. \citet{lockwood2012} uses $\gamma = 2$; our slightly higher value reflects the richer model environment, where additional demand-suppressing channels (medical costs, health-mortality correlation) reduce insurance demand at lower risk aversion. Section~\ref{sec:robustness} reports results for $\gamma \in \{1.5, 2.0, 2.5, 3.0, 4.0, 5.0\}$.
+
+The bequest parameters $\theta = 56.96$ and $\kappa = \$272{,}628$ are taken directly from \citet{lockwood2012}, who estimates them from HRS bequest data under the De Nardi--French--Jones luxury-good specification. The large $\kappa$ ensures that bequests are a luxury good: an individual with \$50,000 in wealth has negligible bequest motive, while an individual with \$1,000,000 faces strong resistance to annuitizing.
+
+\paragraph{Health and mortality.} Health transition matrices are calibrated to HRS panel data following \citet{denardi2010}. We map the five HRS self-reported health categories into three states: Good (Excellent/Very Good), Fair (Good), and Poor (Fair/Poor). Baseline survival probabilities use the SSA administrative life table from \citet{lockwood2012}.
+
+The hazard multipliers $\mu = [0.50, 1.0, 3.0]$ are anchored to two sources. From the RAND HRS longitudinal file (waves 4--16, $N = 126{,}249$ person-wave observations aged 65+), we compute mortality hazard ratios by self-reported health status, obtaining $[0.57, 1.0, 2.70]$. \citet{reichlingsmetters2015} use functional limitation states (ADL/IADL-based), which produce a wider spread; their Figure 7 survival curves imply ratios of approximately $[0.45, 1.0, 3.5]$ at ages 65--75. Our baseline takes the midpoint of the Good-health ratio ($0.50$) and the upper end of the Poor-health ratio ($3.0$), falling between the SRH-based and functional-limitation-based estimates. Section~\ref{sec:robustness} varies these multipliers across the full empirical range.
+
+\paragraph{Medical expenditures.} The medical expenditure process matches the moments published by \citet{jones2018}: mean out-of-pocket spending of \$4,200 at age 70, growing to \$29,700 at age 100, with a 95th percentile of approximately \$111,200 at age 100. Health shifts both the mean and variance of log spending, with Poor health raising expected costs by a factor of roughly two relative to Fair.
+
+\paragraph{Population sample.} We draw the wealth distribution from the RAND HRS longitudinal file, selecting single retirees aged 65--75 using filters comparable to \citet{lockwood2012}. The resulting sample contains 793 individuals. We restrict the main analysis to the 665 individuals with liquid wealth above \$5,000, as those with negligible wealth cannot meaningfully annuitize. Full-sample results (including zero-wealth individuals) are reported for comparison with Lockwood's 3.6\% benchmark.
+
+
+%% ================================================================
+%%  4. RESULTS
+%% ================================================================
+\section{Results}
+\label{sec:results}
+
+\subsection{Sequential decomposition}
+\label{sec:decomposition}
+
+Table~\ref{tab:retention} presents the core result: a sequential decomposition of predicted voluntary annuity ownership, starting from the \citet{yaari1965} benchmark and adding demand-suppressing channels one at a time.
+
+\input{../tables/tex/retention_rates.tex}
+
+The Yaari benchmark---no bequest motive, actuarially fair pricing, no medical expenditure risk, no inflation---predicts 97.5\% ownership in our HRS population sample. The departure from 100\% reflects agents whose initial wealth is low enough that Social Security income already provides adequate longevity insurance at the margin.
+
+\paragraph{Bequest motives.} Adding the DFJ luxury-good bequest specification ($\theta = 56.96$, $\kappa = \$272{,}628$) reduces ownership to 97.3\%, a drop of 0.2 percentage points. The small isolated effect may seem surprising given the prominence of bequest motives in the literature. The explanation lies in the luxury-good specification: with $\kappa = \$272{,}628$, marginal bequest utility is nearly flat for individuals with wealth below \$200,000. In the HRS sample, median liquid wealth is approximately \$40,000. The bequest motive binds primarily for the upper tail of the wealth distribution. Its power emerges through interaction with other channels, as we demonstrate below.
+
+\paragraph{Medical expenditure risk.} Introducing stochastic medical expenditures---without linking them to mortality---reduces ownership from 97.3\% to 87.8\%. The 9.5 percentage point drop reflects precautionary demand for liquid wealth. Facing potential out-of-pocket costs that reach six figures in the right tail of the expenditure distribution, individuals retain liquidity to self-insure against medical shocks. At this stage, survival probabilities are identical across health states, so the annuity remains a pure longevity hedge uncontaminated by health risk.
+
+\paragraph{Health-mortality correlation.} Activating the Reichling--Smetters mechanism---allowing survival to depend on health status through the hazard multipliers---reduces ownership from 87.8\% to 77.0\%. The 10.8 percentage point decline reflects the ``valuation risk'' of annuities. When a retiree's health deteriorates, two things happen simultaneously: expected remaining lifetime falls (reducing the present value of future annuity payments) and expected medical costs rise (increasing the marginal value of liquid wealth). The annuity loses value in exactly the states where cash is most needed.
+
+The distinction between Steps 2 and 3 is economically substantive. Medical expenditure risk alone has an ambiguous effect on annuity demand: it raises the value of liquidity, but it also raises the value of the longevity insurance that covers high-cost states in late old age. The demand-suppressing effect depends specifically on the correlation between health deterioration, survival reduction, and cost increases. This is the channel that \citet{pashchenko2013} and \citet{peijnenburg2016} omitted.
+
+\paragraph{Pricing loads.} Repricing the annuity at MWR $= 0.82$---reflecting adverse selection and insurer costs---and adding a \$1,000 fixed purchase cost reduces ownership from 77.0\% to 41.7\%. The 35.3 percentage point drop is the single largest step in the decomposition. An 18\% load eliminates the small surplus that marginally willing buyers retained after accounting for health risk and bequests. The load acts as a threshold: agents with modest welfare gains from annuitization are pushed decisively into non-purchase.
+
+\paragraph{Inflation erosion.} Converting the annuity from real to nominal at 2\% annual inflation reduces ownership from 41.7\% to 1.4\%. A nominal annuity loses 39\% of its purchasing power over 25 years. For a 65-year-old who may live to 95 or beyond, the annuity provides weakest protection in exactly the late-life states where medical costs are highest and longevity risk is most acute. The nominal erosion devastates the welfare case for annuitization at the margin.
+
+The final predicted ownership of 1.4\% compares to 3.6\% observed among single retirees aged 65--69 \citep{lockwood2012} and 3--6\% in broader surveys. The model slightly underpredicts, consistent with the possibility that a small fraction of the population has characteristics (very high wealth, no bequest motive, good health) that rationalize purchase even in the full-friction environment.
+
+\paragraph{Multiplicative compounding.} The retention rate column in Table~\ref{tab:retention} reveals the multiplicative structure. Each channel retains a fraction of the demand that survived all previous channels: bequests retain 99.8\%, medical risk retains 90.2\%, health-mortality correlation retains 87.7\%, pricing loads retain 54.1\%, and inflation retains 3.4\%. The cumulative product of these retention rates is 0.0145, matching the ratio of final to initial ownership ($1.4/97.5 = 0.0144$).
+
+The multiplicative interaction ratio---computed by comparing the combined ownership drop to the sum of drops when each channel is activated in isolation---is 2.22. The combined effect is more than double what simple addition would predict, because each channel disproportionately eliminates marginal buyers, amplifying the effect of subsequent channels.
+
+\subsection{Comparison with prior work}
+
+Table~\ref{tab:pashchenko} compares our results with the channels available to \citet{pashchenko2013}. Replicating her model's channel set---bequests, minimum purchase requirements, and pricing loads at MWR $= 0.85$---within our framework predicts 66.6\% ownership. Adding the channels she omitted (medical expenditure risk with health-mortality correlation and inflation erosion) reduces this to 23.9\%. The channels absent from Pashchenko's analysis account for more of the demand reduction than the channels she included.
+
+\input{../tables/tex/pashchenko_comparison.tex}
+
+\citet{peijnenburg2016} found that full annuitization remains approximately optimal in their framework. Their model includes background risk and default risk but omits the health-mortality correlation that drives the Reichling--Smetters mechanism. Without the specific correlation between health shocks, survival, and medical costs, medical expenditure risk alone may increase annuity demand (by raising the value of late-life income insurance). Our Step 2 versus Step 3 comparison confirms this: the sign and magnitude of the medical expenditure effect depend critically on whether survival covaries with health.
+
+\subsection{Heterogeneous welfare}
+
+Table~\ref{tab:cev_grid} reports the consumption-equivalent variation (CEV) from annuity market access across household types, defined by initial wealth, health status, and bequest motive intensity.
+
+\input{../tables/tex/welfare_cev_grid.tex}
+
+The CEV is zero for most cells. For households with wealth below \$200,000---the vast majority of the HRS sample---annuity market access provides no measurable welfare gain regardless of health or bequest motive. These households already receive adequate longevity insurance from Social Security, and the pricing load exceeds their willingness to pay for incremental coverage.
+
+Positive CEV appears only in the upper-right corner of the table. At \$500,000 in liquid wealth with no bequest motive and good health, the CEV is 0.08\% of consumption---economically negligible. Meaningful welfare gains emerge at \$1,000,000: the CEV reaches 1.83\% for good-health individuals without bequests. Even here, moderate DFJ bequests reduce the CEV to 0.23\%, and strong bequests eliminate it entirely.
+
+These results identify the narrow subpopulation for whom non-annuitization represents a welfare loss: single retirees with liquid wealth exceeding roughly \$500,000, good health, and weak bequest motives. This group is small. In the HRS sample, fewer than 5\% of single retirees aged 65--75 have liquid wealth above \$500,000, and among those, most report moderate to strong bequest motives.
+
+The welfare analysis reframes the annuity puzzle. For the median retiree, non-annuitization is not a mistake; it is the correct response to an environment of loaded pricing, nominal payment erosion, correlated health and survival risk, and pre-existing Social Security coverage. Policy interventions to increase annuitization---automatic enrollment in annuity products, for instance---would benefit a narrow, identifiable subpopulation and impose small costs on most.
+
+
+%% ================================================================
+%%  5. ROBUSTNESS
+%% ================================================================
+\section{Robustness}
+\label{sec:robustness}
+
+\subsection{Risk aversion and inflation}
+
+Table~\ref{tab:robustness_gamma_inflation} reports predicted ownership across a grid of risk aversion ($\gamma$) and inflation ($\pi$) values, holding all other parameters at baseline.
+
+\input{../tables/tex/robustness_gamma_inflation.tex}
+
+Risk aversion exerts the strongest influence among preference parameters. At $\gamma = 2.4$, ownership drops to zero under 2\% inflation; at $\gamma = 3.0$, it rises to 23.7\%. The mechanism is direct: higher risk aversion increases the value of insurance against longevity risk, partially offsetting the demand-suppressing channels. At $\gamma = 3.0$ with 1\% inflation, predicted ownership reaches 37.3\%---well above observed rates, suggesting that the combination of moderate risk aversion and 2\% inflation is needed to match the data.
+
+Inflation has a comparably sharp effect. At $\gamma = 2.5$, reducing inflation from 2\% to 1\% raises ownership from 1.4\% to 26.0\%. At 3\% inflation, ownership drops to zero at all reported $\gamma$ values below 3.0. The nominal annuity's vulnerability to inflation is the single largest source of parametric sensitivity in the model.
+
+The baseline ($\gamma = 2.5$, $\pi = 2\%$) sits in the region where small parameter changes produce large effects. This is a feature, not a bug: it indicates that the annuity purchase decision is near the margin of indifference for many households, consistent with the empirical observation that demand is low but nonzero. Were the model insensitive to parameters, it would predict either universal purchase or universal abstention, neither of which matches the data.
+
+\subsection{Health-mortality correlation}
+
+The hazard multipliers govern the strength of the Reichling--Smetters mechanism. Table~\ref{tab:hazard_sensitivity} reports ownership under four specifications spanning the empirical range.
+
+\begin{table}[htbp]
+\centering
+\caption{Predicted Ownership by Hazard Multiplier Specification}
+\label{tab:hazard_sensitivity}
+\begin{tabular}{llc}
+\toprule
+Specification & $\mu = [\mu_G, 1.0, \mu_P]$ & Ownership (\%) \\
+\midrule
+R-S functional & $[0.45, 1.0, 3.5]$ & 0.0 \\
+Baseline & $[0.50, 1.0, 3.0]$ & 1.4 \\
+HRS SRH empirical & $[0.57, 1.0, 2.7]$ & 5.7 \\
+Conservative & $[0.60, 1.0, 2.0]$ & 24.4 \\
+\bottomrule
+\end{tabular}
+\begin{tablenotes}
+\small
+\item R-S functional: consistent with \citet{reichlingsmetters2015} Figure 7 survival curves (ADL/IADL-based). HRS SRH: computed from RAND HRS waves 4--16, $N = 126{,}249$. Conservative: Woo \& Kao (2014) oldest-old estimates.
+\end{tablenotes}
+\end{table}
+
+Under the widest multiplier spread ($[0.45, 1.0, 3.5]$, consistent with Reichling--Smetters functional limitation states), ownership drops to zero. Under the narrowest ($[0.60, 1.0, 2.0]$, consistent with conservative SRH-based estimates for the oldest old), ownership rises to 24.4\%. The baseline and HRS SRH specifications bracket the observed 3--6\% range. The model's predictions are most sensitive to the Poor-health multiplier $\mu_P$: increasing it from 2.0 to 3.0 reduces ownership by roughly 20 percentage points.
+
+\subsection{Additional robustness checks}
+
+\paragraph{Grid convergence.} Results are stable across grid resolutions above the production threshold. Coarse grids (40$\times$15 wealth$\times$annuity points) overstate ownership at 13.6\% due to insufficient resolution of the annuity income dimension. Medium grids (60$\times$20) give 6.5\%. The production grid (80$\times$30) and a finer grid (100$\times$40) both yield 1.4\%.
+
+\paragraph{Bequest specification.} Without bequests ($\theta = 0$), predicted ownership is 15.7\%. The DFJ luxury-good specification ($\theta = 56.96$, $\kappa = \$272{,}628$) yields 1.4\%. Homothetic bequest specifications ($\kappa = \$10$) produce anomalous results at $\theta = 56.96$ because the extreme marginal bequest utility near $b = 0$ acts as a precautionary buffer rather than a genuine bequest motive.\footnote{See Appendix~\ref{app:bequest} for a detailed discussion of this anomaly and its resolution.}
+
+\paragraph{Minimum purchase thresholds.} Ownership is 1.4\% whether the minimum purchase is \$0, \$1,000, \$5,000, \$10,000, or \$25,000. This insensitivity arises because the population segments that annuitize under the full model do so at fractions that imply purchases well above these thresholds.
+
+\paragraph{Path independence.} Two alternative orderings of the decomposition yield identical final ownership of 1.4\%. The channel ordering affects intermediate steps but not the endpoint, confirming that the decomposition is a description of the economic mechanisms rather than an artifact of sequencing.
+
+
+%% ================================================================
+%%  6. DISCUSSION
+%% ================================================================
+\section{Discussion}
+\label{sec:discussion}
+
+The model addresses the annuity puzzle within the standard expected utility framework. The predicted ownership of 1.4\% matches observed rates of 3--6\% under the baseline calibration, and the model generates predictions within this range under alternative parameterizations (e.g., HRS SRH hazard multipliers yield 5.7\%).
+
+Several limitations deserve comment. First, the hazard multipliers are constant across ages, while the HRS data show compression of the health-mortality gradient at older ages. Age-varying multipliers would slightly reduce the Reichling--Smetters effect at older ages, potentially increasing predicted demand by a few percentage points. Second, the model treats all retirees as single. \citet{kotlikoffspivak1981} showed that marriage provides partial longevity insurance through intra-household risk sharing, which would further reduce annuity demand among married couples. Third, housing wealth is excluded. \citet{pashchenko2013} found that housing illiquidity reduces annuity demand by constraining the liquid wealth available for annuitization, an effect our model does not capture.
+
+The model does not address behavioral explanations---prospect theory loss aversion \citep{huscott2007}, framing effects \citep{brown2008framing}, or default bias \citep{madrian2001, chalmersreuter2012}. These channels are complementary, not competing. The rational-choice model generates predicted demand in the range of observed data; behavioral channels help explain residual patterns such as the sensitivity of annuity take-up to framing \citep{brown2008framing, beshears2014} and the near-zero demand in defined-contribution plans despite positive welfare gains for some participants \citep{chalmersreuter2012}.
+
+Deferred income annuities (DIAs) and qualified longevity annuity contracts (QLACs) have received attention as alternatives to immediate annuities, in part because they defer payouts to ages 80 or 85 where longevity risk is concentrated. In an extension of the model (Appendix Table~\ref{tab:dia}), we find that DIA ownership rates are similar to SPIA rates. The lower MWR on deferred products---\citet{wettstein2021} estimate MWRs of 0.50 for DIA-80 and 0.45 for DIA-85---offsets the actuarial advantage of concentrating payments in late life.
+
+For policy, the results suggest that blanket nudges toward annuitization---such as making annuity purchases the default in defined-contribution plans---would benefit a narrow subpopulation (wealthy, healthy, low bequest motive) while doing little for most retirees. A more targeted approach would identify households with CEV above some threshold and direct informational or choice-architecture interventions toward them. The welfare stakes for the median retiree are zero.
+
+
+%% ================================================================
+%%  7. CONCLUSION
+%% ================================================================
+\section{Conclusion}
+\label{sec:conclusion}
+
+We built a lifecycle model nesting the major channels proposed to explain low voluntary annuity demand---bequest motives, medical expenditure risk, health-mortality correlation, pricing loads, and inflation erosion---and showed that they produce predicted ownership of 1.4\%, consistent with the 3--6\% observed in US survey data. The channels compound multiplicatively: each removes a fraction of the demand that survived all previous channels, and the cumulative product of retention rates is 0.0145. The channels that prior unified models omitted---principally the correlation between health shocks, survival, and medical costs---account for more of the demand reduction than the channels they included.
+
+The annuity puzzle dissolves within the rational-choice framework once the environment retirees actually face is modeled. Bequest motives concentrate resistance to annuitization among the wealthy. Medical expenditure risk and health-mortality correlation create valuation risk that undermines the insurance value of annuities. Pricing loads and inflation erosion eliminate the small remaining surplus for marginal buyers.
+
+Non-annuitization is not a puzzle. It is the rational response to an environment of loaded, nominal annuities in the presence of correlated health and survival risk, pre-existing Social Security coverage, and bequest motives. The research question should shift from ``why don't retirees annuitize?'' to ``which retirees would benefit from annuitization, and by how much?'' Our welfare analysis provides an initial answer: the gains are concentrated among a narrow subpopulation of wealthy, healthy individuals with weak bequest motives, and even for them, the consumption-equivalent variation rarely exceeds 2\%.
+
+
+%% ================================================================
+%%  REFERENCES
+%% ================================================================
+\bibliographystyle{aer}
+\bibliography{bibliography}
+
+
+%% ================================================================
+%%  FIGURES (at end, per AER convention)
+%% ================================================================
+\clearpage
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.9\textwidth]{../figures/pdf/fig1_decomposition.pdf}
+\caption{Sequential decomposition of predicted annuity ownership. Each bar shows predicted ownership after adding the labeled channel to all previous channels. The dashed line marks observed ownership of 3.6\% among single retirees aged 65--69 \citep{lockwood2012}.}
+\label{fig:decomposition}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.8\textwidth]{../figures/pdf/fig2_gamma_sensitivity.pdf}
+\caption{Predicted ownership by coefficient of relative risk aversion ($\gamma$). All other parameters at baseline values ($\pi = 2\%$, MWR $= 0.82$, DFJ bequests). The shaded band marks observed ownership of 3--6\%.}
+\label{fig:gamma}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.8\textwidth]{../figures/pdf/fig3_hazard_sensitivity.pdf}
+\caption{Predicted ownership by hazard multiplier specification. Each specification varies the Good- and Poor-health multipliers while holding Fair at 1.0. Labels indicate the empirical source for each calibration. The shaded band marks observed ownership of 3--6\%.}
+\label{fig:hazard}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\textwidth]{../figures/pdf/fig4_policy_functions.pdf}
+\caption{Optimal annuitization fraction ($\alpha^*$) at age 65 by initial wealth, for Good health ($H = 1$). Left panel: no bequest motive, pricing loads and inflation active. Right panel: full model (DFJ bequests, medical risk, Reichling--Smetters correlation, pricing loads, inflation). Both panels use MWR $= 0.82$ and $\pi = 2\%$.}
+\label{fig:policy}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.8\textwidth]{../figures/pdf/fig5_cev_heatmap.pdf}
+\caption{Consumption-equivalent variation (\%) from annuity market access, by initial wealth and health status. No-bequest specification ($\theta = 0$). Full model with medical costs, Reichling--Smetters correlation, MWR $= 0.82$, and 2\% inflation.}
+\label{fig:cev}
+\end{figure}
+
+\end{document}

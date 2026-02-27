@@ -1,0 +1,276 @@
+\documentclass[12pt]{article}
+
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage{natbib}
+\usepackage{setspace}
+\usepackage{hyperref}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{threeparttable}
+
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue!60!black,
+    citecolor=blue!60!black,
+    urlcolor=blue!60!black,
+}
+
+\doublespacing
+
+\title{Online Appendix for ``Why Retirees Don't Annuitize: A Unified Lifecycle Model''}
+\author{Derek Tharp}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\appendix
+\setcounter{section}{0}
+\renewcommand{\thesection}{\Alph{section}}
+
+
+%% ================================================================
+%%  A. MODEL DETAILS
+%% ================================================================
+\section{Model Details}
+\label{app:model}
+
+\subsection{Health transition matrices}
+\label{app:health_transitions}
+
+Health transitions are calibrated to the RAND HRS longitudinal file (waves 4--16), with the five self-reported health categories mapped to three states: Good (Excellent/Very Good), Fair (Good), and Poor (Fair/Poor). Transition probabilities are age-dependent, estimated in five-year age bands from 65--69 through 95+.
+
+The transition matrices exhibit two standard features. First, health deterioration is more likely than improvement: transition rates from Good to Fair exceed those from Fair to Good at all ages. Second, deterioration accelerates with age: the probability of remaining in Good health falls from approximately 0.80 at ages 65--69 to 0.55 at ages 90+.
+
+\subsection{Medical expenditure calibration}
+
+Log out-of-pocket medical expenditures follow:
+\[
+\ln m_t = \mu_m^{\text{base}} + g \cdot (t - 65) + \delta_\mu(H_t) + \big[\sigma_m^{\text{base}} + \delta_\sigma(H_t)\big] \cdot \varepsilon_t, \quad \varepsilon_t \sim N(0,1),
+\]
+where $\mu_m^{\text{base}} = 7.037$ is the log mean at age 65 for Fair health, $g = 0.0652$ is the annual growth rate in the log mean, $\delta_\mu(H)$ shifts the log mean by health state $[-0.5, 0, 0.7]$ for Good, Fair, and Poor respectively, $\sigma_m^{\text{base}} = 1.4$ is the base log standard deviation, and $\delta_\sigma(H)$ shifts the log standard deviation by health $[-0.2, 0, 0.2]$.
+
+\begin{table}[htbp]
+\centering
+\caption{Medical Expenditure Moments: Model vs.\ Target}
+\label{tab:medical_moments}
+\begin{tabular}{lrr}
+\toprule
+Moment & Model & Target (Jones et al.\ 2018) \\
+\midrule
+Mean OOP, age 70, Fair health & \$4,201 & \$4,200 \\
+Mean OOP, age 100, Fair health & \$29,703 & \$29,700 \\
+95th pctile, age 100, Fair health & \$111,502 & \$111,200 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The lognormal specification produces a right-skewed distribution consistent with the heavy tails observed in medical expenditure data. The log standard deviation of 1.4 implies a coefficient of variation of approximately 2.5, which matches the empirical distribution of out-of-pocket spending in the HRS and MEPS.
+
+\subsection{Survival calibration}
+\label{app:survival}
+
+Baseline survival probabilities use the SSA administrative period life table employed by \citet{lockwood2012}. The cumulative death probabilities at ages 65, 70, 75, \ldots are taken directly from Lockwood's replication code (BAP\_sim2.m) and interpolated linearly at intermediate ages.
+
+Health-adjusted survival follows the proportional hazard specification $s(t, H) = s_{\text{base}}(t)^{\mu(H)}$, where $\mu(H)$ is the health-specific hazard multiplier. At baseline, $\mu = [0.50, 1.0, 3.0]$. This implies that an individual in Good health at age 80---where $s_{\text{base}}(80) \approx 0.96$---survives with probability $0.96^{0.5} \approx 0.98$, while an individual in Poor health survives with probability $0.96^{3.0} \approx 0.89$.
+
+The constant-multiplier specification is a simplification. The HRS data show that the health-mortality gradient compresses with age: the ratio of Poor-to-Fair mortality is 3.29 at ages 65--74, 2.77 at 75--84, and 1.82 at 85+. Age-varying multipliers would slightly attenuate the Reichling--Smetters mechanism at advanced ages. We use constant multipliers for tractability and because the annuitization decision is made at age 65, when the gradient is widest.
+
+
+%% ================================================================
+%%  B. GRID CONVERGENCE
+%% ================================================================
+\section{Grid Convergence}
+\label{app:grid_convergence}
+
+Table~\ref{tab:grid_convergence} reports predicted ownership under the full model for different grid resolutions. The three grids---wealth ($n_W$), annuity income ($n_A$), and annuitization fraction ($n_\alpha$)---have partially offsetting effects on ownership. Coarser annuity income grids smooth over the dip in value at intermediate $\alpha$, biasing ownership upward. Coarser $\alpha$ grids miss beneficial annuitization fractions, biasing ownership downward. Both converge as resolution increases.
+
+\begin{table}[htbp]
+\centering
+\caption{Grid Convergence}
+\label{tab:grid_convergence}
+\begin{tabular}{lccc}
+\toprule
+Resolution & $n_W \times n_A \times n_\alpha$ & Ownership (\%) & $\Delta$ from production \\
+\midrule
+Coarse & $30 \times 10 \times 21$ & 22.1 & $+20.7$ pp \\
+ & $40 \times 15 \times 31$ & 13.6 & $+12.2$ pp \\
+Medium & $60 \times 20 \times 51$ & 6.5 & $+5.1$ pp \\
+ & $60 \times 25 \times 101$ & 2.8 & $+1.4$ pp \\
+\textbf{Production} & $\mathbf{80 \times 30 \times 101}$ & \textbf{1.4} & --- \\
+Fine & $80 \times 30 \times 201$ & 1.6 & $+0.2$ pp \\
+ & $100 \times 40 \times 101$ & 1.4 & $0.0$ pp \\
+ & $100 \times 40 \times 201$ & 1.4 & $0.0$ pp \\
+\bottomrule
+\end{tabular}
+\begin{tablenotes}
+\small
+\item All specifications use baseline parameters ($\gamma = 2.5$, DFJ bequests, MWR $= 0.82$, $\pi = 2\%$, hazard multipliers $[0.50, 1.0, 3.0]$).
+\end{tablenotes}
+\end{table}
+
+The production grid (80 $\times$ 30 $\times$ 101) yields 1.4\% ownership. Doubling the wealth and annuity grids to 100 $\times$ 40 while holding $n_\alpha = 101$ produces the same 1.4\%. Doubling $n_\alpha$ to 201 also produces 1.4\%. Convergence within $\pm 0.2$ percentage points is achieved at the production resolution.
+
+
+%% ================================================================
+%%  C. BEQUEST SPECIFICATION DETAILS
+%% ================================================================
+\section{Bequest Specification}
+\label{app:bequest}
+
+The De Nardi--French--Jones (DFJ) bequest utility is $v(b) = \theta (b + \kappa)^{1-\gamma}/(1-\gamma)$. The parameter $\kappa$ controls the luxury-good nature of bequests. When $\kappa$ is large relative to wealth $b$, marginal bequest utility $v'(b) = \theta(b + \kappa)^{-\gamma}$ is nearly constant across wealth levels, making bequests a luxury good: the bequest-to-wealth ratio rises with wealth.
+
+The baseline parameters ($\theta = 56.96$, $\kappa = \$272{,}628$) are from \citet{lockwood2012}, who estimated them from HRS data under the DFJ specification. At these values, an individual with \$50,000 in wealth has $v'(b) \approx \theta \cdot (322{,}628)^{-2.5}$, which is negligible compared to the marginal utility of consumption. The bequest motive binds meaningfully only for individuals with wealth approaching $\kappa$.
+
+\paragraph{Homothetic bequest anomaly.} Combining the DFJ bequest intensity $\theta = 56.96$ with a homothetic specification ($\kappa = \$10$) produces anomalous results. At $\kappa = \$10$, marginal bequest utility near $b = 0$ is $\theta \cdot 10^{-2.5} = 56.96 \times 3.16 \times 10^{-3} \approx 0.18$, which is extreme relative to marginal consumption utility. This creates a narrow precautionary buffer---individuals avoid annuitizing not to protect bequests, but to avoid the near-zero-wealth states where $v'(b)$ diverges. The predicted ownership under this misspecification (60.8\%) is higher than the no-bequest case (15.7\%), because the buffer effect dominates the bequest effect.
+
+This anomaly illustrates why $\theta$ and $\kappa$ must be interpreted as a pair, not independently. The DFJ estimates from \citet{lockwood2012} are jointly calibrated; using one with the other's value replaced is not a valid counterfactual.
+
+
+%% ================================================================
+%%  D. PASHCHENKO COMPARISON DETAILS
+%% ================================================================
+\section{Comparison with Pashchenko (2013)}
+\label{app:pashchenko}
+
+\citet{pashchenko2013} conducted a sequential decomposition with four channels: pre-existing annuitization (Social Security and DB pensions), bequest motives, minimum purchase requirements, and pricing loads. Her full model predicted approximately 20\% participation, roughly four times the observed rate of 5\%.
+
+We replicate her channel set within our framework. Our replication differs from hers in three respects: we use DFJ luxury-good bequests rather than the homothetic specification she employed; we use a continuous annuitization fraction rather than a binary purchase decision; and we do not model housing illiquidity. Despite these differences, the qualitative pattern matches.
+
+\input{../tables/tex/pashchenko_comparison.tex}
+
+Under Pashchenko's channels alone (Steps 0--3), our model predicts 66.6\% ownership. The higher prediction relative to Pashchenko's 20\% reflects differences in model specification, particularly the continuous annuitization margin. With a binary purchase decision and housing illiquidity (which Pashchenko includes and we do not), predicted participation would be lower.
+
+The channels Pashchenko omitted---medical expenditure risk with health-mortality correlation (Step 4) and inflation erosion (Step 5)---reduce ownership from 66.6\% to 23.9\%. These two channels account for a larger ownership reduction (42.7 percentage points) than Pashchenko's four channels combined (19.5 percentage points from Steps 0 to 3).
+
+
+%% ================================================================
+%%  E. DIA/QLAC EXTENSION
+%% ================================================================
+\section{Deferred Income Annuity Extension}
+\label{app:dia}
+
+Deferred income annuities (DIAs) begin payments at a future age, typically 80 or 85. By concentrating payments in late life---when longevity risk is greatest---they offer higher per-dollar payouts. A DIA purchased at 65 with payments beginning at 80 pays roughly 2.8 times the per-period income of an immediate annuity (SPIA) per dollar of premium, and a DIA-85 pays roughly 5.9 times as much.
+
+However, deferred products carry lower money's worth ratios. \citet{wettstein2021} estimate MWRs of 0.50 for DIA-80 and 0.45 for DIA-85, compared to 0.82 for SPIAs. The lower MWR reflects the longer deferral period (more discounting), smaller market (less competition), and higher sensitivity to mortality projection errors.
+
+\input{../tables/tex/dia_comparison.tex}
+
+Table~\ref{tab:dia} compares predicted ownership and welfare across product types. All models include medical costs, health-mortality correlation, pricing loads, and 2\% inflation.
+
+Under no bequests, SPIA ownership is 20.6\%, DIA-80 is 8.4\%, and DIA-85 is 6.6\%. The lower DIA ownership reflects the poor MWR: the actuarial advantage of deferred payout is more than offset by the pricing disadvantage. CEV at \$200,000 wealth is zero for all three products.
+
+With DFJ bequests, SPIA ownership falls to 5.9\% while DIA ownership is unchanged at 8.4\% (DIA-80) and 6.6\% (DIA-85). DIAs are less affected by bequests because the premium is spent at age 65 but generates income only in late life, creating a natural separation between bequeathable wealth and annuity purchase.
+
+The DIA results suggest that product innovation alone is unlikely to resolve low annuity demand. The channels suppressing SPIA demand---valuation risk, inflation erosion, bequest motives---apply with similar force to deferred products, and the inferior pricing of DIAs partially offsets their actuarial advantage.
+
+
+%% ================================================================
+%%  F. FULL ROBUSTNESS TABLE
+%% ================================================================
+\section{Full Sensitivity Analysis}
+\label{app:robustness}
+
+Table~\ref{tab:full_robustness} reports predicted ownership under all robustness specifications.
+
+\begin{table}[htbp]
+\centering
+\caption{Full Robustness Results}
+\label{tab:full_robustness}
+\begin{threeparttable}
+\begin{tabular}{llc}
+\toprule
+Category & Specification & Ownership (\%) \\
+\midrule
+\multicolumn{3}{l}{\textit{Risk aversion ($\gamma$)}} \\
+ & $\gamma = 1.50$ & 0.0 \\
+ & $\gamma = 2.00$ & 0.0 \\
+ & $\gamma = 2.30$ & 0.0 \\
+ & $\gamma = 2.40$ & 0.0 \\
+ & $\gamma = 2.45$ & 0.0 \\
+ & $\gamma = 2.50$ (baseline) & 1.4 \\
+ & $\gamma = 2.55$ & 5.3 \\
+ & $\gamma = 2.60$ & 6.9 \\
+ & $\gamma = 2.70$ & 12.4 \\
+ & $\gamma = 2.80$ & 17.1 \\
+ & $\gamma = 3.00$ & 23.7 \\
+ & $\gamma = 3.50$ & 31.6 \\
+ & $\gamma = 4.00$ & 35.3 \\
+ & $\gamma = 5.00$ & 39.6 \\[4pt]
+\multicolumn{3}{l}{\textit{Hazard multipliers}} \\
+ & $[0.45, 1.0, 3.5]$ (R-S functional) & 0.0 \\
+ & $[0.50, 1.0, 3.0]$ (baseline) & 1.4 \\
+ & $[0.57, 1.0, 2.7]$ (HRS SRH) & 5.7 \\
+ & $[0.60, 1.0, 2.0]$ (conservative) & 24.4 \\[4pt]
+\multicolumn{3}{l}{\textit{Minimum purchase threshold}} \\
+ & \$0 & 1.4 \\
+ & \$1,000 & 1.4 \\
+ & \$5,000 & 1.4 \\
+ & \$10,000 & 1.4 \\
+ & \$25,000 & 1.4 \\[4pt]
+\multicolumn{3}{l}{\textit{Path dependence}} \\
+ & Ordering A & 1.4 \\
+ & Ordering B & 1.4 \\[4pt]
+\multicolumn{3}{l}{\textit{Grid convergence}} \\
+ & Coarse ($40 \times 15$) & 13.6 \\
+ & Medium ($60 \times 20$) & 6.5 \\
+ & Production ($80 \times 30$) & 1.4 \\
+ & Fine ($100 \times 40$) & 1.4 \\[4pt]
+\multicolumn{3}{l}{\textit{Bequest specification}} \\
+ & No bequests ($\theta = 0$) & 15.7 \\
+ & DFJ luxury ($\theta = 56.96$, $\kappa = \$272$K) & 1.4 \\
+\bottomrule
+\end{tabular}
+\begin{tablenotes}
+\small
+\item Unless otherwise noted, all specifications use baseline parameters: $\gamma = 2.5$, $\beta = 0.97$, DFJ bequests ($\theta = 56.96$, $\kappa = \$272{,}628$), MWR $= 0.82$, $F = \$1{,}000$, $\pi = 2\%$, hazard multipliers $[0.50, 1.0, 3.0]$, production grid ($80 \times 30 \times 101$).
+\end{tablenotes}
+\end{threeparttable}
+\end{table}
+
+
+%% ================================================================
+%%  G. SOLUTION ALGORITHM DETAILS
+%% ================================================================
+\section{Solution Algorithm}
+\label{app:algorithm}
+
+\subsection{Backward induction}
+
+The model is solved by backward induction from the terminal period $T = 46$ (age 110) to $t = 1$ (age 65). At the terminal period, the individual consumes all available resources and leaves residual wealth as a bequest:
+\[
+V(W, A, H, T) = \max_{c \leq W + A_T + \text{SS}(T) - m_T} \Big\{ u(c) + v\big((1+r)(W + A_T + \text{SS}(T) - m_T - c)\big) \Big\}.
+\]
+
+For $t = T-1, \ldots, 1$, the value function is computed at each grid point $(W_i, A_j, H_k)$ by solving the one-period consumption problem using Brent's method on the interval $[\underline{c}, \; W + A_t + \text{SS}(t) - m]$. The continuation value $V(W', A', H', t+1)$ is evaluated by piecewise linear interpolation over the wealth grid with flat extrapolation beyond the grid boundaries.
+
+\subsection{Expectation computation}
+
+The expectation over next-period health and medical expenditures involves:
+\begin{enumerate}
+\item A sum over three health states weighted by transition probabilities $\pi(H_t, H', t)$.
+\item A sum over five Gauss--Hermite quadrature nodes for the medical expenditure shock $\varepsilon$.
+\end{enumerate}
+Each grid point requires $3 \times 5 = 15$ evaluations of the continuation value, yielding a total of $80 \times 30 \times 3 \times 46 \times 15 \approx 49.7$ million value function evaluations per model solve.
+
+\subsection{Annuitization optimization}
+
+At $t = 1$, the optimal annuitization fraction $\alpha^*$ is found by grid search over 101 equally spaced values in $[0, 1]$. For each candidate $\alpha$, post-purchase wealth is $(1 - \alpha)W_0$ and annuity income is $\alpha W_0 \times \text{payout\_rate}$. The value function at the resulting state is evaluated by bilinear interpolation over the $(W, A)$ grid for the relevant health state. The fixed cost $F$ is subtracted from value whenever $\alpha > 0$.
+
+\subsection{Population evaluation}
+
+Ownership is evaluated on a population of HRS individuals with observed initial wealth, permanent income, and age. For each individual, the optimal $\alpha^*$ is computed at their specific $(W_0, y, H_0)$. Ownership is defined as $\alpha^* > 0$. The ownership rate is the fraction of the eligible population (wealth $\geq$ \$5,000) that annuitizes any positive amount.
+
+\subsection{Computational performance}
+
+A single model solve (one parameterization) requires approximately 60--120 seconds on an Apple M1 processor. The full decomposition (6 solves) runs in 6--12 minutes. The robustness analysis (approximately 40 configurations) requires 1--2 hours. Grid convergence checks (8 configurations at varying resolutions) require 2--4 hours.
+
+
+\bibliographystyle{aer}
+\bibliography{bibliography}
+
+\end{document}

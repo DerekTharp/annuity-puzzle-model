@@ -1,0 +1,19 @@
+# 1. Summary Assessment
+The dynamic programming core is generally well implemented. The Bellman recursion, survival weighting, terminal handling, and age-65 annuitization search are all structurally consistent with the model described in the manuscript, and the code uses sensible numerical tools for the one-dimensional consumption problem.
+
+I found two issues worth flagging. The first is a real budget-feasibility edge case in the annuitization step: fixed costs are deducted from post-purchase wealth, but the code clips negative remaining wealth to zero instead of rejecting infeasible purchases. The second is an API consistency issue: the `ModelParams` defaults use a 100-year horizon even though the project baseline and manuscript use 110. Neither issue breaks the documented baseline pipeline, but both are the kind of sharp edges that can silently produce the wrong model if the code is reused outside the main scripts.
+
+# 2. Specific Findings
+- **[medium] Fixed-cost feasibility is not enforced, so some annuity purchases can be treated as feasible even when the fixed cost exceeds remaining wealth.** In [`src/annuity.jl`](/Users/derektharp/Documents/_Projects/26.29%20Annuity%20Puzzle%20Simulation/src/annuity.jl#L127), `post_purchase_wealth()` subtracts the fixed cost and then clamps negative wealth to zero. In [`src/solve.jl`](/Users/derektharp/Documents/_Projects/26.29%20Annuity%20Puzzle%20Simulation/src/solve.jl#L259) and [`src/solve.jl`](/Users/derektharp/Documents/_Projects/26.29%20Annuity%20Puzzle%20Simulation/src/solve.jl#L316), the annuitization search only checks `is_feasible_purchase(alpha, W_0, p)`, which enforces the minimum premium but not whether `(1 - alpha)W_0` is large enough to pay the fixed cost. For low-wealth states, this can overstate feasible annuitization and weakly violate the no-borrowing budget.
+- **[minor] The public `ModelParams` defaults describe a different horizon than the baseline model used in the paper and scripts.** [`src/parameters.jl`](/Users/derektharp/Documents/_Projects/26.29%20Annuity%20Puzzle%20Simulation/src/parameters.jl#L15) sets `age_end = 100` and `T = 36`, while [`scripts/config.jl`](/Users/derektharp/Documents/_Projects/26.29%20Annuity%20Puzzle%20Simulation/scripts/config.jl#L7) and the manuscript baseline in [`paper/main.tex`](/Users/derektharp/Documents/_Projects/26.29%20Annuity%20Puzzle%20Simulation/paper/main.tex#L92) use age 110 / 46 periods. The main pipeline overrides the default correctly, so this is not a baseline bug, but it is an easy source of off-by-one confusion if someone instantiates `ModelParams()` directly.
+
+# 3. Concrete Fix Recommendations
+- Replace the current clipping behavior with an explicit feasibility check. The cleanest fix is to let `post_purchase_wealth()` return the raw remaining wealth and reject any `alpha` for which post-cost wealth would be negative. Add a regression test for a state with `W_0 < fixed_cost` to ensure the optimizer never accepts an infeasible annuity purchase.
+- Align the default horizon with the manuscript baseline, or make the divergence impossible to miss. Either set `age_end = 110` in `ModelParams` defaults or document very clearly that the defaults are only placeholders and that all production code must supply `scripts/config.jl`.
+- Add a small unit test that exercises `solve_annuitization()` and `solve_annuitization_health()` at a low-wealth state with a positive fixed cost, plus a test that checks the default `ModelParams()` horizon against the documented baseline.
+- No change is needed to the Bellman recursion itself, the terminal-period logic, or the consumption bounds in `solve_consumption()`; those parts look economically coherent.
+
+# 4. Overall Code Quality Score
+**8/10**
+
+The core DP implementation is strong and the code is organized well, but the fixed-cost feasibility gap and the horizon-default inconsistency should be cleaned up before I would call it fully submission-safe.

@@ -1,0 +1,339 @@
+# Full backward induction solver for the lifecycle model.
+# Solves V(W, A, t) for t = T down to 1 (age 65).
+# Phase 1: no health dimension.
+# Phase 3: V(W, A, H, t) with 3-state health, medical expenses, GH quadrature.
+
+using Interpolations
+
+"""
+Container for the solution: value and policy functions on the grid.
+Phase 1/2: no health dimension.
+"""
+struct Solution
+    V::Array{Float64, 3}       # V[w, a, t]: value function
+    c_policy::Array{Float64, 3} # c[w, a, t]: optimal consumption
+    grids::Grids
+    params::ModelParams
+end
+
+"""
+Container for the health-aware solution: value and policy functions.
+Phase 3: 3-state health dimension added.
+"""
+struct HealthSolution
+    V::Array{Float64, 4}        # V[w, a, h, t]: value function
+    c_policy::Array{Float64, 4} # c[w, a, h, t]: optimal consumption
+    grids::Grids
+    params::ModelParams
+end
+
+"""
+Solve the lifecycle problem by backward induction (Phase 1/2, no health).
+Returns a Solution struct with value and policy functions.
+
+`ss_func(age, p)` returns Social Security income at age `age`.
+"""
+function solve_lifecycle(
+    p::ModelParams,
+    grids::Grids,
+    surv::Vector{Float64},
+    ss_func::Function,
+)
+    nW = length(grids.W)
+    nA = length(grids.A)
+    T = p.T
+
+    V = fill(-Inf, nW, nA, T)
+    c_policy = fill(0.0, nW, nA, T)
+
+    # --- Terminal period (t = T, age = age_end) ---
+    for ia in 1:nA
+        A_val = grids.A[ia]
+        A_real = annuity_income_real(A_val, T, p)
+        ss_val = ss_func(p.age_end, p)
+        for iw in 1:nW
+            W_val = grids.W[iw]
+            (V[iw, ia, T], c_policy[iw, ia, T]) = terminal_value(W_val, A_real, ss_val, p, T)
+        end
+    end
+
+    # --- Backward induction: t = T-1 down to 1 ---
+    for t in (T-1):-1:1
+        age = p.age_start + t - 1
+        s_t = surv[t]
+        ss_val = ss_func(age, p)
+
+        Threads.@threads for ia in 1:nA
+            A_val = grids.A[ia]
+            A_real = annuity_income_real(A_val, t, p)
+
+            # Build interpolation of V(W', A, t+1) over wealth grid
+            V_next_vals = V[:, ia, t + 1]
+            V_next_interp = linear_interpolation(
+                grids.W, V_next_vals,
+                extrapolation_bc=Interpolations.Flat(),
+            )
+
+            for iw in 1:nW
+                W_val = grids.W[iw]
+                (V[iw, ia, t], c_policy[iw, ia, t]) = solve_consumption(
+                    W_val, A_real, ss_val, V_next_interp, s_t, p, t,
+                )
+            end
+        end
+    end
+
+    return Solution(V, c_policy, grids, p)
+end
+
+"""
+Solve the lifecycle problem with stochastic health (Phase 3).
+
+State space: V(W, A, H, t) where H ∈ {1=Good, 2=Fair, 3=Poor}.
+
+The Bellman equation with health:
+  V(W, A, H, t) = E_m[ max_c { U(c) + β s(t,H) Σ_{H'} π(H,H',t) V(W',A,H',t+1)
+                                 + β (1-s(t,H)) V_bequest(W') } ]
+where:
+  - W' = (1+r)(W + A + SS - m - c)
+  - m is the medical expense shock (lognormal, integrated via GH quadrature)
+  - π(H,H',t) is the health transition matrix
+  - s(t,H) is the health-dependent survival probability
+
+When medical_enabled=false, m=0 (no medical expense shocks).
+When health_mortality_corr=false, s(t,H)=s(t) for all H.
+"""
+function solve_lifecycle_health(
+    p::ModelParams,
+    grids::Grids,
+    base_surv::Vector{Float64},
+    ss_func::Function,
+)
+    nW = length(grids.W)
+    nA = length(grids.A)
+    nH = 3
+    T = p.T
+
+    V = fill(-Inf, nW, nA, nH, T)
+    c_policy = fill(0.0, nW, nA, nH, T)
+
+    # Precompute health-dependent survival
+    surv_health = build_health_survival(base_surv, p)
+
+    # Precompute health transition matrices for all ages
+    health_trans = build_all_health_transitions(p)
+
+    # Gauss-Hermite nodes and weights for medical expense integration
+    gh_nodes, gh_weights = gauss_hermite_normal(p.n_quad)
+
+    # --- Terminal period (t = T, age = age_end) ---
+    # At terminal period, s(T) = 0 for all health states (certain death).
+    # V(W, A, H, T) = E_m[ terminal_value(cash_after_medical) ]
+    # Health state affects terminal value only through medical expenses.
+    for ih in 1:nH
+        for ia in 1:nA
+            A_val = grids.A[ia]
+            A_real = annuity_income_real(A_val, T, p)
+            ss_val = ss_func(p.age_end, p)
+            for iw in 1:nW
+                W_val = grids.W[iw]
+                cash_before = W_val + A_real + ss_val
+
+                if p.medical_enabled
+                    mu_m, sigma_m = medical_expense_params(p.age_end, ih, p)
+                    V_total = 0.0
+                    c_total = 0.0
+                    for iq in 1:p.n_quad
+                        m = exp(mu_m + sigma_m * gh_nodes[iq])
+                        cash_after = apply_medicaid_floor(cash_before, m, p.c_floor)
+                        V_k, c_k = terminal_value(cash_after, 0.0, 0.0, p, T, ih)
+                        V_total += gh_weights[iq] * V_k
+                        c_total += gh_weights[iq] * c_k
+                    end
+                    V[iw, ia, ih, T] = V_total
+                    c_policy[iw, ia, ih, T] = c_total
+                else
+                    (V[iw, ia, ih, T], c_policy[iw, ia, ih, T]) =
+                        terminal_value(W_val, A_real, ss_val, p, T, ih)
+                end
+            end
+        end
+    end
+
+    # --- Backward induction: t = T-1 down to 1 ---
+    for t in (T-1):-1:1
+        age = p.age_start + t - 1
+        ss_val = ss_func(age, p)
+        trans = health_trans[t]
+
+        # Collapse (ih, ia) into flat index for threading
+        Threads.@threads for idx in 1:(nH * nA)
+            ih = div(idx - 1, nA) + 1
+            ia = mod(idx - 1, nA) + 1
+            V_hw = Vector{Float64}(undef, nW)
+
+            s_t_h = surv_health[t, ih]
+            A_val = grids.A[ia]
+            A_real = annuity_income_real(A_val, t, p)
+
+            # Precompute health-weighted continuation value at t+1:
+            # V_hw[iw] = Σ_{ih'} π(ih, ih', t) × V[iw, ia, ih', t+1]
+            for iw in 1:nW
+                V_hw[iw] = 0.0
+                for ih_next in 1:nH
+                    V_hw[iw] += trans[ih, ih_next] * V[iw, ia, ih_next, t + 1]
+                end
+            end
+
+            # Build 1D interpolation of health-weighted continuation
+            V_hw_interp = linear_interpolation(
+                grids.W, V_hw,
+                extrapolation_bc=Interpolations.Flat(),
+            )
+
+            for iw in 1:nW
+                W_val = grids.W[iw]
+                cash_before = W_val + A_real + ss_val
+
+                if p.medical_enabled
+                    # Integrate over medical expense shocks
+                    mu_m, sigma_m = medical_expense_params(age, ih, p)
+                    V_total = 0.0
+                    c_total = 0.0
+                    for iq in 1:p.n_quad
+                        m = exp(mu_m + sigma_m * gh_nodes[iq])
+                        cash_after = apply_medicaid_floor(cash_before, m, p.c_floor)
+                        V_k, c_k = solve_consumption(
+                            cash_after, 0.0, 0.0,
+                            V_hw_interp, s_t_h, p, t, ih,
+                        )
+                        V_total += gh_weights[iq] * V_k
+                        c_total += gh_weights[iq] * c_k
+                    end
+                    V[iw, ia, ih, t] = V_total
+                    c_policy[iw, ia, ih, t] = c_total
+                else
+                    V[iw, ia, ih, t], c_policy[iw, ia, ih, t] = solve_consumption(
+                        W_val, A_real, ss_val,
+                        V_hw_interp, s_t_h, p, t, ih,
+                    )
+                end
+            end
+        end
+    end
+
+    return HealthSolution(V, c_policy, grids, p)
+end
+
+"""
+Solve the age-65 annuitization decision (Phase 1/2, no health).
+For each (W_0, alpha), compute V(W_remaining, A(alpha), t=1) and find alpha*.
+
+Returns:
+- alpha_star[iw]: optimal annuitization fraction for each initial wealth
+- V_annuitized[iw]: value at optimal alpha
+"""
+function solve_annuitization(
+    sol::Solution,
+    payout_rate::Float64,
+)
+    p = sol.params
+    g = sol.grids
+    nW = length(g.W)
+    nA = length(g.A)
+
+    alpha_star = fill(0.0, nW)
+    V_annuitized = fill(-Inf, nW)
+
+    V_t1 = sol.V[:, :, 1]
+    V_interp = linear_interpolation(
+        (g.W, g.A), V_t1,
+        extrapolation_bc=Interpolations.Flat(),
+    )
+
+    for iw in 1:nW
+        W_0 = g.W[iw]
+        best_V = -Inf
+        best_alpha = 0.0
+
+        for alpha in g.alpha
+            A_val = annuity_income(alpha, W_0, payout_rate)
+            W_rem = post_purchase_wealth(alpha, W_0, p.fixed_cost)
+
+            W_rem < 0.0 && continue
+            is_feasible_purchase(alpha, W_0, p) || continue
+
+            A_clamped = clamp(A_val, g.A[1], g.A[end])
+            W_clamped = clamp(W_rem, g.W[1], g.W[end])
+
+            V_val = V_interp(W_clamped, A_clamped)
+
+            if V_val > best_V
+                best_V = V_val
+                best_alpha = alpha
+            end
+        end
+
+        alpha_star[iw] = best_alpha
+        V_annuitized[iw] = best_V
+    end
+
+    return (alpha_star, V_annuitized)
+end
+
+"""
+Solve the age-65 annuitization decision with health states (Phase 3).
+For a given initial health state, find optimal alpha.
+
+Returns:
+- alpha_star[iw]: optimal annuitization fraction for each initial wealth
+- V_annuitized[iw]: value at optimal alpha
+"""
+function solve_annuitization_health(
+    sol::HealthSolution,
+    payout_rate::Float64;
+    initial_health::Int=1,  # 1=Good, 2=Fair, 3=Poor
+)
+    p = sol.params
+    g = sol.grids
+    nW = length(g.W)
+
+    alpha_star = fill(0.0, nW)
+    V_annuitized = fill(-Inf, nW)
+
+    # 2D interpolation of V(W, A, H=initial_health, t=1)
+    V_t1 = sol.V[:, :, initial_health, 1]
+    V_interp = linear_interpolation(
+        (g.W, g.A), V_t1,
+        extrapolation_bc=Interpolations.Flat(),
+    )
+
+    for iw in 1:nW
+        W_0 = g.W[iw]
+        best_V = -Inf
+        best_alpha = 0.0
+
+        for alpha in g.alpha
+            A_val = annuity_income(alpha, W_0, payout_rate)
+            W_rem = post_purchase_wealth(alpha, W_0, p.fixed_cost)
+
+            W_rem < 0.0 && continue
+            is_feasible_purchase(alpha, W_0, p) || continue
+
+            A_clamped = clamp(A_val, g.A[1], g.A[end])
+            W_clamped = clamp(W_rem, g.W[1], g.W[end])
+
+            V_val = V_interp(W_clamped, A_clamped)
+
+            if V_val > best_V
+                best_V = V_val
+                best_alpha = alpha
+            end
+        end
+
+        alpha_star[iw] = best_alpha
+        V_annuitized[iw] = best_V
+    end
+
+    return (alpha_star, V_annuitized)
+end
