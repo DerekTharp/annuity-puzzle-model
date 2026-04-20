@@ -626,8 +626,12 @@ function compute_ownership_rate_health(
 
     if n_evaluated > 0.0
         return (ownership_rate = n_owners / n_evaluated,
-                mean_alpha = sum_alpha / n_evaluated)
+                mean_alpha = sum_alpha / n_evaluated,
+                n_above_grid = n_above_grid,
+                n_evaluated = Int(round(n_evaluated)))
     else
-        return (ownership_rate = 0.0, mean_alpha = 0.0)
+        return (ownership_rate = 0.0, mean_alpha = 0.0,
+                n_above_grid = n_above_grid,
+                n_evaluated = 0)
     end
 end

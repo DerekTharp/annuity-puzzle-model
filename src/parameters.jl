@@ -15,8 +15,8 @@ using TOML
 
     # Demographics
     age_start::Int = 65
-    age_end::Int = 100
-    T::Int = age_end - age_start + 1  # 36 periods
+    age_end::Int = 110
+    T::Int = age_end - age_start + 1  # 46 periods
 
     # Income
     r::Float64 = 0.02             # real risk-free rate
@@ -113,7 +113,7 @@ function load_params(config_path::String)
 
     # Recompute T if demographics changed
     age_start = get(kwargs, :age_start, 65)
-    age_end = get(kwargs, :age_end, 100)
+    age_end = get(kwargs, :age_end, 110)
     kwargs[:T] = age_end - age_start + 1
 
     # Convert hazard_mult_by_age from array-of-arrays to Matrix

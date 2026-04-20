@@ -167,6 +167,7 @@ function compute_cev_population(
         # Age-specific payout rate
         if base_surv !== nothing && age > p.age_start
             remaining_T = p.T - t + 1
+            r_discount = p.inflation_rate > 0 ? (1 + p.r) * (1 + p.inflation_rate) - 1 : p.r
             pv = 1.0
             for s in 1:(remaining_T - 1)
                 cum_s = 1.0
@@ -174,7 +175,7 @@ function compute_cev_population(
                     k > length(base_surv) && break
                     cum_s *= base_surv[k]
                 end
-                pv += cum_s / (1.0 + p.r)^s
+                pv += cum_s / (1.0 + r_discount)^s
             end
             payout_rate = p.mwr / pv
         else

@@ -152,6 +152,22 @@ for hr in hazard_results
     @printf("  %-45s  %10.1f%%\n", hr.label, hr.rate * 100)
     push!(all_results, ("Hazard mult", hr.label, @sprintf("%.1f%%", hr.rate * 100)))
 end
+
+# Age-varying hazard multipliers (HRS empirical, 3 age bands)
+println("\n  Age-varying specification (HRS empirical by age band):")
+t0_ageband = time()
+# HRS estimates from main.tex Table: 65-74, 75-84, 85+
+hm_by_age = [0.49 1.0 3.29;   # 65-74
+             0.60 1.0 2.77;   # 75-84
+             0.74 1.0 1.82]   # 85+
+hm_midpoints = [70.0, 80.0, 90.0]
+rate_ageband = run_full_model(_bs, _pop, _bkw;
+    hazard_mult_by_age=hm_by_age, hazard_mult_age_midpoints=hm_midpoints)
+@printf("  %-45s  %10.1f%%\n", "Age-varying HRS (3 bands)", rate_ageband * 100)
+push!(all_results, ("Hazard mult", "Age-varying HRS (3 bands)",
+    @sprintf("%.1f%%", rate_ageband * 100)))
+@printf("  Age-band solve: %.0fs\n", time() - t0_ageband)
+
 @printf("  Total hazard sweep: %.0fs\n", time() - t0_hazard)
 
 # ===================================================================

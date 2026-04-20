@@ -137,6 +137,7 @@ println("=" ^ 70)
     "Bequest Spec", "Mean CEV", "Med CEV", "CEV>0", "CEV>1%")
 println("  " * "-" ^ 62)
 
+pop_cev_rows = []
 for pcev in cev_output.population_cev
     @printf("  %-20s %9.2f%% %9.2f%% %9.1f%% %9.1f%%\n",
         pcev.name,
@@ -144,7 +145,19 @@ for pcev in cev_output.population_cev
         pcev.median_cev * 100,
         pcev.frac_positive * 100,
         pcev.frac_above_1pct * 100)
+    push!(pop_cev_rows, [pcev.name, pcev.mean_cev, pcev.median_cev,
+                          pcev.frac_positive, pcev.frac_above_1pct])
 end
+
+# Save population CEV to CSV
+pop_csv_path = joinpath(PROJECT_DIR, "tables", "csv", "population_cev.csv")
+open(pop_csv_path, "w") do io
+    println(io, "bequest_spec,mean_cev,median_cev,frac_positive,frac_above_1pct")
+    for row in pop_cev_rows
+        @printf(io, "%s,%.6f,%.6f,%.4f,%.4f\n", row...)
+    end
+end
+@printf("  Saved: %s\n", pop_csv_path)
 
 # ===================================================================
 # Section 3: Subpopulation Identification (under DFJ bequests)

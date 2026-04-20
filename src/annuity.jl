@@ -129,5 +129,5 @@ function post_purchase_wealth(alpha::Float64, W_0::Float64, fixed_cost::Float64)
     if alpha > 0.0
         W -= fixed_cost
     end
-    return max(W, 0.0)
+    return W  # callers check W < 0 to reject infeasible purchases
 end
