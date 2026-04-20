@@ -150,7 +150,7 @@ for pcev in cev_output.population_cev
 end
 
 # Save population CEV to CSV
-pop_csv_path = joinpath(PROJECT_DIR, "tables", "csv", "population_cev.csv")
+pop_csv_path = joinpath(@__DIR__, "..", "tables", "csv", "population_cev.csv")
 open(pop_csv_path, "w") do io
     println(io, "bequest_spec,mean_cev,median_cev,frac_positive,frac_above_1pct")
     for row in pop_cev_rows

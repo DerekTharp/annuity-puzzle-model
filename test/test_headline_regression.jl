@@ -86,11 +86,19 @@ end
 
     @testset "CEV welfare grid" begin
         c = read_csv("welfare_cev_grid.csv")
-        # Check that the file exists and has content
         @test size(c, 1) > 0
-        # The exact format depends on the script; verify key values exist
-        # CEV at $1M no-bequest good health should be ~13.8%
-        # CEV at $1M DFJ good health should be ~7.3%
+    end
+
+    @testset "HRS observed ownership" begin
+        # Verify the HRS sample has real ownership data (not all zeros)
+        hrs_path = joinpath(PROJECT_DIR, "data", "processed", "lockwood_hrs_sample.csv")
+        hrs = readdlm(hrs_path, ',', Any; skipstart=1)
+        own_col = Float64.(hrs[:, 5])  # own_life_ann column
+        obs_rate = sum(own_col) / length(own_col)
+        # Observed rate should be ~3.4% (from RAND HRS r{w}iann)
+        @test obs_rate > 0.02   # at least 2%
+        @test obs_rate < 0.06   # no more than 6%
+        @test sum(own_col) > 100  # at least 100 owners in sample
     end
 
 end
