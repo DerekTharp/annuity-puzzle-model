@@ -24,6 +24,7 @@
 #   r{w}isret      individual SS retirement income
 #   r{w}igxrc      individual income from government transfers
 #   r{w}ipeninc    individual pension/annuity income
+#   r{w}iann       individual annuity income (positive = owner)
 #   r{w}iosdi      individual other govt transfer income
 #
 # References:
@@ -104,6 +105,7 @@ function main()
         isret_sym   = Symbol("r$(w)isret")    # SS retirement benefits
         issdi_sym   = Symbol("r$(w)issdi")    # SS disability income
         ipeninc_sym = Symbol("r$(w)ipeninc")  # pension/annuity income
+        iann_sym    = Symbol("r$(w)iann")     # individual annuity income
 
         # Collect columns
         # Use try/catch for columns that may not exist in all waves
@@ -117,6 +119,7 @@ function main()
         isret_col   = try collect(getproperty(tbl, isret_sym))   catch; nothing end
         issdi_col   = try collect(getproperty(tbl, issdi_sym))   catch; nothing end
         ipeninc_col = try collect(getproperty(tbl, ipeninc_sym)) catch; nothing end
+        iann_col    = try collect(getproperty(tbl, iann_sym))    catch; nothing end
 
         # Check that essential columns exist
         if age_col === nothing || mstat_col === nothing
@@ -198,13 +201,14 @@ function main()
                 perm_inc += max(numval_float(ipeninc_col[i]), 0.0)
             end
 
-            # Annuity ownership: count as owner if pension/annuity income > 0
-            # This is an approximation; the RAND HRS does not directly flag
-            # life annuity ownership. Pension income could include DB pensions
-            # and purchased annuities. Set to 0 as default since Lockwood's
-            # observed rate (3.6%) comes from a separate question.
-            # TODO: use fat file annuity ownership variable if available
+            # Annuity ownership: r{w}iann > 0 indicates individual receives
+            # annuity income (RAND HRS harmonized variable). Rates of 3-4%
+            # across waves are consistent with Lockwood's 3.6% from HRS.
             own_ann = 0.0
+            if iann_col !== nothing && !ismissing(iann_col[i])
+                ann_inc = numval_float(iann_col[i])
+                own_ann = ann_inc > 0.0 ? 1.0 : 0.0
+            end
 
             push!(out_wealth, wealth)
             push!(out_perm_inc, perm_inc)
@@ -239,6 +243,10 @@ function main()
     @printf("  Mean wealth:             \$%s\n", string(round(Int, sum(out_wealth) / n_total)))
     @printf("  Median perm income:      \$%s\n", string(round(Int, sorted_inc[med_idx])))
     @printf("  Mean perm income:        \$%s\n", string(round(Int, sum(out_perm_inc) / n_total)))
+
+    # Annuity ownership
+    n_ann_owners = count(x -> x == 1.0, out_ann_own)
+    @printf("  Annuity owners:          %d (%.1f%%)\n", n_ann_owners, n_ann_owners/n_total*100)
 
     # Health distribution
     n_good = count(x -> x == 1.0, out_health)

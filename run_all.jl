@@ -73,6 +73,13 @@ function main()
         end
     end
 
+    # --- Stage 0b: Build HRS sample ---
+    # Produces: data/processed/lockwood_hrs_sample.csv
+    t = run_stage(
+        "0b. Build HRS Population Sample",
+        joinpath(PROJECT_DIR, "calibration", "build_hrs_sample.jl"))
+    push!(timings, "HRS sample" => t)
+
     # --- Stage 1: Lockwood (2012) replication ---
     # Produces: lockwood_replication.tex (appendix)
     t = run_stage(
