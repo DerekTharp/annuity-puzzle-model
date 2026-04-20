@@ -12,7 +12,7 @@
 \usepackage{threeparttable}
 \usepackage{xcolor}
 \usepackage{xr-hyper}
-\externaldocument{main}
+\externaldocument[M-][nocite]{main}
 
 \hypersetup{
     colorlinks=true,
@@ -79,7 +79,11 @@ The lognormal specification produces a right-skewed distribution consistent with
 
 Baseline survival probabilities use the SSA administrative period life table employed by \citet{lockwood2012}. The cumulative death probabilities at ages 65, 70, 75, \ldots are taken directly from Lockwood's replication code (BAP\_sim2.m) and interpolated linearly at intermediate ages.
 
-Health-adjusted survival follows the proportional hazard specification $s(t, H) = s_{\text{base}}(t)^{\mu(H)}$, where $\mu(H)$ is the health-specific hazard multiplier. The baseline uses constant multipliers $[0.50, 1.0, 3.0]$ for Good, Fair, and Poor health. These are informed by age-band estimates from the RAND HRS longitudinal file:
+Health-adjusted survival follows
+\[
+s(t, H) = s_{\text{base}}(t)^{\mu(H)},
+\]
+where $\mu(H)$ is the health-specific hazard multiplier. The baseline uses constant multipliers $[0.50, 1.0, 3.0]$ for Good, Fair, and Poor health. These are informed by age-band estimates from the RAND HRS longitudinal file:
 
 \begin{center}
 \begin{tabular}{lccc}
@@ -93,7 +97,7 @@ Age band & $\mu(\text{Good})$ & $\mu(\text{Fair})$ & $\mu(\text{Poor})$ \\
 \end{tabular}
 \end{center}
 
-The constant baseline multipliers $[0.50, 1.0, 3.0]$ represent a central tendency across these age bands, falling between the R-S functional estimates and the empirical HRS values. Robustness checks in Section~\ref{sec:robustness} and Appendix~\ref{app:robustness} span the full range from $[0.45, 1.0, 3.5]$ to $[0.60, 1.0, 2.0]$. The code also supports age-varying multipliers with linear interpolation between band midpoints, available as a further extension.
+The constant baseline multipliers $[0.50, 1.0, 3.0]$ represent a central tendency across these age bands, falling between the R-S functional estimates and the empirical HRS values. Robustness checks in Section~\ref{M-sec:robustness} and Appendix~\ref{app:robustness} span the full range from $[0.45, 1.0, 3.5]$ to $[0.60, 1.0, 2.0]$. The code also supports age-varying multipliers with linear interpolation between band midpoints, available as a further extension.
 
 \subsection{Subjective survival beliefs}
 \label{app:survival_pessimism}
@@ -110,7 +114,7 @@ Annuity pricing uses objective survival $s(t, H)$, creating a wedge: the agent p
 \]
 At this calibration, subjective 20-year survival is $0.981^{20} \approx 0.68$ times objective survival, generating a substantial perceived shortening of life horizon without the extreme compounding that a larger per-year factor (e.g., $\psi = 0.85$, which implies $0.85^{10} = 0.20$ at 10 years) would produce.
 
-Robustness exercises in Section~\ref{sec:robustness} vary $\psi$ from 0.970 to 0.990.
+Robustness exercises in Section~\ref{M-sec:robustness} vary $\psi$ from 0.970 to 0.990.
 
 \subsection{Age-varying consumption needs}
 \label{app:age_needs}
@@ -276,13 +280,14 @@ Table~\ref{tab:dia} compares predicted ownership and welfare across product type
 \section{Full Sensitivity Analysis}
 \label{app:robustness}
 
-Table~\ref{tab:full_robustness} reports predicted ownership under all robustness specifications.
+Tables~\ref{tab:full_robustness} and~\ref{tab:full_robustness_continued} report predicted ownership under all robustness specifications.
 
 \begin{table}[htbp]
 \centering
-\caption{Full Robustness Results}
+\caption{Full Sensitivity Results}
 \label{tab:full_robustness}
 \begin{threeparttable}
+\small
 \begin{tabular}{llc}
 \toprule
 Category & Specification & Ownership (\%) \\
@@ -317,7 +322,26 @@ Category & Specification & Ownership (\%) \\
  & $\psi = 0.970$ & 10.7 \\
  & $\psi = 0.981$ (baseline) & 18.3 \\
  & $\psi = 0.990$ & 25.2 \\
- & $\psi = 1.000$ (objective) & 32.6 \\[4pt]
+ & $\psi = 1.000$ (objective) & 32.6 \\
+\bottomrule
+\end{tabular}
+\begin{tablenotes}
+\small
+\item Unless otherwise noted, all specifications use baseline parameters: $\gamma = 2.5$, $\beta = 0.97$, DFJ bequests ($\theta = 56.96$, $\kappa = \$272{,}628$), survival pessimism $\psi = 0.981$, MWR $= 0.82$, $F = \$1{,}000$, $\pi = 2\%$, hazard multipliers $[0.50, 1.0, 3.0]$, 9-node Gauss--Hermite quadrature, production grid ($80 \times 30 \times 101$). Seven-channel model (without age-varying needs and state-dependent utility).
+\end{tablenotes}
+\end{threeparttable}
+\end{table}
+
+\begin{table}[htbp]
+\centering
+\caption{Full Sensitivity Results (continued)}
+\label{tab:full_robustness_continued}
+\begin{threeparttable}
+\small
+\begin{tabular}{llc}
+\toprule
+Category & Specification & Ownership (\%) \\
+\midrule
 \multicolumn{3}{l}{\textit{Bequest specification}} \\
  & No bequest ($\theta = 0$) & 29.4 \\
  & DFJ luxury (baseline) & 18.3 \\[4pt]
@@ -339,7 +363,7 @@ Category & Specification & Ownership (\%) \\
 \end{tabular}
 \begin{tablenotes}
 \small
-\item Unless otherwise noted, all specifications use baseline parameters: $\gamma = 2.5$, $\beta = 0.97$, DFJ bequests ($\theta = 56.96$, $\kappa = \$272{,}628$), survival pessimism $\psi = 0.981$, MWR $= 0.82$, $F = \$1{,}000$, $\pi = 2\%$, hazard multipliers $[0.50, 1.0, 3.0]$, 9-node Gauss--Hermite quadrature, production grid ($80 \times 30 \times 101$). Seven-channel model (without age-varying needs and state-dependent utility).
+\item Notes as in Table~\ref{tab:full_robustness}.
 \end{tablenotes}
 \end{threeparttable}
 \end{table}
@@ -380,7 +404,7 @@ The net effect on demand is ambiguous: the guarantee reduces the bequest penalty
 \section{Implied Risk Aversion from Parameter Uncertainty}
 \label{app:monte_carlo}
 
-The decomposition results depend on calibrated parameters, and the sensitivity to $\gamma$ documented in Section~\ref{sec:monte_carlo} raises the question of whether the baseline prediction is fragile. To address this, 300 draws of nuisance parameters are taken from the following distributions:
+The decomposition results depend on calibrated parameters, and the sensitivity to $\gamma$ documented in Section~\ref{M-sec:monte_carlo} raises the question of whether the baseline prediction is fragile. To address this, 300 draws of nuisance parameters are taken from the following distributions:
 
 \begin{itemize}
 \item \textbf{Poor-health hazard multiplier:} $\mu_P \sim U(2.0, 3.5)$. The lower bound corresponds to conservative SRH-based estimates for the oldest old. The upper bound corresponds to the functional limitation states used by \citet{reichlingsmetters2015}. The Good-health multiplier is held at 0.50.
@@ -483,7 +507,7 @@ $100 \times 40$ & 0.014 & 0.000 & 9.9 & 5.9 \\
 \end{threeparttable}
 \end{table}
 
-The use of piecewise-linear interpolation means derivatives are discontinuous at grid points, which introduces a floor on residual accuracy. The 6\% of points with residuals above 5\% are concentrated at low wealth levels where the value function has high curvature and the linear approximation is poorest. Switching to cubic spline interpolation would reduce these residuals at the cost of potential Runge-type oscillations at low wealth. The grid convergence results in Section~\ref{app:grid_convergence} provide a complementary accuracy check: stable ownership predictions across grid resolutions confirm that the policy function is resolved by the production grid. The exact Shapley decomposition, which evaluates all 512 channel subsets on the same production grid, implicitly provides a further robustness check: if the solver were unreliable, the 512 ownership evaluations would not produce the internally consistent attribution hierarchy reported in Section~\ref{sec:shapley}.
+The use of piecewise-linear interpolation means derivatives are discontinuous at grid points, which introduces a floor on residual accuracy. The 6\% of points with residuals above 5\% are concentrated at low wealth levels where the value function has high curvature and the linear approximation is poorest. Switching to cubic spline interpolation would reduce these residuals at the cost of potential Runge-type oscillations at low wealth. The grid convergence results in Section~\ref{app:grid_convergence} provide a complementary accuracy check: stable ownership predictions across grid resolutions confirm that the policy function is resolved by the production grid. The exact Shapley decomposition, which evaluates all 512 channel subsets on the same production grid, implicitly provides a further robustness check: if the solver were unreliable, the 512 ownership evaluations would not produce the internally consistent attribution hierarchy reported in Section~\ref{M-sec:shapley}.
 
 
 \bibliographystyle{aer}

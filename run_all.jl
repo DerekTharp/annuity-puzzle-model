@@ -5,7 +5,7 @@
 #   julia --project=. run_all.jl --skip-tests # skip test suite, run analyses only
 #   julia --project=. run_all.jl --tests-only # run tests only
 #
-# Expected runtime: ~2-3 hours (13 stages, ~40 model solves total).
+# Expected runtime: ~4-6 hours (15 stages, ~550 model solves including Shapley).
 # For faster development runs, use --skip-tests and comment out Stage 12.
 #
 # Output:
@@ -136,24 +136,38 @@ function main()
         joinpath(CALIB_DIR, "recalibrate_bequests.jl"))
     push!(timings, "Bequests" => t)
 
-    # --- Stage 10: Robustness and sensitivity ---
+    # --- Stage 10: Exact Shapley decomposition (512 subsets) ---
+    # Produces: shapley_exact.tex/.csv
+    t = run_stage(
+        "10. Exact Shapley Decomposition (512 subsets)",
+        joinpath(SCRIPTS_DIR, "run_subset_enumeration.jl"); parallel=true)
+    push!(timings, "Shapley" => t)
+
+    # --- Stage 11: SS cut robustness ---
+    # Produces: ss_cut_robustness.tex/.csv
+    t = run_stage(
+        "11. Social Security Cut Robustness",
+        joinpath(SCRIPTS_DIR, "run_ss_robustness.jl"); parallel=true)
+    push!(timings, "SS cuts" => t)
+
+    # --- Stage 12: Robustness and sensitivity ---
     # Produces: robustness_gamma_inflation.tex, retention_rates.tex, robustness_full.csv
     t = run_stage(
-        "10. Robustness and Sensitivity Analysis",
+        "12. Robustness and Sensitivity Analysis",
         joinpath(SCRIPTS_DIR, "run_robustness.jl"); parallel=true)
     push!(timings, "Robustness" => t)
 
-    # --- Stage 11: Implied gamma (computationally intensive) ---
+    # --- Stage 13: Implied gamma (computationally intensive) ---
     # Produces: implied_gamma.tex/.csv
     t = run_stage(
-        "11. Implied Risk Aversion (Monte Carlo bisection)",
+        "13. Implied Risk Aversion (Monte Carlo bisection)",
         joinpath(SCRIPTS_DIR, "run_implied_gamma.jl"); parallel=true)
     push!(timings, "Implied gamma" => t)
 
-    # --- Stage 12: Figure generation (must run last — reads CSVs) ---
-    # Produces: figures/pdf/fig1-fig5.pdf, figures/png/fig1-fig5.png (5 figures)
+    # --- Stage 14: Figure generation (must run last — reads CSVs) ---
+    # Produces: figures/pdf/fig1-fig6.pdf, figures/png/fig1-fig6.png (6 figures)
     t = run_stage(
-        "12. Figure Generation",
+        "14. Figure Generation",
         joinpath(SCRIPTS_DIR, "generate_figures.jl"))
     push!(timings, "Figures" => t)
 
@@ -191,6 +205,7 @@ function main()
         "bequest_recalibration.tex",
         "cev_counterfactuals.tex",
         "dia_comparison.tex",
+        "extension_path.tex",
         "implied_gamma.tex",
         "moment_validation.tex",
         "multigamma_decomposition.tex",
@@ -198,6 +213,8 @@ function main()
         "pashchenko_comparison.tex",
         "retention_rates.tex",
         "robustness_gamma_inflation.tex",
+        "shapley_exact.tex",
+        "ss_cut_robustness.tex",
         "welfare_cev_grid.tex",
         "welfare_counterfactuals.tex",
     ]
