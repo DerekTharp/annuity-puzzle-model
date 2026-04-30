@@ -125,6 +125,8 @@ _beta = BETA
 _r = R_RATE
 _c_floor = C_FLOOR
 _fixed_cost = FIXED_COST
+_min_purchase = MIN_PURCHASE
+_lambda_w = LAMBDA_W
 _nw = _NW
 _na = _NA
 _nalpha = _NALPHA
@@ -167,9 +169,11 @@ results = parallel_solve(draws) do d
 
         p_full = ModelParams(; common_kw...,
             theta=_theta, kappa=_kappa,
-            mwr=d.mwr, fixed_cost=_fixed_cost, inflation_rate=d.inflation,
+            mwr=d.mwr, fixed_cost=_fixed_cost, min_purchase=_min_purchase,
+            inflation_rate=d.inflation,
             medical_enabled=true, health_mortality_corr=true,
             survival_pessimism=_psi,
+            lambda_w=_lambda_w,
             grid_kw...)
 
         sol = solve_lifecycle_health(p_full, grids, _bs, ss_mean_func)

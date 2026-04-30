@@ -14,6 +14,8 @@ struct Solution
     c_policy::Array{Float64, 3} # c[w, a, t]: optimal consumption
     grids::Grids
     params::ModelParams
+    base_surv::Vector{Float64}  # period-survival hazards (kept for narrow-framing
+                                 # NPV calculation at the age-65 alpha search)
 end
 
 """
@@ -25,6 +27,8 @@ struct HealthSolution
     c_policy::Array{Float64, 4} # c[w, a, h, t]: optimal consumption
     grids::Grids
     params::ModelParams
+    base_surv::Vector{Float64}  # period-survival hazards (kept for narrow-framing
+                                 # NPV calculation at the age-65 alpha search)
 end
 
 """
@@ -83,7 +87,7 @@ function solve_lifecycle(
         end
     end
 
-    return Solution(V, c_policy, grids, p)
+    return Solution(V, c_policy, grids, p, surv)
 end
 
 """
@@ -140,13 +144,21 @@ function solve_lifecycle_health(
                 cash_before = W_val + A_real + ss_val
 
                 if p.medical_enabled
+                    # Source-aware accounting for SDU at terminal period
+                    # (see backward-induction block below for full rationale).
                     mu_m, sigma_m = medical_expense_params(p.age_end, ih, p)
+                    inc_gross = ss_val + A_real
                     V_total = 0.0
                     c_total = 0.0
                     for iq in 1:p.n_quad
                         m = exp(mu_m + sigma_m * gh_nodes[iq])
-                        cash_after = apply_medicaid_floor(cash_before, m, p.c_floor)
-                        V_k, c_k = terminal_value(cash_after, 0.0, 0.0, p, T, ih)
+                        inc_after  = max(0.0, inc_gross - m)
+                        port_drain = max(0.0, m - inc_gross)
+                        W_after    = max(W_val - port_drain, 0.0)
+                        if inc_after + W_after < p.c_floor
+                            inc_after = p.c_floor - W_after
+                        end
+                        V_k, c_k = terminal_value(W_after, 0.0, inc_after, p, T, ih)
                         V_total += gh_weights[iq] * V_k
                         c_total += gh_weights[iq] * c_k
                     end
@@ -196,15 +208,33 @@ function solve_lifecycle_health(
                 cash_before = W_val + A_real + ss_val
 
                 if p.medical_enabled
-                    # Integrate over medical expense shocks
+                    # Integrate over medical expense shocks.
+                    #
+                    # Source-aware accounting for SDU: medical absorbs income
+                    # first, then portfolio. This matches behavioral evidence
+                    # that households fund medical from current income before
+                    # tapping retirement savings, and matches the FPR companion
+                    # paper's source-tracking convention. When lambda_w = 1
+                    # (SDU off), only the total cash matters; with lambda_w<1,
+                    # the income/portfolio split changes the effective utility.
                     mu_m, sigma_m = medical_expense_params(age, ih, p)
+                    inc_gross = ss_val + A_real
                     V_total = 0.0
                     c_total = 0.0
                     for iq in 1:p.n_quad
                         m = exp(mu_m + sigma_m * gh_nodes[iq])
-                        cash_after = apply_medicaid_floor(cash_before, m, p.c_floor)
+                        # Medical paid from income first, then portfolio
+                        inc_after  = max(0.0, inc_gross - m)
+                        port_drain = max(0.0, m - inc_gross)  # m above income hits W
+                        W_after    = max(W_val - port_drain, 0.0)
+                        # Apply Medicaid floor on total resources. The Medicaid
+                        # top-up is treated as income for SDU purposes (it's a
+                        # transfer payment, not portfolio drawdown).
+                        if inc_after + W_after < p.c_floor
+                            inc_after = p.c_floor - W_after
+                        end
                         V_k, c_k = solve_consumption(
-                            cash_after, 0.0, 0.0,
+                            W_after, 0.0, inc_after,
                             V_hw_interp, s_t_h, p, t, ih,
                         )
                         V_total += gh_weights[iq] * V_k
@@ -222,7 +252,7 @@ function solve_lifecycle_health(
         end
     end
 
-    return HealthSolution(V, c_policy, grids, p)
+    return HealthSolution(V, c_policy, grids, p, base_surv)
 end
 
 """
@@ -324,6 +354,16 @@ function solve_annuitization_health(
             W_clamped = clamp(W_rem, g.W[1], g.W[end])
 
             V_val = V_interp(W_clamped, A_clamped)
+
+            # Narrow-framing purchase penalty NPV (Barberis-Huang 2009;
+            # Tversky-Kahneman 1992): per-period loss-aversion flow over the
+            # underwater amount (premium - cumulative payouts), summed
+            # survival- and discount-weighted from age 65 to breakeven.
+            if alpha > 0.0 && p.psi_purchase > 0.0
+                premium = alpha * W_0
+                V_val -= purchase_penalty(premium, payout_rate, p.gamma,
+                    p.psi_purchase, p.psi_purchase_c_ref, p.beta, sol.base_surv)
+            end
 
             if V_val > best_V
                 best_V = V_val

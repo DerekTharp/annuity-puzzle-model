@@ -15,7 +15,12 @@ struct CEVResult
     alpha_star::Float64   # optimal annuity fraction
     V_no_ann::Float64     # value without annuity access
     V_with_ann::Float64   # value with optimal annuity
+    excluded::Bool        # true if W_0 outside grid bounds (CEV not estimable)
 end
+
+# Backward-compatible constructor — defaults excluded=false.
+CEVResult(cev, alpha_star, V_no_ann, V_with_ann) =
+    CEVResult(cev, alpha_star, V_no_ann, V_with_ann, false)
 
 """
 Compute CEV for a single individual.
@@ -57,7 +62,11 @@ function compute_cev(
     # V without annuity purchase
     V_no_ann = V_interp(W_c, y_c)
 
-    # Search over alpha grid for best V with annuity purchase
+    # Search over alpha grid for best V with annuity purchase. Apply the
+    # behavioral purchase penalty when psi_purchase > 0 — must mirror the
+    # solver's treatment in src/solve.jl, otherwise CEV with the behavioral
+    # channel active overstates the welfare gain (the agent would not
+    # actually choose this alpha given the friction).
     best_V = V_no_ann
     best_alpha = 0.0
     for alpha in g.alpha
@@ -75,6 +84,10 @@ function compute_cev(
         W_rc = clamp(W_rem, g.W[1], g.W[end])
         A_tc = clamp(A_total, g.A[1], g.A[end])
         V_val = V_interp(W_rc, A_tc)
+        if p.psi_purchase > 0.0
+            V_val -= purchase_penalty(pi, payout_rate, p.gamma,
+                p.psi_purchase, p.psi_purchase_c_ref, p.beta, sol.base_surv)
+        end
         if V_val > best_V
             best_V = V_val
             best_alpha = alpha
@@ -151,16 +164,16 @@ function compute_cev_population(
         age = has_age ? Int(population[i, 3]) : p.age_start
         ih = has_health ? Int(population[i, 4]) : 2
 
-        # Skip agents with wealth below minimum or above grid max
-        # (boundary extrapolation produces unreliable CEV)
+        # Flag agents with wealth outside grid bounds — CEV is not well-defined
+        # because boundary extrapolation produces unreliable values.
         if W_0 < 1.0 || W_0 > g.W[end]
-            push!(results, CEVResult(0.0, 0.0, 0.0, 0.0))
+            push!(results, CEVResult(0.0, 0.0, 0.0, 0.0, true))
             continue
         end
 
         t = age - p.age_start + 1
         if t < 1 || t > p.T
-            push!(results, CEVResult(0.0, 0.0, 0.0, 0.0))
+            push!(results, CEVResult(0.0, 0.0, 0.0, 0.0, true))
             continue
         end
 
@@ -213,6 +226,10 @@ function compute_cev_population(
             W_rc = clamp(W_rem, g.W[1], g.W[end])
             A_tc = clamp(A_total, g.A[1], g.A[end])
             V_val = V_interp(W_rc, A_tc)
+            if p.psi_purchase > 0.0
+                V_val -= purchase_penalty(pi, payout_rate, p.gamma,
+                p.psi_purchase, p.psi_purchase_c_ref, p.beta, sol.base_surv)
+            end
             if V_val > best_V
                 best_V = V_val
                 best_alpha = alpha
@@ -241,13 +258,16 @@ function compute_cev_population(
         push!(results, CEVResult(cev, best_alpha, V_no_ann, best_V))
     end
 
-    # Summary statistics
-    cevs = [r.cev for r in results]
-    mean_cev = length(cevs) > 0 ? sum(cevs) / length(cevs) : 0.0
-    sorted = sort(cevs)
+    # Summary statistics — exclude out-of-grid agents from aggregates so they
+    # don't bias mean/median downward toward zero. Report n_excluded separately
+    # so the manuscript can flag the small affected subpopulation.
+    n_excluded = count(r -> r.excluded, results)
+    included = [r.cev for r in results if !r.excluded]
+    mean_cev = length(included) > 0 ? sum(included) / length(included) : 0.0
+    sorted = sort(included)
     median_cev = length(sorted) > 0 ? sorted[div(length(sorted) + 1, 2)] : 0.0
-    frac_positive = count(c -> c > 0.0, cevs) / max(length(cevs), 1)
-    frac_above_1pct = count(c -> c > 0.01, cevs) / max(length(cevs), 1)
+    frac_positive = count(c -> c > 0.0, included) / max(length(included), 1)
+    frac_above_1pct = count(c -> c > 0.01, included) / max(length(included), 1)
 
     return (
         results=results,
@@ -255,6 +275,9 @@ function compute_cev_population(
         median_cev=median_cev,
         frac_positive=frac_positive,
         frac_above_1pct=frac_above_1pct,
+        n_total=n_individuals,
+        n_excluded=n_excluded,
+        n_included=n_individuals - n_excluded,
     )
 end
 
@@ -283,6 +306,7 @@ function compute_cev_grid(
     c_floor::Float64=6_180.0,
     mwr_loaded::Float64=0.82,
     fixed_cost_val::Float64=1_000.0,
+    min_purchase_val::Float64=0.0,
     inflation_val::Float64=0.02,
     n_wealth::Int=60,
     n_annuity::Int=20,
@@ -294,6 +318,11 @@ function compute_cev_grid(
     annuity_grid_power::Float64=3.0,
     hazard_mult::Vector{Float64}=[0.50, 1.0, 3.0],
     survival_pessimism::Float64=1.0,
+    consumption_decline::Float64=0.0,
+    health_utility::Vector{Float64}=[1.0, 1.0, 1.0],
+    psi_purchase::Float64=0.0,
+    psi_purchase_c_ref::Float64=18_000.0,
+    lambda_w::Float64=1.0,
     verbose::Bool=true,
 )
     # Default bequest specs using Lockwood's original DFJ theta (no recalibration)
@@ -311,10 +340,18 @@ function compute_cev_grid(
                W_max=W_max, age_start=age_start, age_end=age_end,
                annuity_grid_power=annuity_grid_power)
 
+    # Common keyword args: include preference + behavioral channels so the
+    # CEV computation uses the same model the production solve uses. Without
+    # these the CEV table would silently report seven-channel values while
+    # the rest of the pipeline is ten-channel.
     common_kw = (gamma=gamma, beta=beta, r=r,
                  stochastic_health=true, n_health_states=3, n_quad=n_quad,
                  c_floor=c_floor, hazard_mult=hazard_mult,
-                 survival_pessimism=survival_pessimism)
+                 survival_pessimism=survival_pessimism,
+                 consumption_decline=consumption_decline,
+                 health_utility=health_utility,
+                 psi_purchase=psi_purchase,
+                 psi_purchase_c_ref=psi_purchase_c_ref)
 
     # Payout rates: real (for grid sizing) and nominal (for pricing when inflation active)
     p_fair = ModelParams(; gamma=gamma, beta=beta, r=r, mwr=1.0, grid_kw...)
@@ -353,7 +390,8 @@ function compute_cev_grid(
 
         p_model = ModelParams(; common_kw...,
             theta=bspec.theta, kappa=bspec.kappa,
-            mwr=mwr_loaded, fixed_cost=fixed_cost_val,
+            mwr=mwr_loaded, fixed_cost=fixed_cost_val, min_purchase=min_purchase_val,
+            lambda_w=lambda_w,
             inflation_rate=inflation_val,
             medical_enabled=true, health_mortality_corr=true,
             grid_kw...)
@@ -385,6 +423,9 @@ function compute_cev_grid(
             median_cev=pop_result.median_cev,
             frac_positive=pop_result.frac_positive,
             frac_above_1pct=pop_result.frac_above_1pct,
+            n_total=pop_result.n_total,
+            n_excluded=pop_result.n_excluded,
+            n_included=pop_result.n_included,
             results=pop_result.results,
         ))
     end
@@ -447,6 +488,10 @@ function simulate_welfare_comparison(
         W_rc = clamp(W_rem, g.W[1], g.W[end])
         A_tc = clamp(A_total, g.A[1], g.A[end])
         V_val = V_interp(W_rc, A_tc)
+        if p.psi_purchase > 0.0
+            V_val -= purchase_penalty(pi, payout_rate, p.gamma,
+                p.psi_purchase, p.psi_purchase_c_ref, p.beta, sol.base_surv)
+        end
         if V_val > best_V
             best_V = V_val
             best_alpha = alpha

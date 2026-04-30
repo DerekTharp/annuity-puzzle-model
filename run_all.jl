@@ -5,14 +5,17 @@
 #   julia --project=. run_all.jl --skip-tests # skip test suite, run analyses only
 #   julia --project=. run_all.jl --tests-only # run tests only
 #
-# Expected runtime: ~4-6 hours (15 stages, ~550 model solves including Shapley).
+# Expected runtime on AWS c7a.48xlarge (192 vCPU): ~3 hours.
+# Single-thread:  ~80 hours (1024 Shapley + 6 psi + 1000 MC + everything else).
+# 19 stages total; expects all subset/Shapley/MC stages parallelized.
 # For faster development runs, use --skip-tests and comment out Stage 12.
 #
 # Output:
 #   tables/tex/*.tex   — LaTeX tables for paper (13 files)
 #   tables/csv/*.csv   — machine-readable results
-#   figures/pdf/*.pdf   — publication-quality figures
-#   figures/png/*.png   — quick-inspection rasters
+#   figures/pdf/*.pdf  — publication-quality figures
+#   figures/png/*.png  — quick-inspection rasters
+#   paper/numbers.tex  — auto-generated macros shared by main.tex/appendix.tex/cover_letter.tex
 #   results/*/         — intermediate solution data
 
 using Printf
@@ -20,12 +23,25 @@ using Printf
 const PROJECT_DIR = @__DIR__
 const SCRIPTS_DIR = joinpath(PROJECT_DIR, "scripts")
 const CALIB_DIR = joinpath(PROJECT_DIR, "calibration")
-const TEST_RUNNER = joinpath(PROJECT_DIR, "test", "runtests.jl")
+const TEST_DIR = joinpath(PROJECT_DIR, "test")
+const TEST_RUNNER = joinpath(TEST_DIR, "runtests.jl")
 
 skip_tests = "--skip-tests" in ARGS
 tests_only = "--tests-only" in ARGS
 
-const N_WORKERS = min(div(Sys.CPU_THREADS, 2), 8)  # half of cores, cap at 8
+# Workers per parallel stage. Default: min(nproc - 4, 192). Override via env:
+#   ANNUITY_N_WORKERS=64 julia ... run_all.jl
+# On laptop: ~6-8 workers (cores - 2 for OS).
+# On AWS c7a.48xlarge: 188 workers (192 vCPU - 4 reserved).
+const N_WORKERS = let
+    env = get(ENV, "ANNUITY_N_WORKERS", "")
+    if !isempty(env)
+        parse(Int, env)
+    else
+        cores = Sys.CPU_THREADS
+        cores >= 32 ? max(1, cores - 4) : max(1, cores - 2)
+    end
+end
 
 function run_stage(label::String, script_path::String; parallel::Bool=false)
     @printf("\n%s\n", "=" ^ 70)
@@ -73,12 +89,18 @@ function main()
         end
     end
 
-    # --- Stage 0b: Build HRS sample ---
+    # --- Stage 0b: Build HRS sample (skipped if processed CSV already present) ---
     # Produces: data/processed/lockwood_hrs_sample.csv
-    t = run_stage(
-        "0b. Build HRS Population Sample",
-        joinpath(PROJECT_DIR, "calibration", "build_hrs_sample.jl"))
-    push!(timings, "HRS sample" => t)
+    hrs_csv = joinpath(PROJECT_DIR, "data", "processed", "lockwood_hrs_sample.csv")
+    if isfile(hrs_csv)
+        @printf("\n  Skipping Stage 0b: %s already exists.\n", hrs_csv)
+        push!(timings, "HRS sample (skipped)" => 0.0)
+    else
+        t = run_stage(
+            "0b. Build HRS Population Sample",
+            joinpath(PROJECT_DIR, "calibration", "build_hrs_sample.jl"))
+        push!(timings, "HRS sample" => t)
+    end
 
     # --- Stage 1: Lockwood (2012) replication ---
     # Produces: lockwood_replication.tex (appendix)
@@ -143,10 +165,10 @@ function main()
         joinpath(CALIB_DIR, "recalibrate_bequests.jl"))
     push!(timings, "Bequests" => t)
 
-    # --- Stage 10: Exact Shapley decomposition (512 subsets) ---
+    # --- Stage 10: Exact Shapley decomposition (2048 subsets) ---
     # Produces: shapley_exact.tex/.csv
     t = run_stage(
-        "10. Exact Shapley Decomposition (512 subsets)",
+        "10. Exact Shapley Decomposition (2048 subsets)",
         joinpath(SCRIPTS_DIR, "run_subset_enumeration.jl"); parallel=true)
     push!(timings, "Shapley" => t)
 
@@ -171,12 +193,72 @@ function main()
         joinpath(SCRIPTS_DIR, "run_implied_gamma.jl"); parallel=true)
     push!(timings, "Implied gamma" => t)
 
-    # --- Stage 14: Figure generation (must run last — reads CSVs) ---
+    # --- Stage 13b: Behavioral channel psi sensitivity sweep ---
+    # Produces: psi_sensitivity.csv. Solves the full 10-channel model at six
+    # psi_purchase values bracketing the Blanchett-Finke and Chalmers-Reuter
+    # behavioral evidence. Establishes the demand-side counterfactual range.
+    t = run_stage(
+        "13b. Behavioral psi-purchase Sensitivity Sweep",
+        joinpath(SCRIPTS_DIR, "run_psi_sensitivity.jl"); parallel=true)
+    push!(timings, "Psi sensitivity" => t)
+
+    # --- Stage 13c: Monte Carlo parameter uncertainty (11-channel) ---
+    # Produces: monte_carlo_ownership.csv, monte_carlo_summary.tex.
+    # 1000 joint draws over (gamma fixed) hazard_poor, inflation, MWR,
+    # pessimism, delta_c, psi_purchase. Yields 90% CI bands on the headline.
+    t = run_stage(
+        "13c. Monte Carlo Parameter Uncertainty",
+        joinpath(SCRIPTS_DIR, "run_monte_carlo_uncertainty.jl"); parallel=true)
+    push!(timings, "Monte Carlo uncertainty" => t)
+
+    # --- Stage 13d: UK-anchored psi estimation (single-moment SMM) ---
+    # Produces: results/psi_estimation.json, tables/csv/psi_estimation.csv.
+    # Bisects psi to match UK 2015 pension-freedoms retention moment (mid-range
+    # 17%, sensitivity over 13-25%). Single-moment SMM, just-identified.
+    # Replaces the buried-estimation TK->psi mapping with an external natural-
+    # experiment calibration. US ownership becomes an out-of-sample prediction.
+    # Parallelized: the three retention targets are independent bisections
+    # that can dispatch evaluations across workers.
+    t = run_stage(
+        "13d. UK-anchored psi Estimation (single-moment SMM)",
+        joinpath(SCRIPTS_DIR, "estimate_psi.jl"); parallel=true)
+    push!(timings, "Psi estimation" => t)
+
+    # --- Stage 14: Figure generation (reads CSVs) ---
     # Produces: figures/pdf/fig1-fig6.pdf, figures/png/fig1-fig6.png (6 figures)
     t = run_stage(
         "14. Figure Generation",
         joinpath(SCRIPTS_DIR, "generate_figures.jl"))
     push!(timings, "Figures" => t)
+
+    # --- Stage 14b: State-dependent utility sensitivity ---
+    # Produces: state_utility_sensitivity.csv. Two full 9-channel solves under
+    # the FLN and Reichling-Smetters mappings of Finkelstein-Luttmer (2013).
+    t = run_stage(
+        "14b. State-dependent Utility Sensitivity (FLN vs R-S)",
+        joinpath(SCRIPTS_DIR, "run_state_utility_sensitivity.jl"); parallel=true)
+    push!(timings, "State-util sensitivity" => t)
+
+    # --- Stage 15: Export manuscript numbers (must run AFTER all CSVs exist) ---
+    # Produces: paper/numbers.tex — single source of truth for every numeric
+    # literal cited in main.tex, appendix.tex, and cover_letter.tex. All three
+    # manuscripts \input this file; regenerating it here ensures manuscript
+    # values never drift from the analysis CSVs.
+    t = run_stage(
+        "15. Export Manuscript Numbers (paper/numbers.tex)",
+        joinpath(SCRIPTS_DIR, "export_manuscript_numbers.jl"))
+    push!(timings, "Manuscript numbers" => t)
+
+    # --- Stage 16: Post-run validation ---
+    # Stage 0's pre-run tests bless whatever CSVs were sitting on disk before
+    # this run. We need a final pass that asserts the FRESH CSVs and
+    # numbers.tex are mutually consistent. If a generator produced a malformed
+    # CSV, an out-of-range value, or a manuscript macro that drifted from the
+    # CSV it claims to source, this stage fails the pipeline.
+    t = run_stage(
+        "16. Post-run Validation (numbers.tex vs fresh CSVs)",
+        joinpath(TEST_DIR, "test_manuscript_numbers.jl"))
+    push!(timings, "Post-run validation" => t)
 
     # --- Summary ---
     total = time() - t_total

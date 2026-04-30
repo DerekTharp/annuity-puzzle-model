@@ -12,6 +12,11 @@ using TOML
     kappa::Float64 = 0.0          # bequest shifter (Lockwood 2018)
     consumption_decline::Float64 = 0.0  # age-varying consumption needs (Aguiar-Hurst)
     health_utility::Vector{Float64} = [1.0, 1.0, 1.0]  # state-dependent utility [G,F,P] (FLN 2013)
+    psi_purchase::Float64 = 0.0       # purchase event disutility (Chalmers-Reuter 2012, Blanchett-Finke 2025); 0 = off
+    psi_purchase_c_ref::Float64 = 18_000.0  # reference consumption (\$/yr) for converting dollar premium to utility units
+    lambda_w::Float64 = 1.0           # source-dependent utility (FPR / Blanchett-Finke 2024-25)
+                                       # 1.0 = off; 0.625 = portfolio dollars worth 62.5% of income dollars
+                                       # Implementation: c_eff = c_income + lambda_w * c_portfolio
 
     # Demographics
     age_start::Int = 65
@@ -80,9 +85,15 @@ function load_params(config_path::String)
     cfg = TOML.parsefile(config_path)
     kwargs = Dict{Symbol, Any}()
 
-    # Map TOML sections to struct fields
+    # Map TOML sections to struct fields. Whenever a new ModelParams field
+    # is added the corresponding entry MUST go here, otherwise TOML configs
+    # silently fall back to defaults for that field (e.g. omitting
+    # psi_purchase from a "behavioral" section would silently disable the
+    # behavioral channel for any TOML-driven run).
     section_map = Dict(
-        "preferences" => [:gamma, :beta, :theta, :kappa, :consumption_decline, :health_utility],
+        "preferences" => [:gamma, :beta, :theta, :kappa,
+                          :consumption_decline, :health_utility],
+        "behavioral" => [:psi_purchase, :psi_purchase_c_ref, :lambda_w],
         "demographics" => [:age_start, :age_end],
         "income" => [:r, :ss_mean, :ss_quartile_shares],
         "annuity" => [:mwr, :fixed_cost, :inflation_rate, :min_purchase,

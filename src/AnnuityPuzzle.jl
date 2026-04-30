@@ -25,7 +25,7 @@ include("diagnostics.jl")
 
 export ModelParams, load_params
 export utility, bequest_utility, marginal_utility
-export flow_utility, consumption_weight, health_utility_weight
+export flow_utility, consumption_weight, health_utility_weight, purchase_penalty
 export build_wealth_grid, build_annuity_grid, build_alpha_grid, build_grids, Grids
 export ss_benefit, ss_benefit_by_wealth, ss_benefit_zero
 export survival_prob_deterministic, build_survival_probs, cumulative_survival
@@ -57,10 +57,13 @@ export load_hrs_population
     parallel_solve(specs; worker_func)
 
 Apply `worker_func` to each element of `specs`. Uses `pmap` when distributed
-workers are available (julia -p N), falls back to serial `map` otherwise.
+workers are available (julia -p N) and we're on the master process. Falls back
+to serial `map` if either no workers exist OR we're already executing on a
+worker process — the latter avoids nested-pmap deadlocks (each outer worker
+would otherwise try to schedule onto the same workers it lives on).
 """
 function parallel_solve(worker_func, specs)
-    if nworkers() > 1
+    if nworkers() > 1 && Distributed.myid() == 1
         return pmap(worker_func, specs)
     else
         return map(worker_func, specs)

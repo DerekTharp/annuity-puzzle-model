@@ -93,6 +93,7 @@ decomp = run_decomposition(
     c_floor=C_FLOOR,
     mwr_loaded=MWR_LOADED,
     fixed_cost_val=FIXED_COST,
+    min_purchase_val=MIN_PURCHASE,
     inflation_val=INFLATION,
     n_wealth=N_WEALTH, n_annuity=N_ANNUITY, n_alpha=N_ALPHA,
     W_max=W_MAX, n_quad=N_QUAD,
@@ -102,31 +103,42 @@ decomp = run_decomposition(
     survival_pessimism=SURVIVAL_PESSIMISM,
     min_wealth=MIN_WEALTH,
     ss_levels=SS_LEVELS,
+    consumption_decline_val=CONSUMPTION_DECLINE,
+    health_utility_vals=Float64.(HEALTH_UTILITY),
+    psi_purchase_val=PSI_PURCHASE,
+    lambda_w_val=LAMBDA_W,
     verbose=true,
 )
 
 # ===================================================================
-# Multiplicative Interaction Analysis
+# Multiplicative Interaction Analysis (diagnostic-only, skipped by default
+# because the same information is in pairwise_interactions.csv from this
+# script's later section + the Shapley decomposition. ~9 solves * 280s each.)
 # ===================================================================
-println("\n" * "=" ^ 70)
-mult = run_multiplicative_analysis(
-    base_surv, population;
-    gamma=GAMMA, beta=BETA, r=R_RATE,
-    theta=THETA_DFJ, kappa=KAPPA_DFJ,
-    c_floor=C_FLOOR,
-    mwr_loaded=MWR_LOADED,
-    fixed_cost_val=FIXED_COST,
-    inflation_val=INFLATION,
-    n_wealth=N_WEALTH, n_annuity=N_ANNUITY, n_alpha=N_ALPHA,
-    W_max=W_MAX, n_quad=N_QUAD,
-    age_start=AGE_START, age_end=AGE_END,
-    annuity_grid_power=A_GRID_POW,
-    hazard_mult=HAZARD_MULT,
-    survival_pessimism=SURVIVAL_PESSIMISM,
-    min_wealth=MIN_WEALTH,
-    ss_levels=SS_LEVELS,
-    verbose=true,
-)
+const RUN_MULTIPLICATIVE = get(ENV, "ANNUITY_RUN_MULTIPLICATIVE", "0") == "1"
+if RUN_MULTIPLICATIVE
+    println("\n" * "=" ^ 70)
+    mult = run_multiplicative_analysis(
+        base_surv, population;
+        gamma=GAMMA, beta=BETA, r=R_RATE,
+        theta=THETA_DFJ, kappa=KAPPA_DFJ,
+        c_floor=C_FLOOR,
+        mwr_loaded=MWR_LOADED,
+        fixed_cost_val=FIXED_COST,
+        inflation_val=INFLATION,
+        n_wealth=N_WEALTH, n_annuity=N_ANNUITY, n_alpha=N_ALPHA,
+        W_max=W_MAX, n_quad=N_QUAD,
+        age_start=AGE_START, age_end=AGE_END,
+        annuity_grid_power=A_GRID_POW,
+        hazard_mult=HAZARD_MULT,
+        survival_pessimism=SURVIVAL_PESSIMISM,
+        min_wealth=MIN_WEALTH,
+        ss_levels=SS_LEVELS,
+        verbose=true,
+    )
+else
+    println("\nSkipping multiplicative interaction analysis (set ANNUITY_RUN_MULTIPLICATIVE=1 to enable).")
+end
 
 # ===================================================================
 # Retention-Rate Decomposition (geometric compounding metric)
@@ -155,87 +167,94 @@ let cum_retention = 1.0
 end
 
 # ===================================================================
-# Robustness: vary key parameters
+# Robustness sweep + full-sample comparison (diagnostic-only, skipped by default
+# because Stage 12 (run_robustness.jl) writes a comparable CSV with parallel
+# execution. The internal sweep here is single-threaded and would take ~9 hours
+# at MWR=0.87. Set ANNUITY_RUN_DIAG_ROBUSTNESS=1 to re-enable.)
 # ===================================================================
-println("\n" * "=" ^ 70)
-println("  ROBUSTNESS: SENSITIVITY TO KEY PARAMETERS")
-println("=" ^ 70)
+const RUN_DIAG_ROBUSTNESS = get(ENV, "ANNUITY_RUN_DIAG_ROBUSTNESS", "0") == "1"
+if RUN_DIAG_ROBUSTNESS
+    println("\n" * "=" ^ 70)
+    println("  ROBUSTNESS: SENSITIVITY TO KEY PARAMETERS")
+    println("=" ^ 70)
 
-robustness_configs = [
-    ("gamma=1.5",      (gamma=1.5,)),
-    ("gamma=2.0",      (gamma=2.0,)),
-    ("gamma=2.2",      (gamma=2.2,)),
-    ("gamma=2.4",      (gamma=2.4,)),
-    ("gamma=2.6",      (gamma=2.6,)),
-    ("gamma=2.8",      (gamma=2.8,)),
-    ("gamma=3.0",      (gamma=3.0,)),
-    ("gamma=4.0",      (gamma=4.0,)),
-    ("beta=0.95",      (beta=0.95,)),
-    ("beta=0.99",      (beta=0.99,)),
-    ("MWR=0.85",       (mwr_loaded=0.85,)),
-    ("MWR=0.90",       (mwr_loaded=0.90,)),
-    ("inflation=1%",   (inflation_val=0.01,)),
-    ("inflation=3%",   (inflation_val=0.03,)),
-]
+    robustness_configs = [
+        ("gamma=1.5",      (gamma=1.5,)),
+        ("gamma=2.0",      (gamma=2.0,)),
+        ("gamma=2.2",      (gamma=2.2,)),
+        ("gamma=2.4",      (gamma=2.4,)),
+        ("gamma=2.6",      (gamma=2.6,)),
+        ("gamma=2.8",      (gamma=2.8,)),
+        ("gamma=3.0",      (gamma=3.0,)),
+        ("gamma=4.0",      (gamma=4.0,)),
+        ("beta=0.95",      (beta=0.95,)),
+        ("beta=0.99",      (beta=0.99,)),
+        ("MWR=0.85",       (mwr_loaded=0.85,)),
+        ("MWR=0.90",       (mwr_loaded=0.90,)),
+        ("inflation=1%",   (inflation_val=0.01,)),
+        ("inflation=3%",   (inflation_val=0.03,)),
+    ]
 
-@printf("\n  %-20s  %10s\n", "Configuration", "Final Ownership")
-println("  " * "-" ^ 34)
+    @printf("\n  %-20s  %10s\n", "Configuration", "Final Ownership")
+    println("  " * "-" ^ 34)
 
-for (label, overrides) in robustness_configs
-    kw = Dict{Symbol,Any}(
-        :gamma => GAMMA, :beta => BETA, :r => R_RATE,
-        :theta => THETA_DFJ, :kappa => KAPPA_DFJ,
-        :c_floor => C_FLOOR,
-        :mwr_loaded => MWR_LOADED,
-        :fixed_cost_val => FIXED_COST,
-        :inflation_val => INFLATION,
-        :n_wealth => N_WEALTH, :n_annuity => N_ANNUITY, :n_alpha => N_ALPHA,
-        :W_max => W_MAX, :n_quad => N_QUAD,
-        :age_start => AGE_START, :age_end => AGE_END,
-        :annuity_grid_power => A_GRID_POW,
-        :hazard_mult => HAZARD_MULT,
-        :survival_pessimism => SURVIVAL_PESSIMISM,
-        :min_wealth => MIN_WEALTH,
-        :ss_levels => SS_LEVELS,
-        :verbose => false,
-    )
-    for (k, v) in pairs(overrides)
-        kw[k] = v
+    for (label, overrides) in robustness_configs
+        kw = Dict{Symbol,Any}(
+            :gamma => GAMMA, :beta => BETA, :r => R_RATE,
+            :theta => THETA_DFJ, :kappa => KAPPA_DFJ,
+            :c_floor => C_FLOOR,
+            :mwr_loaded => MWR_LOADED,
+            :fixed_cost_val => FIXED_COST,
+            :inflation_val => INFLATION,
+            :n_wealth => N_WEALTH, :n_annuity => N_ANNUITY, :n_alpha => N_ALPHA,
+            :W_max => W_MAX, :n_quad => N_QUAD,
+            :age_start => AGE_START, :age_end => AGE_END,
+            :annuity_grid_power => A_GRID_POW,
+            :hazard_mult => HAZARD_MULT,
+            :survival_pessimism => SURVIVAL_PESSIMISM,
+            :min_wealth => MIN_WEALTH,
+            :ss_levels => SS_LEVELS,
+            :verbose => false,
+        )
+        for (k, v) in pairs(overrides)
+            kw[k] = v
+        end
+
+        result = run_decomposition(base_surv, population; kw...)
+        final_rate = result.steps[end].ownership_rate
+        @printf("  %-20s  %9.1f%%\n", label, final_rate * 100)
     end
 
-    result = run_decomposition(base_surv, population; kw...)
-    final_rate = result.steps[end].ownership_rate
-    @printf("  %-20s  %9.1f%%\n", label, final_rate * 100)
+    # Full-sample comparison
+    println("\n" * "=" ^ 70)
+    println("  FULL-SAMPLE COMPARISON (all agents, no wealth filter)")
+    println("=" ^ 70)
+
+    full_sample = run_decomposition(
+        base_surv, population;
+        gamma=GAMMA, beta=BETA, r=R_RATE,
+        theta=THETA_DFJ, kappa=KAPPA_DFJ,
+        c_floor=C_FLOOR,
+        mwr_loaded=MWR_LOADED,
+        fixed_cost_val=FIXED_COST,
+        inflation_val=INFLATION,
+        n_wealth=N_WEALTH, n_annuity=N_ANNUITY, n_alpha=N_ALPHA,
+        W_max=W_MAX, n_quad=N_QUAD,
+        age_start=AGE_START, age_end=AGE_END,
+        annuity_grid_power=A_GRID_POW,
+        hazard_mult=HAZARD_MULT,
+        survival_pessimism=SURVIVAL_PESSIMISM,
+        min_wealth=0.0,
+        ss_levels=SS_LEVELS,
+        verbose=false,
+    )
+    full_rate = full_sample.steps[end].ownership_rate
+    @printf("\n  Full model (all %d agents, min_wealth=0):  %6.1f%%\n", n_pop, full_rate * 100)
+    @printf("  Lockwood (2012) observed:                    %6.1f%%\n", 3.6)
+else
+    println("\nSkipping diagnostic robustness sweep + full-sample comparison.")
+    println("(Stage 12 run_robustness.jl produces a parallel-executed CSV with the same data.)")
 end
-
-# ===================================================================
-# Full-sample comparison (unfiltered, for Lockwood 3.6% match)
-# ===================================================================
-println("\n" * "=" ^ 70)
-println("  FULL-SAMPLE COMPARISON (all agents, no wealth filter)")
-println("=" ^ 70)
-
-full_sample = run_decomposition(
-    base_surv, population;
-    gamma=GAMMA, beta=BETA, r=R_RATE,
-    theta=THETA_DFJ, kappa=KAPPA_DFJ,
-    c_floor=C_FLOOR,
-    mwr_loaded=MWR_LOADED,
-    fixed_cost_val=FIXED_COST,
-    inflation_val=INFLATION,
-    n_wealth=N_WEALTH, n_annuity=N_ANNUITY, n_alpha=N_ALPHA,
-    W_max=W_MAX, n_quad=N_QUAD,
-    age_start=AGE_START, age_end=AGE_END,
-    annuity_grid_power=A_GRID_POW,
-    hazard_mult=HAZARD_MULT,
-    survival_pessimism=SURVIVAL_PESSIMISM,
-    min_wealth=0.0,
-    ss_levels=SS_LEVELS,
-    verbose=false,
-)
-full_rate = full_sample.steps[end].ownership_rate
-@printf("\n  Full model (all %d agents, min_wealth=0):  %6.1f%%\n", n_pop, full_rate * 100)
-@printf("  Lockwood (2012) observed:                    %6.1f%%\n", 3.6)
 
 # ===================================================================
 # Save decomposition results to CSV
@@ -319,6 +338,8 @@ pw = run_pairwise_interactions(
     survival_pessimism=SURVIVAL_PESSIMISM,
     min_wealth=MIN_WEALTH,
     ss_levels=SS_LEVELS,
+    consumption_decline_val=CONSUMPTION_DECLINE,
+    health_utility_vals=Float64.(HEALTH_UTILITY),
     verbose=true,
 )
 

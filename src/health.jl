@@ -279,11 +279,12 @@ Calibration: O'Dea and Sturrock (2023, AER) find subjective P(75|65) is
 ~15pp below actuarial (~71% vs 86%). The per-year factor that matches this
 10-year cumulative gap is psi = (0.71/0.86)^(1/10) = 0.981.
 """
-function build_health_survival(base_surv::Vector{Float64}, p::ModelParams)
+function build_health_survival(base_surv::Vector{Float64}, p::ModelParams;
+                                psi_override::Union{Nothing,Float64}=nothing)
     T = p.T
     nH = 3
     surv_health = Matrix{Float64}(undef, T, nH)
-    psi = p.survival_pessimism
+    psi = psi_override === nothing ? p.survival_pessimism : psi_override
     for t in 1:T
         age = p.age_start + t - 1
         for h in 1:nH

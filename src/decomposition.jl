@@ -181,7 +181,7 @@ function run_decomposition(
     theta::Float64=2.0,
     kappa::Float64=10.0,
     c_floor::Float64=3000.0,
-    mwr_loaded::Float64=0.82,
+    mwr_loaded::Float64=0.87,
     fixed_cost_val::Float64=1000.0,
     inflation_val::Float64=0.03,
     n_wealth::Int=50,
@@ -193,11 +193,16 @@ function run_decomposition(
     age_end::Int=100,
     annuity_grid_power::Float64=2.0,
     hazard_mult::Vector{Float64}=[0.6, 1.0, 2.0],
+    hazard_mult_by_age::Union{Nothing,Matrix{Float64}}=nothing,
+    hazard_mult_age_midpoints::Union{Nothing,Vector{Float64}}=nothing,
     survival_pessimism::Float64=1.0,
     min_wealth::Float64=0.0,
     ss_levels::Vector{Float64}=Float64[],
     consumption_decline_val::Float64=0.0,
     health_utility_vals::Vector{Float64}=[1.0, 1.0, 1.0],
+    psi_purchase_val::Float64=0.0,
+    lambda_w_val::Float64=1.0,
+    min_purchase_val::Float64=0.0,
     verbose::Bool=true,
 )
     ss_zero(age, p) = 0.0
@@ -209,10 +214,21 @@ function run_decomposition(
                W_max=W_max, age_start=age_start, age_end=age_end,
                annuity_grid_power=annuity_grid_power)
 
-    # Common model parameters (passed to all ModelParams constructors)
-    common_kw = (gamma=gamma, beta=beta, r=r,
-                 stochastic_health=true, n_health_states=3, n_quad=n_quad,
-                 c_floor=c_floor, hazard_mult=hazard_mult)
+    # Common model parameters (passed to all ModelParams constructors).
+    # Age-band hazard support: when hazard_mult_by_age and
+    # hazard_mult_age_midpoints are set, the model interpolates hazard
+    # multipliers across age bands rather than using a constant vector.
+    common_kw = if hazard_mult_by_age !== nothing && hazard_mult_age_midpoints !== nothing
+        (gamma=gamma, beta=beta, r=r,
+         stochastic_health=true, n_health_states=3, n_quad=n_quad,
+         c_floor=c_floor, hazard_mult=hazard_mult,
+         hazard_mult_by_age=hazard_mult_by_age,
+         hazard_mult_age_midpoints=hazard_mult_age_midpoints)
+    else
+        (gamma=gamma, beta=beta, r=r,
+         stochastic_health=true, n_health_states=3, n_quad=n_quad,
+         c_floor=c_floor, hazard_mult=hazard_mult)
+    end
 
     # Payout rates: real (Steps 0-5) and nominal (Step 6/7)
     p_fair = ModelParams(; gamma=gamma, beta=beta, r=r, mwr=1.0, grid_kw...)
@@ -389,18 +405,27 @@ function run_decomposition(
     end
 
     # --- + Realistic pricing loads ---
+    # Channel 8 stacks the three supply-side institutional frictions Pashchenko
+    # (2013) identified: proportional load (1-MWR), fixed admin cost, and
+    # minimum-purchase requirement. Setting min_purchase activates the
+    # is_feasible_purchase filter in the alpha search — agents with
+    # alpha*W_0 < min_purchase are forced to alpha=0.
     loaded_pr = mwr_loaded * fair_pr
     p_loads = ModelParams(; common_kw...,
         theta=theta, kappa=kappa, mwr=mwr_loaded, fixed_cost=fixed_cost_val,
+        min_purchase=min_purchase_val,
         inflation_rate=0.0,
         medical_enabled=true, health_mortality_corr=true,
         survival_pessimism=survival_pessimism,
         health_utility=cur_health_utility,
         consumption_decline=cur_consumption_decline,
         grid_kw...)
+    loads_label = min_purchase_val > 0 ?
+        "$step_num. + Pricing frictions (MWR=$mwr_loaded, min \$$(Int(min_purchase_val/1000))K)" :
+        "$step_num. + Realistic pricing loads (MWR=$mwr_loaded)"
     res_loads = solve_and_evaluate(p_loads, grids, base_surv, ss_arg,
         pop, loaded_pr;
-        step_name="$step_num. + Realistic pricing loads (MWR=$mwr_loaded)", verbose=verbose)
+        step_name=loads_label, verbose=verbose)
     push!(steps, DecompositionStep("+ Realistic pricing loads",
         res_loads.ownership, res_loads.mean_alpha, res_loads.ownership - prev_rate, res_loads.solve_time))
     prev_rate = res_loads.ownership
@@ -413,6 +438,7 @@ function run_decomposition(
     loaded_pr_nom = mwr_loaded * fair_pr_nom
     p_infl = ModelParams(; common_kw...,
         theta=theta, kappa=kappa, mwr=mwr_loaded, fixed_cost=fixed_cost_val,
+        min_purchase=min_purchase_val,
         inflation_rate=inflation_val,
         medical_enabled=true, health_mortality_corr=true,
         survival_pessimism=survival_pessimism,
@@ -424,11 +450,70 @@ function run_decomposition(
         step_name="$step_num. + Inflation erosion ($(inflation_val*100)%)", verbose=verbose)
     push!(steps, DecompositionStep("+ Inflation erosion",
         res_infl.ownership, res_infl.mean_alpha, res_infl.ownership - prev_rate, res_infl.solve_time))
+    prev_rate = res_infl.ownership
+    step_num += 1
+
+    # --- + Source-dependent utility (Force A; FPR companion, Blanchett-Finke 2024-25) ---
+    # Effective consumption c_eff = c_income + lambda_w * c_portfolio.
+    # When lambda_w < 1, portfolio drawdowns yield strictly less effective
+    # consumption per dollar; converting portfolio wealth into income flow via
+    # annuitization unlocks "license to spend." Mental accounting interpretation
+    # (Shefrin-Thaler 1988; Thaler 1999).
+    sdu_active = lambda_w_val < 1.0
+    cur_lambda_w = sdu_active ? lambda_w_val : 1.0
+    if sdu_active
+        p_sdu = ModelParams(; common_kw...,
+            theta=theta, kappa=kappa, mwr=mwr_loaded, fixed_cost=fixed_cost_val,
+            min_purchase=min_purchase_val,
+            inflation_rate=inflation_val,
+            medical_enabled=true, health_mortality_corr=true,
+            survival_pessimism=survival_pessimism,
+            health_utility=cur_health_utility,
+            consumption_decline=cur_consumption_decline,
+            lambda_w=lambda_w_val,
+            grid_kw...)
+        res_sdu = solve_and_evaluate(p_sdu, grids, base_surv, ss_arg,
+            pop, loaded_pr_nom;
+            step_name="$step_num. + Source-dependent utility (lambda_w=$(lambda_w_val))",
+            verbose=verbose)
+        push!(steps, DecompositionStep("+ Source-dependent utility",
+            res_sdu.ownership, res_sdu.mean_alpha, res_sdu.ownership - prev_rate, res_sdu.solve_time))
+        prev_rate = res_sdu.ownership
+        step_num += 1
+    end
+
+    # --- + Purchase disutility (Force B; narrow framing under loss aversion;
+    #     Barberis-Huang 2009 narrow framing in finance; Tversky-Kahneman 1992
+    #     loss aversion). The penalty is proportional to the underwater amount
+    #     (premium minus cumulative payouts) at each period and vanishes at
+    #     breakeven — the household experiences ongoing felt cost of the
+    #     irreversible purchase until the payouts fully recoup the premium. ---
+    psi_purchase_active = psi_purchase_val > 0.0
+    if psi_purchase_active
+        p_psi = ModelParams(; common_kw...,
+            theta=theta, kappa=kappa, mwr=mwr_loaded, fixed_cost=fixed_cost_val,
+            min_purchase=min_purchase_val,
+            inflation_rate=inflation_val,
+            medical_enabled=true, health_mortality_corr=true,
+            survival_pessimism=survival_pessimism,
+            health_utility=cur_health_utility,
+            consumption_decline=cur_consumption_decline,
+            lambda_w=cur_lambda_w,
+            psi_purchase=psi_purchase_val,
+            grid_kw...)
+        res_psi = solve_and_evaluate(p_psi, grids, base_surv, ss_arg,
+            pop, loaded_pr_nom;
+            step_name="$step_num. + Purchase disutility (psi=$(psi_purchase_val))", verbose=verbose)
+        push!(steps, DecompositionStep("+ Purchase disutility",
+            res_psi.ownership, res_psi.mean_alpha, res_psi.ownership - prev_rate, res_psi.solve_time))
+        prev_rate = res_psi.ownership
+        step_num += 1
+    end
 
     if verbose
         println("\n  " * "-" ^ 78)
         @printf("  %-50s  %6.1f%%\n",
-            "Observed (Lockwood 2012, single retirees 65-69)", 3.6)
+            "Observed (HRS sample, single retirees 65-69)", 3.4)
     end
 
     return DecompositionResult(steps)

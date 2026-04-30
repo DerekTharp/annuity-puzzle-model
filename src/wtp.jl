@@ -611,6 +611,11 @@ function compute_ownership_rate_health(
             W_c = clamp(W_rem, g.W[1], g.W[end])
             A_c = clamp(A_total, g.A[1], g.A[end])
             V_val = V_interp(W_c, A_c)
+            # Narrow-framing purchase penalty NPV
+            if p.psi_purchase > 0.0
+                V_val -= purchase_penalty(pi, payout_rate, p.gamma,
+                    p.psi_purchase, p.psi_purchase_c_ref, p.beta, sol.base_surv)
+            end
             if V_val > best_V
                 best_V = V_val
                 best_pi = pi

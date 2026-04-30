@@ -109,6 +109,8 @@ _theta_dfj = THETA_DFJ
 _kappa_dfj = KAPPA_DFJ
 _mwr_loaded = MWR_LOADED
 _fixed_cost = FIXED_COST
+_min_purchase = MIN_PURCHASE
+_lambda_w = LAMBDA_W
 _inflation = INFLATION
 _surv_pess = SURVIVAL_PESSIMISM
 _n_wealth = N_WEALTH
@@ -136,10 +138,11 @@ cut_results = parallel_solve(cut_fractions) do cut_frac
 
     p_model = ModelParams(; ckw...,
         theta=_theta_dfj, kappa=_kappa_dfj,
-        mwr=_mwr_loaded, fixed_cost=_fixed_cost,
+        mwr=_mwr_loaded, fixed_cost=_fixed_cost, min_purchase=_min_purchase,
         inflation_rate=_inflation,
         medical_enabled=true, health_mortality_corr=true,
         survival_pessimism=_surv_pess,
+        lambda_w=_lambda_w,
         gkw...)
 
     # Build grids on worker

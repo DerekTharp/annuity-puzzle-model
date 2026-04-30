@@ -19,7 +19,8 @@ const TEST_FILES = [
     "test_phase4.jl",
     "test_welfare.jl",
     "test_pashchenko_dia.jl",
-    "test_headline_regression.jl",
+    "test_10channel_smoke.jl",
+    "test_manuscript_numbers.jl",
 ]
 
 function run_test_file(filename::String)

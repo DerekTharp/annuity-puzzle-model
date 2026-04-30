@@ -84,6 +84,7 @@ cev_output = compute_cev_grid(
     c_floor=C_FLOOR,
     mwr_loaded=MWR_LOADED,
     fixed_cost_val=FIXED_COST,
+    min_purchase_val=MIN_PURCHASE,
     inflation_val=INFLATION,
     n_wealth=N_WEALTH, n_annuity=N_ANNUITY, n_alpha=N_ALPHA,
     W_max=W_MAX, n_quad=N_QUAD,
@@ -91,6 +92,10 @@ cev_output = compute_cev_grid(
     annuity_grid_power=A_GRID_POW,
     hazard_mult=HAZARD_MULT,
     survival_pessimism=SURVIVAL_PESSIMISM,
+    consumption_decline=CONSUMPTION_DECLINE,
+    health_utility=Float64.(HEALTH_UTILITY),
+    psi_purchase=PSI_PURCHASE,
+    lambda_w=LAMBDA_W,
     verbose=true,
 )
 
@@ -139,22 +144,24 @@ println("  " * "-" ^ 62)
 
 pop_cev_rows = []
 for pcev in cev_output.population_cev
-    @printf("  %-20s %9.2f%% %9.2f%% %9.1f%% %9.1f%%\n",
+    @printf("  %-20s %9.2f%% %9.2f%% %9.1f%% %9.1f%%  (n_excl=%d/%d)\n",
         pcev.name,
         pcev.mean_cev * 100,
         pcev.median_cev * 100,
         pcev.frac_positive * 100,
-        pcev.frac_above_1pct * 100)
+        pcev.frac_above_1pct * 100,
+        pcev.n_excluded, pcev.n_total)
     push!(pop_cev_rows, [pcev.name, pcev.mean_cev, pcev.median_cev,
-                          pcev.frac_positive, pcev.frac_above_1pct])
+                          pcev.frac_positive, pcev.frac_above_1pct,
+                          pcev.n_total, pcev.n_excluded, pcev.n_included])
 end
 
 # Save population CEV to CSV
 pop_csv_path = joinpath(@__DIR__, "..", "tables", "csv", "population_cev.csv")
 open(pop_csv_path, "w") do io
-    println(io, "bequest_spec,mean_cev,median_cev,frac_positive,frac_above_1pct")
+    println(io, "bequest_spec,mean_cev,median_cev,frac_positive,frac_above_1pct,n_total,n_excluded,n_included")
     for row in pop_cev_rows
-        @printf(io, "%s,%.6f,%.6f,%.4f,%.4f\n", row...)
+        @printf(io, "%s,%.6f,%.6f,%.4f,%.4f,%d,%d,%d\n", row...)
     end
 end
 @printf("  Saved: %s\n", pop_csv_path)
@@ -330,7 +337,8 @@ ss_zero(age, p) = 0.0
 p_sim = ModelParams(;
     gamma=GAMMA, beta=BETA, r=R_RATE,
     theta=0.0, kappa=0.0,
-    mwr=MWR_LOADED, fixed_cost=FIXED_COST,
+    mwr=MWR_LOADED, fixed_cost=FIXED_COST, min_purchase=MIN_PURCHASE,
+    lambda_w=LAMBDA_W,
     inflation_rate=INFLATION,
     medical_enabled=true, health_mortality_corr=true,
     stochastic_health=true, n_health_states=3, n_quad=N_QUAD,

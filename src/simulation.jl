@@ -37,7 +37,13 @@ function simulate_lifecycle(
 )
     g = sol.grids
     T = p.T
-    surv_health = build_health_survival(base_surv, p)
+    # Use OBJECTIVE survival for forward simulation: actual death is governed
+    # by physical mortality, not the agent's belief. Subjective survival
+    # (with p.survival_pessimism applied) is already baked into the value
+    # function used to compute the policy, so the consumption choice is correct
+    # under the agent's beliefs; the forward draws here just need to reflect
+    # actual mortality.
+    surv_health = build_health_survival(base_surv, p; psi_override=1.0)
     health_trans = build_all_health_transitions(p)
 
     wealth_path = zeros(T)

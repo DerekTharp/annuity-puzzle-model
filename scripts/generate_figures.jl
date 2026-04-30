@@ -16,6 +16,10 @@ using Printf
 include(joinpath(@__DIR__, "..", "src", "AnnuityPuzzle.jl"))
 using .AnnuityPuzzle
 
+# Pull production calibration constants. Figures should always reflect
+# whatever the rest of the pipeline produces.
+include(joinpath(@__DIR__, "config.jl"))
+
 # Output directories
 const FIG_PDF = joinpath(@__DIR__, "..", "figures", "pdf")
 const FIG_PNG = joinpath(@__DIR__, "..", "figures", "png")
@@ -69,19 +73,9 @@ function figure_1_decomposition()
             push!(step_ownership, Float64(raw[i, 2]))
         end
     else
-        println("  WARNING: $csv_path not found, using placeholder values.")
-        println("  Run scripts/run_decomposition.jl first to generate CSV.")
-        step_labels = [
-            "Yaari benchmark",
-            "+ Social Security",
-            "+ Bequests",
-            "+ Medical risk",
-            "+ Health-mortality corr. (R-S)",
-            "+ Survival pessimism",
-            "+ Pricing loads (MWR = 0.82)",
-            "+ Inflation erosion (2%)",
-        ]
-        step_ownership = [56.2, 100.0, 100.0, 100.0, 89.0, 83.6, 18.6, 3.2]
+        # CSV is REQUIRED — placeholders mask data drift. Fail loudly so the
+        # caller knows to run Stage 2 first.
+        error("$csv_path not found; run scripts/run_decomposition.jl first to generate.")
     end
 
     n = length(step_labels)
@@ -277,25 +271,7 @@ end
 # =====================================================================
 function figure_4_policy_functions()
     println("Generating Figure 4: Policy Functions (requires model solves)...")
-
-    # Calibration matching production runs
-    AGE_START  = 65
-    AGE_END    = 110
-    GAMMA      = 2.5
-    BETA       = 0.97
-    R_RATE     = 0.02
-    C_FLOOR    = 6_180.0
-    W_MAX      = 3_000_000.0
-    N_WEALTH   = 80
-    N_ANNUITY  = 30
-    N_ALPHA    = 101
-    A_GRID_POW = 3.0
-    N_QUAD      = 9
-    MWR_LOADED = 0.82
-    FIXED_COST = 1_000.0
-    INFLATION  = 0.02
-    THETA_DFJ  = 56.96
-    KAPPA_DFJ  = 272_628.0
+    # Constants come from config.jl (loaded at top of this file).
     # Use Lockwood's original theta at all gamma values (no recalibration)
     HAZARD_MULT = [0.50, 1.0, 3.0]
 
@@ -329,7 +305,9 @@ function figure_4_policy_functions()
     t0 = time()
     p_A = ModelParams(; common_kw...,
         theta = 0.0, kappa = 0.0,
-        mwr = MWR_LOADED, fixed_cost = FIXED_COST, inflation_rate = INFLATION,
+        mwr = MWR_LOADED, fixed_cost = FIXED_COST, min_purchase = MIN_PURCHASE,
+        lambda_w = LAMBDA_W,
+        inflation_rate = INFLATION,
         medical_enabled = false, health_mortality_corr = false,
         grid_kw...,
     )
@@ -342,7 +320,9 @@ function figure_4_policy_functions()
     t0 = time()
     p_B = ModelParams(; common_kw...,
         theta = THETA_DFJ, kappa = KAPPA_DFJ,
-        mwr = MWR_LOADED, fixed_cost = FIXED_COST, inflation_rate = INFLATION,
+        mwr = MWR_LOADED, fixed_cost = FIXED_COST, min_purchase = MIN_PURCHASE,
+        lambda_w = LAMBDA_W,
+        inflation_rate = INFLATION,
         medical_enabled = true, health_mortality_corr = true,
         grid_kw...,
     )
