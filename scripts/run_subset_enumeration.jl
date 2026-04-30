@@ -1,7 +1,7 @@
 # Full subset enumeration of annuity ownership channels.
 #
-# Precomputes the ownership rate for every combination of 9 channels
-# (2^9 = 512 subsets), then reconstructs any decomposition ordering,
+# Precomputes the ownership rate for every combination of 10 channels
+# (2^11 = 2048 subsets), then reconstructs any decomposition ordering,
 # exact Shapley values, and pairwise interactions from the lookup table.
 #
 # Channels:
@@ -14,6 +14,8 @@
 #   7. State utility — health-varying marginal utility (FLN 2013)
 #   8. Loads         — realistic pricing (MWR < 1, fixed cost)
 #   9. Inflation     — nominal annuity erosion
+#  10. Behavioral    — purchase-event disutility (Chalmers-Reuter 2012,
+#                       Blanchett-Finke 2025); calibrated externally
 #
 # R-S depends on Medical: when R-S is active but Medical is not,
 # Medical is forced on (standard treatment for complementary channels).
@@ -35,28 +37,43 @@ end
 
 include(joinpath(@__DIR__, "config.jl"))
 
-# Two new channel calibration values (Aguiar-Hurst 2013; FLN 2013)
+# Channel-specific calibration values (kept in this file because they apply only
+# when the corresponding channel is active in a subset).
+#
+# HEALTH_UTILITY: two defensible mappings from Finkelstein-Luttmer (2013) exist.
+#   [1.0, 0.90, 0.75]  — raw FLN central estimates (production)
+#   [1.0, 0.95, 0.85]  — Reichling-Smetters (2015) softer translation
+# scripts/export_manuscript_numbers.jl must mirror whichever value is active here.
 const CONSUMPTION_DECLINE = 0.02
 const HEALTH_UTILITY = [1.0, 0.90, 0.75]
+
+# PSI_PURCHASE_VAL: narrow-framing purchase-event disutility, applied only when
+# Channel 11 (Force B) is active. Production value sourced from config.jl
+# (calibrated by single-moment SMM to UK 2015 behavioral elasticity, Anchor C-mid).
+# Sensitivity interval across alternative anchors: [0.014, 0.028]; see appendix.
+const PSI_PURCHASE_VAL = PSI_PURCHASE
 
 # ===================================================================
 # Channel index definitions
 # ===================================================================
-@everywhere const CH_SS           = 1
-@everywhere const CH_BEQUESTS     = 2
-@everywhere const CH_MEDICAL      = 3
-@everywhere const CH_RS           = 4
-@everywhere const CH_PESSIMISM    = 5
-@everywhere const CH_AGE_NEEDS    = 6
-@everywhere const CH_STATE_UTIL   = 7
-@everywhere const CH_LOADS        = 8
-@everywhere const CH_INFLATION    = 9
+@everywhere const CH_SS            = 1
+@everywhere const CH_BEQUESTS      = 2
+@everywhere const CH_MEDICAL       = 3
+@everywhere const CH_RS            = 4
+@everywhere const CH_PESSIMISM     = 5
+@everywhere const CH_AGE_NEEDS     = 6
+@everywhere const CH_STATE_UTIL    = 7
+@everywhere const CH_LOADS         = 8
+@everywhere const CH_INFLATION     = 9
+@everywhere const CH_SDU           = 10  # Source-dependent utility (Force A)
+@everywhere const CH_PSI_PURCHASE  = 11  # Narrow-framing penalty (Force B)
 
-const N_CHANNELS = 9
-const N_SUBSETS = 2^N_CHANNELS  # 512
+const N_CHANNELS = 11
+const N_SUBSETS = 2^N_CHANNELS  # 2048
 const CHANNEL_NAMES = [
     "SS", "Bequests", "Medical", "R-S", "Pessimism",
     "Age needs", "State utility", "Loads", "Inflation",
+    "SDU (Force A)", "Narrow framing (Force B)",
 ]
 
 println("=" ^ 70)
@@ -107,11 +124,11 @@ flush(stdout)
 # ===================================================================
 # Build channel config from bitmask
 # ===================================================================
-# Convert an integer bitmask (0 to 511) to the set of active channel indices.
+# Convert an integer bitmask (0 to 1023) to the set of active channel indices.
 # Bit i (0-indexed) corresponds to channel i+1.
 @everywhere function bitmask_to_channels(mask::Int)
     active = Set{Int}()
-    for i in 0:8
+    for i in 0:10  # 11 channels: bits 0-10
         if (mask >> i) & 1 == 1
             push!(active, i + 1)
         end
@@ -122,9 +139,9 @@ end
 # Build ModelParams overrides for a given set of active channels.
 # Handles the R-S -> Medical dependency.
 @everywhere function build_subset_config(active::Set{Int};
-        theta_dfj, kappa_dfj, mwr_loaded, fixed_cost, inflation_val,
+        theta_dfj, kappa_dfj, mwr_loaded, fixed_cost, min_purchase, inflation_val,
         survival_pessimism, ss_quartile_levels,
-        consumption_decline, health_utility)
+        consumption_decline, health_utility, lambda_w_val, psi_purchase_val)
 
     ss_levels = [0.0, 0.0, 0.0, 0.0]
     theta = 0.0
@@ -134,9 +151,12 @@ end
     psi = 1.0
     mwr = 1.0
     fc = 0.0
+    min_p = 0.0
     infl = 0.0
     cd = 0.0
     hu = [1.0, 1.0, 1.0]
+    lam_w = 1.0
+    psi_p = 0.0
 
     if CH_SS in active
         ss_levels = copy(ss_quartile_levels)
@@ -164,9 +184,16 @@ end
     if CH_LOADS in active
         mwr = mwr_loaded
         fc = fixed_cost
+        min_p = min_purchase
     end
     if CH_INFLATION in active
         infl = inflation_val
+    end
+    if CH_SDU in active
+        lam_w = lambda_w_val
+    end
+    if CH_PSI_PURCHASE in active
+        psi_p = psi_purchase_val
     end
 
     return (ss_levels=ss_levels,
@@ -176,12 +203,14 @@ end
             survival_pessimism=psi,
             consumption_decline=cd,
             health_utility=hu,
-            mwr=mwr, fixed_cost=fc,
-            inflation_rate=infl)
+            mwr=mwr, fixed_cost=fc, min_purchase=min_p,
+            inflation_rate=infl,
+            lambda_w=lam_w,
+            psi_purchase=psi_p)
 end
 
 # ===================================================================
-# Solve all 512 subsets
+# Solve all 2048 subsets
 # ===================================================================
 println("\nSolving all $N_SUBSETS channel subsets...")
 flush(stdout)
@@ -191,6 +220,7 @@ _theta_dfj = THETA_DFJ
 _kappa_dfj = KAPPA_DFJ
 _mwr_loaded = MWR_LOADED
 _fixed_cost = FIXED_COST
+_min_purchase = MIN_PURCHASE
 _inflation = INFLATION
 _surv_pess = SURVIVAL_PESSIMISM
 _ss_q_levels = Float64.(SS_QUARTILE_LEVELS)
@@ -214,6 +244,8 @@ _fair_pr = fair_pr
 _fair_pr_nom = fair_pr_nom
 _consumption_decline = CONSUMPTION_DECLINE
 _health_utility = Float64.(HEALTH_UTILITY)
+_lambda_w = LAMBDA_W
+_psi_purchase_val = PSI_PURCHASE_VAL
 
 subset_specs = [(bitmask=i,) for i in 0:(N_SUBSETS - 1)]
 
@@ -226,10 +258,13 @@ results = parallel_solve(subset_specs) do spec
     cfg = build_subset_config(active;
         theta_dfj=_theta_dfj, kappa_dfj=_kappa_dfj,
         mwr_loaded=_mwr_loaded, fixed_cost=_fixed_cost,
+        min_purchase=_min_purchase,
         inflation_val=_inflation, survival_pessimism=_surv_pess,
         ss_quartile_levels=_ss_q_levels,
         consumption_decline=_consumption_decline,
-        health_utility=_health_utility)
+        health_utility=_health_utility,
+        lambda_w_val=_lambda_w,
+        psi_purchase_val=_psi_purchase_val)
 
     gkw = (n_wealth=_n_wealth, n_annuity=_n_annuity, n_alpha=_n_alpha,
            W_max=_w_max, age_start=_age_start, age_end=_age_end,
@@ -259,12 +294,15 @@ results = parallel_solve(subset_specs) do spec
     p_model = ModelParams(; common_kw...,
         theta=cfg.theta, kappa=cfg.kappa,
         mwr=cfg.mwr, fixed_cost=cfg.fixed_cost,
+        min_purchase=cfg.min_purchase,
         inflation_rate=cfg.inflation_rate,
         medical_enabled=cfg.medical_enabled,
         health_mortality_corr=cfg.health_mortality_corr,
         survival_pessimism=cfg.survival_pessimism,
         consumption_decline=cfg.consumption_decline,
         health_utility=cfg.health_utility,
+        lambda_w=cfg.lambda_w,
+        psi_purchase=cfg.psi_purchase,
         gkw...)
 
     # Filter population
@@ -303,7 +341,7 @@ for r in results
 end
 
 yaari_own = ownership_lookup[0]
-full_mask = (1 << N_CHANNELS) - 1  # 511
+full_mask = (1 << N_CHANNELS) - 1  # 1023 with 10 channels
 full_own = ownership_lookup[full_mask]
 total_drop = yaari_own - full_own
 
@@ -354,9 +392,14 @@ println("\n" * "=" ^ 70)
 println("  SEQUENTIAL DECOMPOSITION (from lookup table)")
 println("=" ^ 70)
 
-# Default ordering matches the manuscript decomposition
+# Default ordering matches the manuscript decomposition (3-layer structure):
+#   Layer 1 (rational): SS, Bequests, Medical, R-S, Pessimism, Loads, Inflation
+#   Layer 2 (preferences): Age needs, State utility
+#   Layer 3 (behavioral): Purchase-event disutility
 default_order = [CH_SS, CH_BEQUESTS, CH_MEDICAL, CH_RS, CH_PESSIMISM,
-                 CH_AGE_NEEDS, CH_STATE_UTIL, CH_LOADS, CH_INFLATION]
+                 CH_LOADS, CH_INFLATION,
+                 CH_AGE_NEEDS, CH_STATE_UTIL,
+                 CH_PSI_PURCHASE]
 
 """
 Reconstruct a sequential decomposition for any channel ordering
@@ -661,23 +704,23 @@ low_own_count = count(v -> v <= 0.05, values(ownership_lookup))
 @printf("\n  Subsets with ownership <= 5%%: %d of %d (%.1f%%)\n",
     low_own_count, N_SUBSETS, low_own_count / N_SUBSETS * 100)
 
-# Minimum and maximum ownership across all subsets
-local min_mask = 0
-local max_mask = 0
-local min_own_val = Inf
-local max_own_val = -Inf
-for (m, o) in ownership_lookup
-    if o < min_own_val
-        min_own_val = o
-        min_mask = m
+# Minimum and maximum ownership across all subsets. Wrapped in `let` so the
+# for-loop body sees the same scope as the accumulators (top-level `local`
+# does not propagate into the for-loop's own scope under Julia 1.10).
+let min_mask = 0, max_mask = 0, min_own_val = Inf, max_own_val = -Inf
+    for (m, o) in ownership_lookup
+        if o < min_own_val
+            min_own_val = o
+            min_mask = m
+        end
+        if o > max_own_val
+            max_own_val = o
+            max_mask = m
+        end
     end
-    if o > max_own_val
-        max_own_val = o
-        max_mask = m
-    end
+    @printf("  Min ownership: %.1f%% (%s)\n", min_own_val * 100, channels_active_str(min_mask))
+    @printf("  Max ownership: %.1f%% (%s)\n", max_own_val * 100, channels_active_str(max_mask))
 end
-@printf("  Min ownership: %.1f%% (%s)\n", min_own_val * 100, channels_active_str(min_mask))
-@printf("  Max ownership: %.1f%% (%s)\n", max_own_val * 100, channels_active_str(max_mask))
 
 println("\n" * "=" ^ 70)
 println("  SUBSET ENUMERATION COMPLETE")

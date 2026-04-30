@@ -54,7 +54,9 @@ base_surv = build_lockwood_survival(p_base)
 
 p = ModelParams(; common_kw...,
     theta=THETA_DFJ, kappa=KAPPA_DFJ,
-    mwr=MWR_LOADED, fixed_cost=FIXED_COST, inflation_rate=INFLATION,
+    mwr=MWR_LOADED, fixed_cost=FIXED_COST, min_purchase=MIN_PURCHASE,
+    lambda_w=LAMBDA_W,
+    inflation_rate=INFLATION,
     medical_enabled=true, health_mortality_corr=true,
     grid_kw...)
 

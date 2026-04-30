@@ -23,6 +23,9 @@
 
 \doublespacing
 
+% Auto-generated numeric macros shared with main.tex.
+\input{numbers.tex}
+
 \title{Online Appendix for ``Quantifying the Annuity Puzzle: A Unified Lifecycle Decomposition''}
 \author{Derek Tharp}
 \date{\today}
@@ -119,11 +122,11 @@ Robustness exercises in Section~\ref{M-sec:robustness} vary $\psi$ from 0.970 to
 \subsection{Age-varying consumption needs}
 \label{app:age_needs}
 
-The age-varying needs weight $w(t) = (1 - \delta_c)^{t-1}$ with $\delta_c = 0.02$ captures the declining consumption expenditure profile documented by \citet{aguiarhurst2013}. At this calibration, the weight declines from 1.0 at age 65 to 0.67 at age 85 and 0.45 at age 100. This implies that the felicity from a given consumption level at age 85 is roughly two-thirds of the felicity at age 65.
+The age-varying needs weight $w(t) = (1 - \delta_c)^{t-1}$ with $\delta_c = \pDeltaC$ captures the declining consumption expenditure profile documented by \citet{aguiarhurst2013}. At this calibration, the weight declines from 1.0 at age 65 to 0.67 at age 85 and 0.45 at age 100. This implies that the felicity from a given consumption level at age 85 is roughly two-thirds of the felicity at age 65.
 
-The channel reduces annuity demand because the annuity delivers a level income stream while the individual's consumption needs decline. An agent with declining needs prefers front-loaded consumption, which liquid wealth supports better than an annuity stream. The Shapley value of 6.2 pp (18\% share) indicates this is a quantitatively meaningful channel, comparable to survival pessimism and inflation erosion.
+The channel reduces annuity demand because the annuity delivers a level income stream while the individual's consumption needs decline. An agent with declining needs prefers front-loaded consumption, which liquid wealth supports better than an annuity stream. The Shapley value of \shapAgeNeeds{} pp (\shapShareAgeNeeds{} share) indicates this is a quantitatively meaningful channel, comparable to survival pessimism and inflation erosion.
 
-Table~\ref{tab:dc_sensitivity} reports the sensitivity of the full nine-channel model to the decline rate $\delta_c$, computed using mean Social Security income across all quartiles for computational tractability. Ownership in this auxiliary exercise declines monotonically from 20.0\% ($\delta_c = 0$) to 10.0\% ($\delta_c = 0.03$). At the baseline $\delta_c = 0.02$, ownership in this mean-SS specification is 13.4\%. These levels differ from the headline results in the main text (which use per-quartile SS assignment); the purpose of this table is to show the monotonic sensitivity to $\delta_c$, not to reproduce the exact headline numbers.
+Table~\ref{tab:dc_sensitivity} reports the sensitivity of the full nine-channel model to the decline rate $\delta_c$, computed using mean Social Security income across all quartiles for computational tractability. Ownership in this auxiliary exercise declines monotonically from 20.0\% ($\delta_c = 0$) to 10.0\% ($\delta_c = 0.03$). At the baseline $\delta_c = \pDeltaC$, ownership in this mean-SS specification is 13.4\%. These levels differ from the headline results in the main text (which use per-quartile SS assignment); the purpose of this table is to show the monotonic sensitivity to $\delta_c$, not to reproduce the exact headline numbers.
 
 \begin{table}[htbp]
 \centering
@@ -143,16 +146,50 @@ $\delta_c$ & Ownership (\%) & Mean $\bar{\alpha}$ \\
 \end{tabular}
 \begin{tablenotes}
 \small
-\item Full nine-channel model with state-dependent utility ($\varphi = [1.0, 0.95, 0.85]$), mean Social Security, production grid ($80 \times 30$), 9-node Gauss--Hermite quadrature.
+\item Full nine-channel model with state-dependent utility ($\varphi = [\pHealthUtilGood, \pHealthUtilFair, \pHealthUtilPoor]$), mean Social Security, production grid ($\pNWealth \times \pNAnnuity$), \pNQuad-node Gauss--Hermite quadrature.
 \end{tablenotes}
 \end{table}
 
 \subsection{State-dependent utility calibration}
 \label{app:state_dependent}
 
-The health-utility weights $\varphi = [1.0, 0.95, 0.85]$ are based on the estimates of \citet{finkelsteinluttmer2013}, who used variation in health induced by the onset of chronic conditions to estimate the effect of health on the marginal utility of consumption. Their central estimates imply that individuals in poor health value a dollar of consumption roughly 10--25\% less than those in good health. \citet{reichlingsmetters2015} used a similar mapping in their annuity model.
+The health-utility weights $\varphi = [\pHealthUtilGood, \pHealthUtilFair, \pHealthUtilPoor]$ are based on the central estimates of \citet{finkelsteinluttmer2013}, who used variation in health induced by the onset of chronic conditions to estimate the effect of health on the marginal utility of consumption. Their central estimates imply that individuals in poor health value a dollar of consumption roughly 10--25\% less than those in good health. \citet{reichlingsmetters2015} adopted a softer translation of these estimates, $\varphi = [1.00, \pHealthUtilFairRS, \pHealthUtilPoorRS]$, noting that HRS self-reported health categories do not map perfectly onto FLN's chronic-condition onset states and that FLN's confidence intervals cover the full 10--25\% range.
 
-In the calibrated model, state-dependent utility has a negligible effect on predicted ownership (Shapley value of 0.1 pp). This near-zero effect reflects the modest magnitude of the health-utility weights and the fact that poor-health states already receive low weight through the mortality channel: individuals in Poor health face high mortality, so their contribution to the annuity's expected value is small regardless of the utility weight.
+Under the raw FLN mapping the full nine-channel model predicts \ownNineChannelFLN{} ownership; under the softer Reichling--Smetters mapping it predicts \ownNineChannelRS{}, a difference of \deltaNineChannelRSmFLN{} pp. The production calibration uses the raw FLN central values; the Reichling--Smetters mapping is reported as a robustness check. In the calibrated model, state-dependent utility has a negligible effect on predicted ownership (Shapley value of \shapStateUtil{} pp) in either calibration. This near-zero effect reflects the modest magnitude of the health-utility weights and the fact that poor-health states already receive low weight through the mortality channel: individuals in Poor health face high mortality, so their contribution to the annuity's expected value is small regardless of the utility weight.
+
+\subsection{Calibration anchor sensitivity for \texorpdfstring{$\psi_{\text{purchase}}$}{psi}}
+\label{app:psi_anchors}
+
+The production calibration sets $\psi_{\text{purchase}} = \pPsiPurchase$ via single-moment SMM on the rational-corrected behavioral elasticity from the UK 2015 pension freedoms reform (60 pp drop, midpoint of the 55--65 pp range; \citealp{abi2020}). This appendix reports four alternative single-moment SMM specifications and the corresponding production-model US ownership predictions. Across alternative anchors the implied $\psi_{\text{purchase}}$ falls in $[0.014, 0.028]$ and the implied US ownership prediction in $[2.2\%, 22.2\%]$, bracketing the observed HRS rate of \pctHRSObserved{} from above and below.
+
+\begin{table}[htbp]
+\centering
+\caption{Sensitivity of $\psi_{\text{purchase}}$ to UK 2015 calibration anchor}
+\label{tab:psi_anchors}
+\begin{threeparttable}
+\begin{tabular}{lcccl}
+\toprule
+Anchor & Identifying moment & $\hat{\psi}_{\text{purchase}}$ & Predicted US ownership & Notes \\
+\midrule
+A & UK retention level (17\%, mid)            & 0.0164 & 17.00\% & Level match \\
+B$_{\text{low}}$ & UK total drop low (75 pp)     & 0.0281 &  2.16\% & Includes tax effect \\
+B$_{\text{mid}}$ & UK total drop mid (81 pp)    & --     &  0.00\% & Corner; not interior-identified \\
+B$_{\text{high}}$ & UK total drop high (87 pp)   & --     &  0.00\% & Corner; not interior-identified \\
+\textbf{C}$_{\text{low}}$  & UK behavioral residual low (55 pp)  & 0.0142 & 22.16\% & Tax-stripped \\
+\textbf{C}$_{\text{mid}}$ & UK behavioral residual mid (60 pp) & \textbf{0.0163} & \textbf{17.16\%} & \textbf{Production calibration} \\
+\textbf{C}$_{\text{high}}$ & UK behavioral residual high (65 pp) & 0.0194 & 12.16\% & Tax-stripped \\
+\midrule
+\multicolumn{2}{l}{\emph{No-PED baseline (Force B off)}} & 0.0000 & 77.16\% & Rational + SDU only \\
+\multicolumn{2}{l}{\emph{Observed (HRS, single retirees 65--69)}} & --- & \pctHRSObserved{} & Out-of-sample target \\
+\bottomrule
+\end{tabular}
+\begin{tablenotes}
+\small
+\item Anchor A matches the UK voluntary opt-in retention level (FCA Retirement Outcomes Review). Anchor B matches the raw aggregate drop in annuity sales pre/post-reform (ABI annual data). Anchor C matches the behavioral residual after subtracting the rational tax-effect component (15--25 pp from the 55\% lump-sum tax penalty removal). The production calibration uses $\psi_{\text{purchase}} = \pPsiPurchase$ from Anchor C-mid (60 pp behavioral elasticity), chosen because (i) it isolates the structural primitive that $\psi_{\text{purchase}}$ governs from rational-channel effects already represented elsewhere in the model, (ii) it preserves interior identification (Anchors B$_{\text{mid}}$ and B$_{\text{high}}$ produce corner solutions where $\psi$ is not point-identified), and (iii) under \citet{heckmanpinto2018} transportability, behavioral elasticities to architectural change transport across the UK--US tax/pension differences captured by the model's rational channels, while levels (Anchor A) do not.
+\item All US ownership predictions are out-of-sample: the calibration target is UK data only; observed US ownership is not used.
+\end{tablenotes}
+\end{threeparttable}
+\end{table}
 
 \subsection{Nominal annuity pricing derivation}
 \label{app:nominal_pricing}
@@ -204,12 +241,12 @@ Very fine & $120 \times 50$ & 9 & 20.7 & 0.0317 \\
 \end{tabular}
 \begin{tablenotes}
 \small
-\item All specifications use baseline parameters ($\gamma = 2.5$, DFJ bequests, MWR $= 0.82$, $\pi = 2\%$, $\psi = 0.981$) with mean Social Security. $n_\alpha = 101$ throughout.
+\item All specifications use baseline parameters ($\gamma = \pGamma$, DFJ bequests, MWR $= \pMwrBaseline$, $\pi = \pInflation$, $\psi = \pPessimism$) with mean Social Security. $n_\alpha = \pNAlpha$ throughout.
 \end{tablenotes}
 \end{threeparttable}
 \end{table}
 
-Ownership rates in this table differ from the headline result of 18.3\% because convergence tests use mean Social Security income across all quartiles (\$19,000/year) rather than the per-quartile assignment used in the production decomposition. The convergence properties---stability across grid resolutions and quadrature node counts---are unaffected by this simplification.
+Ownership rates in this table differ from the headline result of \ownSevenChannel{} because convergence tests use mean Social Security income across all quartiles (\$19,000/year) rather than the per-quartile assignment used in the production decomposition. The convergence properties---stability across grid resolutions and quadrature node counts---are unaffected by this simplification.
 
 Panel A shows that the grid is well-converged at the production resolution: ownership varies by only 1.1 percentage points across the four grids tested, and mean $\bar{\alpha}$ is stable within 0.002. Panel B reveals that quadrature convergence is the binding numerical concern. Binary ownership oscillates across node counts because the lognormal medical expense distribution ($\sigma \approx 1.4$) has heavy right tails that interact with the Medicaid floor: small shifts in the quadrature approximation of this tail push marginal households above or below the discrete ownership threshold ($\alpha^* > 0$). The continuous metric $\bar{\alpha}$ is more stable but still exhibits some sensitivity.
 
@@ -224,24 +261,24 @@ The production standard is 9-node Gauss--Hermite, which is well-converged across
 
 The De Nardi--French--Jones (DFJ) bequest utility is $v(b) = \theta (b + \kappa)^{1-\gamma}/(1-\gamma)$. The parameter $\kappa$ controls the luxury-good nature of bequests. When $\kappa$ is large relative to wealth $b$, marginal bequest utility $v'(b) = \theta(b + \kappa)^{-\gamma}$ is nearly constant across wealth levels, making bequests a luxury good: the bequest-to-wealth ratio rises with wealth.
 
-A numerical floor of \$1 is applied to $b + \kappa$ to avoid undefined values when $\kappa = 0$ and $b = 0$. This floor does not bind under the DFJ specification ($\kappa = \$272{,}628$) but affects homothetic counterfactuals near zero bequests.
+A numerical floor of \$1 is applied to $b + \kappa$ to avoid undefined values when $\kappa = 0$ and $b = 0$. This floor does not bind under the DFJ specification ($\kappa = \pKappaDFJ$) but affects homothetic counterfactuals near zero bequests.
 
-The reference parameters ($\theta = 56.96$, $\kappa = \$272{,}628$) are from \citet{lockwood2012}, who estimated them from HRS data under the DFJ specification at $\sigma = 2$ (his notation for CRRA). These values are used at all $\gamma$ in the present model without recalibration (see Section~\ref{app:bequest_recal} for discussion). At these values, an individual with \$50,000 in wealth has $v'(b) \approx \theta \cdot (322{,}628)^{-\gamma}$, which is negligible compared to the marginal utility of consumption. The bequest motive binds meaningfully only for individuals with wealth approaching $\kappa$.
+The reference parameters ($\theta = \pThetaDFJ$, $\kappa = \pKappaDFJ$) are from \citet{lockwood2012}, who estimated them from HRS data under the DFJ specification at $\sigma = 2$ (his notation for CRRA). These values are used at all $\gamma$ in the present model without recalibration (see Section~\ref{app:bequest_recal} for discussion). At these values, an individual with \$50,000 in wealth has $v'(b) \approx \theta \cdot (322{,}628)^{-\gamma}$, which is negligible compared to the marginal utility of consumption. The bequest motive binds meaningfully only for individuals with wealth approaching $\kappa$.
 
-\paragraph{Homothetic bequest anomaly.} Combining the DFJ bequest intensity $\theta = 56.96$ with a homothetic specification ($\kappa = \$10$) produces anomalous results. At $\kappa = \$10$, marginal bequest utility near $b = 0$ is $\theta \cdot 10^{-2.5} = 56.96 \times 3.16 \times 10^{-3} \approx 0.18$, which is extreme relative to marginal consumption utility. This creates a narrow precautionary buffer---individuals avoid annuitizing not to protect bequests, but to avoid the near-zero-wealth states where $v'(b)$ diverges. The predicted ownership under this misspecification is higher than the no-bequest case, because the buffer effect dominates the bequest effect.
+\paragraph{Homothetic bequest anomaly.} Combining the DFJ bequest intensity $\theta = \pThetaDFJ$ with a homothetic specification ($\kappa = \$10$) produces anomalous results. At $\kappa = \$10$, marginal bequest utility near $b = 0$ is $\theta \cdot 10^{-2.5} = 56.96 \times 3.16 \times 10^{-3} \approx 0.18$, which is extreme relative to marginal consumption utility. This creates a narrow precautionary buffer---individuals avoid annuitizing not to protect bequests, but to avoid the near-zero-wealth states where $v'(b)$ diverges. The predicted ownership under this misspecification is higher than the no-bequest case, because the buffer effect dominates the bequest effect.
 
 This anomaly illustrates why $\theta$ and $\kappa$ must be interpreted as a pair, not independently. The DFJ estimates from \citet{lockwood2012} are jointly calibrated; using one with the other's value replaced is not a valid counterfactual.
 
 \subsection{Bequest parameter portability}
 \label{app:bequest_recal}
 
-\citet{lockwood2012} estimated $\theta = 56.96$ and $\kappa = \$272{,}628$ at $\sigma = 2$ (his notation for the CRRA coefficient). When CRRA changes from $\gamma_{\text{ref}}$ to $\gamma_{\text{new}}$, one could recalibrate $\theta$ to maintain the same optimal bequest-to-consumption ratio via
+\citet{lockwood2012} estimated $\theta = \pThetaDFJ$ and $\kappa = \pKappaDFJ$ at $\sigma = 2$ (his notation for the CRRA coefficient). When CRRA changes from $\gamma_{\text{ref}}$ to $\gamma_{\text{new}}$, one could recalibrate $\theta$ to maintain the same optimal bequest-to-consumption ratio via
 \[
 \theta_{\text{new}} = \theta_{\text{ref}}^{\gamma_{\text{new}}/\gamma_{\text{ref}}}.
 \]
-At $\gamma = 2.5$, this would yield $\theta = 56.96^{2.5/2.0} = 156.5$, nearly tripling the bequest weight. However, this recalibration is ad hoc: Lockwood's $\theta$ was estimated from data, not derived from first principles, and there is no guarantee that the first-order condition used to derive the scaling formula holds in the full model with medical expenditure risk, stochastic mortality, and survival pessimism.
+At $\gamma = \pGamma$, this would yield $\theta = \pThetaDFJ^{\pGamma/2.0} = 156.5$, nearly tripling the bequest weight. However, this recalibration is ad hoc: Lockwood's $\theta$ was estimated from data, not derived from first principles, and there is no guarantee that the first-order condition used to derive the scaling formula holds in the full model with medical expenditure risk, stochastic mortality, and survival pessimism.
 
-Table~\ref{tab:bequest_recal} reports a forward simulation test at $\gamma = 2.0$ and $\gamma = 2.5$ using the original $\theta = 56.96$. The bequest-to-wealth ratio diverges by 13.5\%, below the threshold that would justify the strong assumption embedded in the recalibration formula. All results in the paper use Lockwood's original $\theta = 56.96$ at all $\gamma$ values, treating the bequest parameters as fixed empirical estimates. This approach is conservative: it strengthens bequests relative to the recalibrated specification (where $\theta = 156.5$ at $\gamma = 2.5$ weakens bequest utility through the higher CRRA exponent), making the predicted ownership results harder to achieve.
+Table~\ref{tab:bequest_recal} reports a forward simulation test at $\gamma = 2.0$ and $\gamma = \pGamma$ using the original $\theta = \pThetaDFJ$. The bequest-to-wealth ratio diverges by 13.5\%, below the threshold that would justify the strong assumption embedded in the recalibration formula. All results in the paper use Lockwood's original $\theta = \pThetaDFJ$ at all $\gamma$ values, treating the bequest parameters as fixed empirical estimates. This approach is conservative: it strengthens bequests relative to the recalibrated specification (where $\theta = 156.5$ at $\gamma = \pGamma$ weakens bequest utility through the higher CRRA exponent), making the predicted ownership results harder to achieve.
 
 \input{../tables/tex/bequest_recalibration.tex}
 
@@ -254,7 +291,7 @@ Table~\ref{tab:bequest_recal} reports a forward simulation test at $\gamma = 2.0
 
 \citet{pashchenko2013} conducted a sequential decomposition with four channels: pre-existing annuitization (Social Security and DB pensions), bequest motives, minimum purchase requirements, and pricing loads. Her full model predicted approximately 20\% participation, roughly four times the observed rate of 5\%.
 
-Table~\ref{tab:pashchenko} evaluates her channel set within the present framework. This comparison differs from a replication in three respects: the present model uses DFJ luxury-good bequests rather than the homothetic specification she employed; a continuous annuitization fraction rather than a binary purchase decision; and no housing illiquidity. The seven-channel model predicts 18.3\%, consistent with her approximately 20\% finding, confirming that these standard rational channels explain substantial but not all of the Yaari-to-observed gap. The channels she omitted (medical expenditure risk with health-mortality correlation, survival pessimism, and inflation erosion), combined with the novel age-varying needs channel, close the residual gap.
+Table~\ref{tab:pashchenko} evaluates her channel set within the present framework. This comparison differs from a replication in three respects: the present model uses DFJ luxury-good bequests rather than the homothetic specification she employed; a continuous annuitization fraction rather than a binary purchase decision; and no housing illiquidity. The seven-channel model predicts \ownSevenChannel, consistent with her approximately 20\% finding, confirming that these standard rational channels explain substantial but not all of the Yaari-to-observed gap. The channels she omitted (medical expenditure risk with health-mortality correlation, survival pessimism, and inflation erosion), combined with the novel age-varying needs channel, close the residual gap.
 
 \input{../tables/tex/pashchenko_comparison.tex}
 
@@ -267,7 +304,7 @@ Table~\ref{tab:pashchenko} evaluates her channel set within the present framewor
 
 Deferred income annuities (DIAs) begin payments at a future age, typically 80 or 85. By concentrating payments in late life---when longevity risk is greatest---they offer higher per-dollar payouts. A DIA purchased at 65 with payments beginning at 80 pays roughly 2.8 times the per-period income of an immediate annuity (SPIA) per dollar of premium, and a DIA-85 pays roughly 5.9 times as much.
 
-However, deferred products carry lower money's worth ratios. \citet{wettstein2021} estimate MWRs of 0.50 for DIA-80 and 0.45 for DIA-85, compared to 0.82 for SPIAs. The lower MWR reflects the longer deferral period (more discounting), smaller market (less competition), and higher sensitivity to mortality projection errors.
+However, deferred products carry lower money's worth ratios. \citet{wettstein2021} estimate MWRs of 0.50 for DIA-80 and 0.45 for DIA-85, compared to \pMwrBaseline{} for SPIAs. The lower MWR reflects the longer deferral period (more discounting), smaller market (less competition), and higher sensitivity to mortality projection errors.
 
 \input{../tables/tex/dia_comparison.tex}
 
@@ -294,40 +331,40 @@ Category & Specification & Ownership (\%) \\
 \midrule
 \multicolumn{3}{l}{\textit{Risk aversion ($\gamma$)}} \\
  & $\gamma = 1.50$ & 0.0 \\
- & $\gamma = 2.00$ & 0.0 \\
+ & $\gamma = 2.00$ & \ownGammaTwoNum \\
  & $\gamma = 2.20$ & 0.7 \\
- & $\gamma = 2.30$ & 4.8 \\
- & $\gamma = 2.40$ & 11.5 \\
- & $\gamma = 2.50$ (baseline) & 18.3 \\
+ & $\gamma = 2.30$ & \ownGammaTwoPointThreeNum \\
+ & $\gamma = 2.40$ & \ownGammaTwoPointFourNum \\
+ & $\gamma = \pGamma$ (baseline) & \ownGammaTwoPointFiveNum \\
  & $\gamma = 2.60$ & 22.9 \\
- & $\gamma = 3.00$ & 30.2 \\
+ & $\gamma = 3.00$ & \ownGammaThreeNum \\
  & $\gamma = 3.50$ & 31.9 \\
  & $\gamma = 4.00$ & 31.0 \\
  & $\gamma = 5.00$ & 27.4 \\[4pt]
 \multicolumn{3}{l}{\textit{Money's worth ratio}} \\
- & MWR = 0.82 (baseline) & 18.3 \\
- & MWR = 0.85 & 28.6 \\
- & MWR = 0.90 & 43.1 \\
- & MWR = 0.95 & 51.9 \\[4pt]
+ & MWR = \pMwrBaseline{} (baseline) & \ownMWREightyTwoNum \\
+ & MWR = 0.85 & \ownMWREightyFiveNum \\
+ & MWR = 0.90 & \ownMWRNinetyNum \\
+ & MWR = 0.95 & \ownMWRNinetyFiveNum \\[4pt]
 \multicolumn{3}{l}{\textit{Hazard multipliers $[\mu_G, \mu_F, \mu_P]$}} \\
- & R--S functional $[0.45, 1.0, 3.5]$ & 13.6 \\
- & Baseline $[0.50, 1.0, 3.0]$ & 18.3 \\
- & HRS SRH $[0.57, 1.0, 2.7]$ & 21.3 \\
- & Conservative $[0.60, 1.0, 2.0]$ & 31.1 \\[4pt]
+ & R--S functional $[0.45, 1.0, 3.5]$ & \ownHazardRSNum \\
+ & Baseline $[\pHazardGood, \pHazardFair, \pHazardPoor]$ & \ownSevenChannelNum \\
+ & HRS SRH $[0.57, 1.0, 2.7]$ & \ownHazardHRSNum \\
+ & Conservative $[0.60, 1.0, 2.0]$ & \ownHazardConservativeNum \\[4pt]
 \multicolumn{3}{l}{\textit{Inflation ($\pi$)}} \\
- & $\pi = 1\%$ & 27.9 \\
- & $\pi = 2\%$ (baseline) & 18.3 \\
- & $\pi = 3\%$ & 10.1 \\[4pt]
+ & $\pi = 1\%$ & \ownInflationOneNum \\
+ & $\pi = \pInflation$ (baseline) & \ownInflationTwoNum \\
+ & $\pi = 3\%$ & \ownInflationThreeNum \\[4pt]
 \multicolumn{3}{l}{\textit{Survival pessimism ($\psi$)}} \\
- & $\psi = 0.970$ & 10.7 \\
- & $\psi = 0.981$ (baseline) & 18.3 \\
- & $\psi = 0.990$ & 25.2 \\
- & $\psi = 1.000$ (objective) & 32.6 \\
+ & $\psi = 0.970$ & \ownPsiNinetySevenNum \\
+ & $\psi = \pPessimism$ (baseline) & \ownPsiBaselineNum \\
+ & $\psi = 0.990$ & \ownPsiNinetyNineNum \\
+ & $\psi = 1.000$ (objective) & \ownPsiObjectiveNum \\
 \bottomrule
 \end{tabular}
 \begin{tablenotes}
 \small
-\item Unless otherwise noted, all specifications use baseline parameters: $\gamma = 2.5$, $\beta = 0.97$, DFJ bequests ($\theta = 56.96$, $\kappa = \$272{,}628$), survival pessimism $\psi = 0.981$, MWR $= 0.82$, $F = \$1{,}000$, $\pi = 2\%$, hazard multipliers $[0.50, 1.0, 3.0]$, 9-node Gauss--Hermite quadrature, production grid ($80 \times 30 \times 101$). Seven-channel model (without age-varying needs and state-dependent utility).
+\item Unless otherwise noted, all specifications use baseline parameters: $\gamma = \pGamma$, $\beta = \pBeta$, DFJ bequests ($\theta = \pThetaDFJ$, $\kappa = \pKappaDFJ$), survival pessimism $\psi = \pPessimism$, MWR $= \pMwrBaseline$, $F = \pFixedCost$, $\pi = \pInflation$, hazard multipliers $[\pHazardGood, \pHazardFair, \pHazardPoor]$, \pNQuad-node Gauss--Hermite quadrature, production grid ($\pNWealth \times \pNAnnuity \times \pNAlpha$). Seven-channel model (without age-varying needs and state-dependent utility).
 \end{tablenotes}
 \end{threeparttable}
 \end{table}
@@ -343,22 +380,22 @@ Category & Specification & Ownership (\%) \\
 Category & Specification & Ownership (\%) \\
 \midrule
 \multicolumn{3}{l}{\textit{Bequest specification}} \\
- & No bequest ($\theta = 0$) & 29.4 \\
- & DFJ luxury (baseline) & 18.3 \\[4pt]
+ & No bequest ($\theta = 0$) & \ownBequestNoneNum \\
+ & DFJ luxury (baseline) & \ownSevenChannelNum \\[4pt]
 \multicolumn{3}{l}{\textit{Minimum purchase}} \\
  & \$0 & 14.9 \\
- & \$1,000 (baseline) & 14.9 \\
+ & \pFixedCost{} (baseline) & 14.9 \\
  & \$5,000 & 14.9 \\
  & \$25,000 & 14.9 \\[4pt]
 \multicolumn{3}{l}{\textit{Grid convergence}} \\
  & Coarse ($40 \times 15$) & 29.3 \\
  & Medium ($60 \times 20$) & 20.8 \\
- & Production ($80 \times 30$) & 18.3 \\
+ & Production ($\pNWealth \times \pNAnnuity$) & \ownSevenChannelNum \\
  & Fine ($100 \times 40$) & 17.2 \\[4pt]
 \multicolumn{3}{l}{\textit{Quadrature}} \\
  & 5-node GH & 21.1 \\
  & 7-node GH & 17.6 \\
- & 9-node GH (production) & 18.3 \\
+ & \pNQuad-node GH (production) & \ownSevenChannelNum \\
 \bottomrule
 \end{tabular}
 \begin{tablenotes}
@@ -418,7 +455,7 @@ For each draw, the model is solved repeatedly via bisection over $\gamma$ until 
 
 \input{../tables/tex/implied_gamma.tex}
 
-The median implied $\gamma$ of 2.1 is within the \citet{chetty2006} range of 1--3. The interquartile range [2.02, 2.22] indicates that matching the observed 3.6\% rate with the seven-channel model requires $\gamma$ in a narrow but empirically plausible range regardless of the values of other parameters. All 300 draws converge. Note that these results were computed for the seven-channel model (without age-varying needs and state-dependent utility); the nine-channel model predicts 6.6\% at $\gamma = 2.5$ without requiring downward adjustment of risk aversion.
+The median implied $\gamma$ of 2.1 is within the \citet{chetty2006} range of 1--3. The interquartile range [2.02, 2.22] indicates that matching the observed 3.6\% rate with the seven-channel model requires $\gamma$ in a narrow but empirically plausible range regardless of the values of other parameters. All 300 draws converge. Note that these results were computed for the seven-channel model (without age-varying needs and state-dependent utility); the nine-channel model predicts \ownNineChannel{} at $\gamma = \pGamma$ without requiring downward adjustment of risk aversion.
 
 For each draw, the full model is solved by backward induction on the production grid ($60 \times 20 \times 51$) and ownership is evaluated on the HRS population sample. The 300 bisection searches (each requiring 8--12 solves) are parallelized across available CPU cores.
 
@@ -455,7 +492,7 @@ At $t = 1$, the optimal annuitization fraction $\alpha^*$ is found by grid searc
 
 \subsection{Population evaluation}
 
-Ownership is evaluated on a population of HRS individuals with observed initial wealth, permanent income, age, and self-reported health. For each individual, the optimal $\alpha^*$ is computed at their specific $(W_0, y, H_0)$. Ownership is defined as $\alpha^* > 0$. The ownership rate is the fraction of the eligible population (wealth $\geq$ \$5,000) that annuitizes any positive amount. The wealth grid extends to \$3 million, covering the 99.5th percentile of the HRS wealth distribution. Individuals above the grid maximum (approximately 0.25\% of the sample) are excluded rather than extrapolated.
+Ownership is evaluated on a population of HRS individuals with observed initial wealth, permanent income, age, and self-reported health. For each individual, the optimal $\alpha^*$ is computed at their specific $(W_0, y, H_0)$. Ownership is defined as $\alpha^* > 0$. The ownership rate is the fraction of the eligible population (wealth $\geq$ \pMinWealth) that annuitizes any positive amount. The wealth grid extends to \pWMaxMillions, covering the 99.5th percentile of the HRS wealth distribution. Individuals above the grid maximum (\pctHRSAboveWmax{} of the sample) are excluded rather than extrapolated.
 
 \subsection{Computational performance}
 
@@ -507,7 +544,7 @@ $100 \times 40$ & 0.014 & 0.000 & 9.9 & 5.9 \\
 \end{threeparttable}
 \end{table}
 
-The use of piecewise-linear interpolation means derivatives are discontinuous at grid points, which introduces a floor on residual accuracy. The 6\% of points with residuals above 5\% are concentrated at low wealth levels where the value function has high curvature and the linear approximation is poorest. Switching to cubic spline interpolation would reduce these residuals at the cost of potential Runge-type oscillations at low wealth. The grid convergence results in Section~\ref{app:grid_convergence} provide a complementary accuracy check: stable ownership predictions across grid resolutions confirm that the policy function is resolved by the production grid. The exact Shapley decomposition, which evaluates all 512 channel subsets on the same production grid, implicitly provides a further robustness check: if the solver were unreliable, the 512 ownership evaluations would not produce the internally consistent attribution hierarchy reported in Section~\ref{M-sec:shapley}.
+The use of piecewise-linear interpolation means derivatives are discontinuous at grid points, which introduces a floor on residual accuracy. The 6\% of points with residuals above 5\% are concentrated at low wealth levels where the value function has high curvature and the linear approximation is poorest. Switching to cubic spline interpolation would reduce these residuals at the cost of potential Runge-type oscillations at low wealth. The grid convergence results in Section~\ref{app:grid_convergence} provide a complementary accuracy check: stable ownership predictions across grid resolutions confirm that the policy function is resolved by the production grid. The exact Shapley decomposition, which evaluates all $2{,}048$ channel subsets on the same production grid, implicitly provides a further robustness check: if the solver were unreliable, the 2{,}048 ownership evaluations would not produce the internally consistent attribution hierarchy reported in Section~\ref{M-sec:shapley}.
 
 
 \bibliographystyle{aer}

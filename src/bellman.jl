@@ -32,13 +32,16 @@ function solve_consumption(
     ih::Int=2,           # health state (1=Good, 2=Fair, 3=Poor); default Fair
 )
     cash = W + A + ss  # total resources available
+    inc  = A + ss      # income flow (annuity + Social Security); SDU treats
+                        # consumption up to `inc` as income-financed and
+                        # anything beyond as portfolio-financed.
 
     # Safety net: if resources below c_floor, government covers shortfall.
     # Agent consumes c_floor and saves nothing.
     if cash < p.c_floor
         c_star = p.c_floor
         W_next = 0.0
-        V_flow = flow_utility(c_star, p.gamma, t, ih, p)
+        V_flow = flow_utility_sdu(c_star, inc, p.gamma, t, ih, p)
         V_cont = surv * V_next_interp(W_next)
         V_beq = (1.0 - surv) * bequest_utility(W_next, p.gamma, p.theta, p.kappa)
         return (V_flow + p.beta * (V_cont + V_beq), c_star)
@@ -51,7 +54,7 @@ function solve_consumption(
         # Corner: only option is c_floor (or all resources if barely above)
         c_star = cash
         W_next = 0.0
-        V_flow = flow_utility(c_star, p.gamma, t, ih, p)
+        V_flow = flow_utility_sdu(c_star, inc, p.gamma, t, ih, p)
         V_cont = surv * V_next_interp(W_next)
         V_beq = (1.0 - surv) * bequest_utility(W_next, p.gamma, p.theta, p.kappa)
         return (V_flow + p.beta * (V_cont + V_beq), c_star)
@@ -59,10 +62,14 @@ function solve_consumption(
 
     # Objective: maximize U(c) + β [s V(W') + (1-s) V_bequest(W')]
     # W' = (1+r)(cash - c)
+    # Note: under SDU (lambda_w<1), period utility has a kink at c=inc where
+    # marginal utility drops from u'(c_eff)·1 to u'(c_eff)·lambda_w. Brent's
+    # method handles this fine — the function is concave on either side and
+    # the kink is interior to [c_min, c_max].
     function neg_value(c::Float64)
         W_next = (1.0 + p.r) * (cash - c)
         W_next = max(W_next, 0.0)
-        V_flow = flow_utility(c, p.gamma, t, ih, p)
+        V_flow = flow_utility_sdu(c, inc, p.gamma, t, ih, p)
         V_cont = surv * V_next_interp(W_next)
         V_beq = (1.0 - surv) * bequest_utility(W_next, p.gamma, p.theta, p.kappa)
         return -(V_flow + p.beta * (V_cont + V_beq))
@@ -95,6 +102,7 @@ function terminal_value(
     ih::Int=2,           # health state (default Fair)
 )
     cash = W + A + ss
+    inc  = A + ss
 
     # Safety net at terminal period
     if cash < p.c_floor
@@ -103,7 +111,7 @@ function terminal_value(
 
     if p.theta == 0.0
         # No bequest motive: consume everything
-        return (flow_utility(cash, p.gamma, t, ih, p), cash)
+        return (flow_utility_sdu(cash, inc, p.gamma, t, ih, p), cash)
     end
 
     # With bequests: split between consumption and bequest
@@ -111,12 +119,12 @@ function terminal_value(
     c_max = cash
 
     if c_max <= c_min + 1e-10
-        return (flow_utility(cash, p.gamma, t, ih, p) + p.beta * bequest_utility(0.0, p.gamma, p.theta, p.kappa), cash)
+        return (flow_utility_sdu(cash, inc, p.gamma, t, ih, p) + p.beta * bequest_utility(0.0, p.gamma, p.theta, p.kappa), cash)
     end
 
     function neg_val(c::Float64)
         leftover = cash - c
-        return -(flow_utility(c, p.gamma, t, ih, p) + p.beta * bequest_utility(leftover, p.gamma, p.theta, p.kappa))
+        return -(flow_utility_sdu(c, inc, p.gamma, t, ih, p) + p.beta * bequest_utility(leftover, p.gamma, p.theta, p.kappa))
     end
 
     result = optimize(neg_val, c_min, c_max, Brent())

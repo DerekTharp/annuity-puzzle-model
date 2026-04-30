@@ -68,3 +68,123 @@ function flow_utility(c::Float64, gamma::Float64, t::Int, ih::Int, p::ModelParam
     w_health = health_utility_weight(ih, p)
     return w_age * w_health * utility(c, gamma)
 end
+
+"""
+Source-dependent flow utility (Tharp FPR companion paper; Blanchett-Finke 2024,
+2025; Shefrin-Thaler 1988 mental accounting).
+
+Households experience consumption financed by income flows (Social Security,
+annuity payouts) at full utility weight, and consumption financed by portfolio
+drawdowns at a discount lambda_w in [0, 1]. The discount is applied at the
+DOLLAR level (multiplicative on c) rather than at the utility level — this
+avoids the sign-flip that would occur for gamma>1 if lambda_w multiplied a
+negative CRRA value directly.
+
+  c_income    = min(c, inc)            # dollars financed by income flow
+  c_portfolio = max(0, c - inc)        # dollars financed by portfolio drawdown
+  c_eff       = c_income + lambda_w * c_portfolio
+  u           = w_age * w_health * U(c_eff, gamma)
+
+When lambda_w = 1 (default), c_eff = c and this reduces to flow_utility above.
+When lambda_w < 1, drawing from portfolio yields strictly less effective
+consumption per dollar, which (i) discourages portfolio drawdown and
+(ii) makes converting portfolio wealth into income (via annuitization) more
+attractive on the consumption side.
+
+Calibration: lambda_w = 0.625 from Blanchett-Finke (2024, 2025) — retirees
+spend ~80% of guaranteed income but only ~50% of portfolio wealth, implying a
+50/80 = 0.625 ratio in spending propensity. Same calibration as the FPR
+companion paper.
+"""
+function flow_utility_sdu(c::Float64, inc::Float64, gamma::Float64, t::Int,
+                          ih::Int, p::ModelParams)
+    if p.lambda_w >= 1.0
+        # SDU off: identical to flow_utility
+        c_eff = c
+    else
+        c_income = min(c, inc)
+        c_portfolio = max(0.0, c - inc)
+        c_eff = c_income + p.lambda_w * c_portfolio
+    end
+    w_age = consumption_weight(t, p.consumption_decline)
+    w_health = health_utility_weight(ih, p)
+    return w_age * w_health * utility(c_eff, gamma)
+end
+
+"""
+Narrow-framing purchase penalty NPV (Barberis-Huang 2009; Tversky-Kahneman
+1992 loss aversion; Brown et al. 2008 framing evidence).
+
+The household mentally brackets the annuity decision as a separate "investment"
+with its own gain/loss tally — the cumulative annuity payout net of the premium
+paid. While the household is "underwater" (cumulative payouts < premium), the
+narrow-framing loss is salient and generates a per-period disutility flow
+proportional to the unrecouped premium. Once cumulative payouts cross the
+premium ("breakeven"), the loss tally turns positive and the penalty vanishes.
+
+This captures the user-described two-part felt cost of annuitization:
+(i) immediate "loss" of writing the check at age 65, and (ii) ongoing
+discomfort of reduced portfolio plus reduced optionality until breakeven.
+
+Per-period flow at period t (t=1 is age 65, before any payouts received):
+
+    flow_t = psi_purchase * u'(c_ref) * max(0, premium - A * (t-1))
+
+where A is the annual annuity income, payout_rate = A / premium, breakeven
+period is t* = ceil(1/payout_rate) ≈ 14-15 for typical SPIA pricing, and
+u'(c_ref) = c_ref^(-gamma) is the marginal utility at the reference
+consumption (SS mean = 18,000 dollars/yr).
+
+The total penalty entering the age-65 alpha search is the survival- and
+discount-weighted NPV of the stream:
+
+    penalty_NPV = sum_{t=1..t*} beta^(t-1) * S(t) * flow_t
+
+where S(1) = 1 (alive at purchase) and S(t) = prod_{s=1..t-1} surv[s].
+
+Reduces to zero when psi_purchase = 0 (channel off) or premium = 0
+(no purchase). Returns the NPV in lifetime-utility units, ready to be
+subtracted from the value-function at the alpha-search step.
+
+Note on functional form: this replaces an earlier one-time linear-in-premium
+penalty whose magnitude was insensitive to whether the household actually
+recouped the premium. Multiple peer reviewers flagged the earlier form as
+ad hoc (no axiomatic basis). The narrow-framing stream above is derivable
+from prospect-theoretic narrow framing (Barberis-Huang 2009) plus
+Tversky-Kahneman loss aversion applied to the annuity's running gain/loss
+tally.
+"""
+function purchase_penalty(premium::Float64,
+                          payout_rate::Float64,
+                          gamma::Float64,
+                          psi_purchase::Float64,
+                          c_ref::Float64,
+                          beta::Float64,
+                          surv::Vector{Float64})
+    psi_purchase <= 0.0 && return 0.0
+    premium <= 0.0 && return 0.0
+    payout_rate <= 0.0 && return 0.0
+
+    A = premium * payout_rate
+    mu_ref = c_ref^(-gamma)
+
+    # Breakeven period: smallest t such that A * (t-1) >= premium → t-1 >= 1/payout_rate.
+    # After breakeven, max(0, premium - A*(t-1)) = 0 and the stream contributes nothing.
+    breakeven_t = ceil(Int, 1.0 / payout_rate) + 1  # +1 for the period at-which underwater hits 0
+
+    npv = 0.0
+    cum_surv = 1.0
+    horizon = min(breakeven_t, length(surv) + 1)
+    for t in 1:horizon
+        underwater = max(0.0, premium - A * (t - 1))
+        underwater <= 0.0 && break
+        flow = psi_purchase * mu_ref * underwater
+        discount = beta^(t - 1)
+        npv += cum_surv * discount * flow
+        # Update cumulative survival for next period
+        if t <= length(surv)
+            cum_surv *= surv[t]
+        end
+    end
+    return npv
+end
