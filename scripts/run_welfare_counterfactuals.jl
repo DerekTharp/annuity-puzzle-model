@@ -275,10 +275,11 @@ bequest_specs = [
 
 wealth_eval = [50_000.0, 100_000.0, 200_000.0, 500_000.0, 1_000_000.0]
 
-# Median SS income for y_existing in CEV (old-style, backward compatible)
-median_income = sort(Float64.(hrs_raw[:, 2]))[div(n_pop, 2)]
-@printf("\n  Median SS income: \$%s (used as y_existing for CEV grid)\n",
-    string(round(Int, median_income)))
+# SS is wired through the welfare model's ss_func at $18,500 (median quartile).
+# y_existing is reserved for non-SS pre-existing annuity income, ~zero in HRS.
+y_existing_for_grid = 0.0
+@printf("\n  y_existing = \$%s (SS via ss_func at \$18,500/year)\n",
+    string(round(Int, y_existing_for_grid)))
 flush(stdout)
 
 cev_results = Dict{String, Any}()
@@ -292,7 +293,7 @@ for (label, mwr, infl, psi) in cev_configs
         base_surv, population;
         bequest_specs=bequest_specs,
         wealth_points=wealth_eval,
-        y_existing=median_income,
+        y_existing=y_existing_for_grid,
         gamma=GAMMA, beta=BETA, r=R_RATE,
         c_floor=C_FLOOR,
         mwr_loaded=mwr,

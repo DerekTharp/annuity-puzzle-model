@@ -167,7 +167,7 @@ open(OUT_CSV, "w") do f
     own_def = rows[1].ownership_pct
     for r in rows
         gap = own_def - r.ownership_pct
-        @printf(f, "%s,%.2f,%.4f,%.6f,%.1f,%.4f\n",
+        @printf(f, "%s,%.4f,%.4f,%.6f,%.1f,%.4f\n",
                 r.label, r.psi, r.ownership_pct, r.mean_alpha, r.solve_time, gap)
     end
 end

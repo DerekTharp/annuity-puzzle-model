@@ -503,6 +503,11 @@ function build_macros!()
     # ======================================================================
     # Section G — Welfare: CEV at headline cells
     # ======================================================================
+    cev = cev_grid_row(100_000, "Good")
+    def!("cevGoodHundredKNoBq",      fmt_pct(cev.cev_no * 100; digits=1))
+    def!("cevGoodHundredKDFJ",       fmt_pct(cev.cev_dfj * 100; digits=1))
+    def!("cevGoodHundredKStrong",    fmt_pct(cev.cev_strong * 100; digits=1))
+
     cev = cev_grid_row(200_000, "Good")
     def!("cevGoodTwoHundredKNoBq",   fmt_pct(cev.cev_no * 100; digits=1))
     def!("cevGoodTwoHundredKDFJ",    fmt_pct(cev.cev_dfj * 100; digits=1))
@@ -639,19 +644,25 @@ function build_macros!()
     # Section L — Behavioral channel: psi_purchase sensitivity
     # Source: tables/csv/psi_sensitivity.csv (skipped if missing)
     # ======================================================================
+    # Anchors from the UK 2015 pension freedoms calibration (Anchor C variants)
+    # plus the rational benchmark (psi=0). The "B-low" anchor uses the raw
+    # 75 pp UK ownership drop without correcting for the simultaneous tax-rule
+    # change. Above-range values are reported as a corner-bound diagnostic.
     psi_macros = [
-        ("Rational",        "Rational benchmark"),
-        ("Light",           "Light friction"),
-        ("BlanchettFinke",  "Blanchett-Finke"),  # production calibration
-        ("ChalmersReuterMid","Chalmers-Reuter mid"),
-        ("ChalmersReuterFull","Chalmers-Reuter full"),
+        ("Zero",      "No PED (rational + SDU only)"),
+        ("UKLow",     "UK low (55pp behavioral)"),    # Anchor C-low
+        ("UKMid",     "UK mid (60pp behavioral)"),    # Anchor C-mid (production)
+        ("UKHigh",    "UK high (65pp behavioral)"),   # Anchor C-high
+        ("UKBLow",    "UK low total (75pp drop)"),    # Anchor B-low (no tax correction)
+        ("AboveRange","Above sensitivity range"),
+        ("Corner",    "Corner-bound region"),
     ]
     for (suffix, label) in psi_macros
         s = psi_sensitivity(label)
         s === nothing && continue
-        def!("ownTenChannelPsi" * suffix, fmt_pct(s.ownership_pct; digits=1))
-        def!("pPsi" * suffix, fmt_num(s.psi; digits=2))
-        def!("defaultGapPsi" * suffix, fmt_num(s.default_gap_pp; digits=1))
+        def!("ownPsi" * suffix,        fmt_pct(s.ownership_pct; digits=1))
+        def!("pPsi" * suffix,          fmt_num(s.psi;           digits=4))
+        def!("defaultGapPsi" * suffix, fmt_num(s.default_gap_pp;digits=1))
     end
 
     # Production psi value (from config.jl PSI_PURCHASE; UK 2015 Anchor C-mid)
@@ -782,14 +793,6 @@ const FALLBACKS = String[
     "ownTenChannel", "ownElevenChannel",
     "shapSDU", "shapShareSDU",
     "shapNarrowFraming", "shapShareNarrowFraming",
-    "ownTenChannelPsiRational", "ownTenChannelPsiLight",
-    "ownTenChannelPsiBlanchettFinke",
-    "ownTenChannelPsiChalmersReuterMid", "ownTenChannelPsiChalmersReuterFull",
-    "pPsiRational", "pPsiLight", "pPsiBlanchettFinke",
-    "pPsiChalmersReuterMid", "pPsiChalmersReuterFull",
-    "defaultGapPsiRational", "defaultGapPsiLight",
-    "defaultGapPsiBlanchettFinke",
-    "defaultGapPsiChalmersReuterMid", "defaultGapPsiChalmersReuterFull",
     "mcMedianOwnership", "mcMeanOwnership",
     "mcLowCIOwnership", "mcHighCIOwnership",
     "mcLowIQROwnership", "mcHighIQROwnership",

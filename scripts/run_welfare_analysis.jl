@@ -65,11 +65,14 @@ bequest_specs = [
     (name="Strong bequest",  theta=200.0, kappa=KAPPA_DFJ),
 ]
 
-# Median permanent income in the HRS sample: ~$12,600/year (proxy for SS).
-# Used as pre-existing annuity income floor for the CEV grid.
-median_income = sort(population[:, 2])[div(n_pop, 2)]
-@printf("  Median population income: \$%s (used as y_existing for grid)\n",
-    string(round(Int, median_income)))
+# SS is now wired through the welfare model's ss_func ($18,500 representative
+# level matching the median quartile). y_existing is reserved for non-SS
+# pre-existing annuity income, which is essentially zero in the HRS sample.
+# Setting y_existing = 0 avoids double-counting SS once it's already in the
+# Bellman income flow.
+y_existing_for_grid = 0.0
+@printf("  y_existing = \$%s (SS is wired via ss_func at \$18,500/year)\n",
+    string(round(Int, y_existing_for_grid)))
 
 wealth_eval = [10_000.0, 25_000.0, 50_000.0, 100_000.0,
                200_000.0, 500_000.0, 1_000_000.0]
@@ -79,7 +82,7 @@ cev_output = compute_cev_grid(
     base_surv, population;
     bequest_specs=bequest_specs,
     wealth_points=wealth_eval,
-    y_existing=median_income,
+    y_existing=y_existing_for_grid,
     gamma=GAMMA, beta=BETA, r=R_RATE,
     c_floor=C_FLOOR,
     mwr_loaded=MWR_LOADED,
@@ -128,8 +131,8 @@ for iw in 1:length(wealth_eval)
     end
 end
 println("  " * "-" ^ 78)
-@printf("  Note: y_existing = \$%s (median SS income). alpha* under DFJ bequests.\n",
-    string(round(Int, median_income)))
+@printf("  Note: y_existing = \$%s (SS via ss_func at \$18,500/year). alpha* under DFJ bequests.\n",
+    string(round(Int, y_existing_for_grid)))
 
 # ===================================================================
 # Section 2: Population CEV Statistics
