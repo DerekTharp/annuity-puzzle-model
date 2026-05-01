@@ -111,6 +111,9 @@ _mwr_loaded = MWR_LOADED
 _fixed_cost = FIXED_COST
 _min_purchase = MIN_PURCHASE
 _lambda_w = LAMBDA_W
+_psi_purchase = PSI_PURCHASE
+_consumption_decline = CONSUMPTION_DECLINE
+_health_utility = Float64.(HEALTH_UTILITY)
 _inflation = INFLATION
 _surv_pess = SURVIVAL_PESSIMISM
 _n_wealth = N_WEALTH
@@ -142,7 +145,10 @@ cut_results = parallel_solve(cut_fractions) do cut_frac
         inflation_rate=_inflation,
         medical_enabled=true, health_mortality_corr=true,
         survival_pessimism=_surv_pess,
+        consumption_decline=_consumption_decline,
+        health_utility=_health_utility,
         lambda_w=_lambda_w,
+        psi_purchase=_psi_purchase,
         gkw...)
 
     # Build grids on worker

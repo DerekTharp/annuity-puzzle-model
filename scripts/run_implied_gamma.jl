@@ -127,6 +127,9 @@ _c_floor = C_FLOOR
 _fixed_cost = FIXED_COST
 _min_purchase = MIN_PURCHASE
 _lambda_w = LAMBDA_W
+_psi_purchase = PSI_PURCHASE
+_consumption_decline = CONSUMPTION_DECLINE
+_health_utility = Float64.(HEALTH_UTILITY)
 _nw = _NW
 _na = _NA
 _nalpha = _NALPHA
@@ -173,7 +176,10 @@ results = parallel_solve(draws) do d
             inflation_rate=d.inflation,
             medical_enabled=true, health_mortality_corr=true,
             survival_pessimism=_psi,
+            consumption_decline=_consumption_decline,
+            health_utility=_health_utility,
             lambda_w=_lambda_w,
+            psi_purchase=_psi_purchase,
             grid_kw...)
 
         sol = solve_lifecycle_health(p_full, grids, _bs, ss_mean_func)
