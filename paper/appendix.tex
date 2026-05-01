@@ -223,20 +223,22 @@ Table~\ref{tab:grid_convergence} reports predicted ownership and mean annuitizat
 Specification & $n_W \times n_A$ & Nodes & Ownership (\%) & $\bar{\alpha}$ \\
 \midrule
 \multicolumn{5}{l}{\textit{Panel A: Grid convergence (9-node GH)}} \\
-Medium & $60 \times 20$ & 9 & 20.3 & 0.0323 \\
-\textbf{Production} & $\mathbf{80 \times 30}$ & \textbf{9} & \textbf{21.4} & \textbf{0.0336} \\
-Fine & $100 \times 40$ & 9 & 20.7 & 0.0319 \\
-Very fine & $120 \times 50$ & 9 & 20.7 & 0.0317 \\
+Medium & $60 \times 20$ & 9 & 27.10 & 0.0820 \\
+\textbf{Production} & $\mathbf{80 \times 30}$ & \textbf{9} & \textbf{25.47} & \textbf{0.0718} \\
+Fine & $100 \times 40$ & 9 & 24.30 & 0.0680 \\
+Very fine & $120 \times 50$ & 9 & 24.23 & 0.0676 \\
 \midrule
 \multicolumn{5}{l}{\textit{Panel B: Quadrature convergence ($80 \times 30$ grid)}} \\
- & $80 \times 30$ & 3 & 24.6 & 0.0332 \\
- & $80 \times 30$ & 5 & 27.9 & 0.0376 \\
- & $80 \times 30$ & 7 & 18.4 & 0.0250 \\
- & $80 \times 30$ & \textbf{9} & \textbf{21.4} & \textbf{0.0336} \\
- & $80 \times 30$ & 11 & 17.8 & 0.0264 \\
+ & $80 \times 30$ & 3 & 26.39 & 0.0664 \\
+ & $80 \times 30$ & 5 & 28.16 & 0.0833 \\
+ & $80 \times 30$ & 7 & 26.28 & 0.0711 \\
+ & $80 \times 30$ & \textbf{9} & \textbf{25.47} & \textbf{0.0718} \\
+ & $80 \times 30$ & 11 & 25.75 & 0.0769 \\
+ & $80 \times 30$ & 13 & 25.65 & 0.0784 \\
+ & $80 \times 30$ & 15 & 25.47 & 0.0784 \\
 \midrule
 \multicolumn{5}{l}{\textit{Panel C: Reference}} \\
- & $120 \times 50$ & 11 & 16.8 & 0.0252 \\
+ & $120 \times 50$ & 11 & 24.26 & 0.0712 \\
 \bottomrule
 \end{tabular}
 \begin{tablenotes}
@@ -248,9 +250,9 @@ Very fine & $120 \times 50$ & 9 & 20.7 & 0.0317 \\
 
 Ownership rates in this table differ from the headline result of \ownSevenChannel{} because convergence tests use mean Social Security income across all quartiles (\$19,000/year) rather than the per-quartile assignment used in the production decomposition. The convergence properties---stability across grid resolutions and quadrature node counts---are unaffected by this simplification.
 
-Panel A shows that the grid is well-converged at the production resolution: ownership varies by only 1.1 percentage points across the four grids tested, and mean $\bar{\alpha}$ is stable within 0.002. Panel B reveals that quadrature convergence is the binding numerical concern. Binary ownership oscillates across node counts because the lognormal medical expense distribution ($\sigma \approx 1.4$) has heavy right tails that interact with the Medicaid floor: small shifts in the quadrature approximation of this tail push marginal households above or below the discrete ownership threshold ($\alpha^* > 0$). The continuous metric $\bar{\alpha}$ is more stable but still exhibits some sensitivity.
+Panel A shows that grid convergence is monotone: ownership decreases from 27.1\% at $60 \times 20$ to 24.2\% at $120 \times 50$, with the change between the two finest grids ($100 \times 40$ to $120 \times 50$) being only 0.07 pp. The production resolution ($80 \times 30$) is biased upward by approximately 1.2 pp relative to the most refined grid. Panel B shows that quadrature convergence is tight from 9 nodes onward: ownership at $n_{\text{quad}} \in \{9, 11, 13, 15\}$ is 25.47\%, 25.75\%, 25.65\%, and 25.47\%, a range of 0.28 pp. Lower-order rules ($n_{\text{quad}} \leq 7$) deviate by up to 2.7 pp because the lognormal medical expense distribution ($\sigma \approx 1.4$) has heavy right tails that interact with the Medicaid floor; insufficient tail resolution at low orders shifts marginal households across the discrete ownership threshold ($\alpha^* > 0$).
 
-The production standard is 9-node Gauss--Hermite, which is well-converged across grids (Panel A, ownership range 20.3--21.4\%) and sits centrally among the quadrature variants in Panel B. The reference specification (Panel C: $120 \times 50$ grid, 11-node GH) gives 16.8\%, about 4.6 pp below the production result. This numerical uncertainty is modest relative to the Shapley channel contributions (the smallest substantive channel has a Shapley value of 2.2 pp). The qualitative ranking of channels is stable across all grid and quadrature specifications tested.
+Nine-node Gauss--Hermite is adopted as the production standard because it is the smallest order at which quadrature convergence is tight (within 0.3 pp of the n=15 result). The reference specification (Panel C: $120 \times 50$ grid, 11-node GH) gives 24.26\%, 1.21 pp below the production point. The total numerical uncertainty---combining grid coarseness and quadrature error---is therefore approximately 1.2 pp, modest relative to the Shapley channel contributions (the smallest substantive channel has a Shapley value of 2.2 pp). The qualitative ranking of channels is stable across all grid and quadrature specifications tested.
 
 
 %% ================================================================
@@ -414,7 +416,7 @@ Category & Specification & Ownership (\%) \\
 
 Medical expenditure shocks are integrated via Gauss--Hermite quadrature over the lognormal distribution $\ln m \sim N(\mu, \sigma^2)$ with $\sigma \approx 1.4$. At this variance, the distribution has heavy tails that interact with the Medicaid consumption floor to create a kink in the integrand. Low-order quadrature rules place insufficient weight in the tails, producing inaccurate expectations.
 
-Table~\ref{tab:grid_convergence} (Panel B) documents this: binary ownership oscillates between 18\% and 28\% as nodes increase from 3 to 11. The continuous metric $\bar{\alpha}$ is more stable but still varies. This oscillation arises because small changes in $\alpha^*$ near the ownership threshold shift marginal households across the binary cutoff. The 9-node rule is well-converged across grid resolutions (Panel A) and is adopted as the production standard.
+Table~\ref{tab:grid_convergence} (Panel B) documents the convergence: binary ownership at the production grid moves from 26.39\% at $n_{\text{quad}} = 3$ to 25.47\% at $n_{\text{quad}} = 9$ and stays within a 0.28 pp window thereafter (25.47\%, 25.75\%, 25.65\%, 25.47\% at $n_{\text{quad}} \in \{9, 11, 13, 15\}$). Lower-order rules deviate by up to 2.7 pp because of the tail--floor interaction: small changes in the quadrature approximation of the medical-expense tail shift marginal households across the discrete ownership threshold. Nine nodes is the smallest order at which quadrature error becomes negligible relative to the channel contributions in the Shapley decomposition; we adopt it as the production standard.
 
 For reference, the exact lognormal moment $E[\exp(\sigma \varepsilon)] = \exp(\sigma^2/2)$ is matched to machine precision by all rules with $n \geq 5$. The residual quadrature error operates through the nonlinear interaction of the medical expense realization with the consumption policy function and Medicaid floor, not through moment inaccuracy.
 
