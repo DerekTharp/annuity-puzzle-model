@@ -446,16 +446,16 @@ The decomposition results depend on calibrated parameters, and the sensitivity t
 \begin{itemize}
 \item \textbf{Poor-health hazard multiplier:} $\mu_P \sim U(2.0, 3.5)$. The lower bound corresponds to conservative SRH-based estimates for the oldest old. The upper bound corresponds to the functional limitation states used by \citet{reichlingsmetters2015}. The Good-health multiplier is held at 0.50.
 
-\item \textbf{Inflation rate:} $\pi \sim U(0.015, 0.025)$. This spans near-term CPI uncertainty around the baseline calibration of 2\%.
+\item \textbf{Inflation rate:} $\pi \sim U(0.01, 0.03)$. This spans near-term CPI uncertainty around the baseline calibration of 2\%.
 
-\item \textbf{Money's worth ratio:} $\text{MWR} \sim U(0.80, 0.86)$. This reflects measurement uncertainty in current annuity pricing estimates from \citet{mitchell1999} and \citet{wettstein2021}, centered near the baseline of 0.82.
+\item \textbf{Money's worth ratio:} $\text{MWR} \sim U(0.75, 0.89)$. This reflects measurement uncertainty in current annuity pricing estimates from \citet{mitchell1999} and \citet{wettstein2021}, centered near the baseline of 0.82.
 \end{itemize}
 
 For each draw, the model is solved repeatedly via bisection over $\gamma$ until predicted ownership equals 3.6\% $\pm$ 0.5 pp. Table~\ref{tab:implied_gamma} reports the distribution of implied $\gamma$ values.
 
 \input{../tables/tex/implied_gamma.tex}
 
-The median implied $\gamma$ of 2.1 is within the \citet{chetty2006} range of 1--3. The interquartile range [2.02, 2.22] indicates that matching the observed 3.6\% rate with the seven-channel model requires $\gamma$ in a narrow but empirically plausible range regardless of the values of other parameters. All 300 draws converge. Note that these results were computed for the seven-channel model (without age-varying needs and state-dependent utility); the nine-channel model predicts \ownNineChannel{} at $\gamma = \pGamma$ without requiring downward adjustment of risk aversion.
+The median implied $\gamma$ of 4.28 sits above the \citet{chetty2006} range of 1--3, with an interquartile range of [2.44, 4.70] and 43\% of draws falling inside the Chetty interval. All 300 draws converge. The wide spread reflects the substantial sensitivity of predicted ownership to the nuisance parameters: the seven-channel model can match observed 3.6\% ownership only with risk aversion that is at the upper end of---or somewhat above---empirically plausible values, and the precise $\gamma$ required is highly sensitive to assumptions about mortality, inflation, and pricing. This is informative about the limits of $\gamma$-tuning as an alternative to the channel structure adopted in the body of the paper. Adding the two preference channels brings the baseline-$\gamma$ prediction to \ownNineChannel{}, much closer to observed without requiring elevated risk aversion; adding the two behavioral channels yields the production prediction of \ownElevenChannel{}.
 
 For each draw, the full model is solved by backward induction on the production grid ($60 \times 20 \times 51$) and ownership is evaluated on the HRS population sample. The 300 bisection searches (each requiring 8--12 solves) are parallelized across available CPU cores.
 
