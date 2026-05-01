@@ -334,7 +334,13 @@ function compute_cev_grid(
         ]
     end
 
-    ss_zero(age, p) = 0.0
+    # SS function for the welfare model. The production decomposition solves
+    # per quartile and aggregates; here we solve once with a representative
+    # level (median across quartiles, $18,500). This aligns the welfare CEV's
+    # baseline with production rather than treating retirees as having zero
+    # SS, which previously inflated the marginal value of annuitization. A
+    # per-quartile dispatch is left as a future tightening.
+    ss_func_welfare(age, p) = 18_500.0
 
     grid_kw = (n_wealth=n_wealth, n_annuity=n_annuity, n_alpha=n_alpha,
                W_max=W_max, age_start=age_start, age_end=age_end,
@@ -397,7 +403,7 @@ function compute_cev_grid(
             grid_kw...)
 
         t0 = time()
-        sol = solve_lifecycle_health(p_model, grids, base_surv, ss_zero)
+        sol = solve_lifecycle_health(p_model, grids, base_surv, ss_func_welfare)
         solve_time = time() - t0
 
         if verbose
@@ -460,7 +466,8 @@ function simulate_welfare_comparison(
     rng_seed::Int=42,
 )
     g = sol.grids
-    ss_zero(age, p) = 0.0
+    # Match the SS function used by compute_cev_grid for internal consistency.
+    ss_func_welfare(age, p) = 18_500.0
 
     # Find optimal alpha (same logic as compute_cev)
     V_t1 = sol.V[:, :, H_0, 1]
@@ -507,13 +514,13 @@ function simulate_welfare_comparison(
     W_rem_opt = max(W_rem_opt, 0.0)
 
     batch_with = simulate_batch(
-        sol, W_rem_opt, A_opt, H_0, base_surv, ss_zero, p;
+        sol, W_rem_opt, A_opt, H_0, base_surv, ss_func_welfare, p;
         n_sim=n_sim, rng_seed=rng_seed,
     )
 
     # Simulate WITHOUT annuity (same seed for paired comparison)
     batch_without = simulate_batch(
-        sol, W_0, y_existing, H_0, base_surv, ss_zero, p;
+        sol, W_0, y_existing, H_0, base_surv, ss_func_welfare, p;
         n_sim=n_sim, rng_seed=rng_seed,
     )
 

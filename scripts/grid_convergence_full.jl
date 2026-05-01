@@ -107,7 +107,7 @@ end
 
 # --- 1. Quadrature convergence (fixed grid 80x30) ---
 println("\n--- QUADRATURE CONVERGENCE (80x30 grid) ---"); flush(stdout)
-for nq in [3, 5, 7, 9, 11]
+for nq in [3, 5, 7, 9, 11, 13, 15]
     label = @sprintf("n_quad=%d", nq)
     solve_and_report(label, "Quadrature", base_surv, population; n_quad=nq)
 end
