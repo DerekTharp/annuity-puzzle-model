@@ -125,6 +125,9 @@ flush(stdout)
 t0_dispatch = time()
 
 results_raw = parallel_solve(MAPPINGS) do (label, phi)
+    # Nine-channel solve: rational stack + age-varying needs + state-dependent
+    # utility under each mapping. The two behavioral channels (lambda_w, psi_purchase)
+    # are intentionally OFF so the output is a true nine-channel ownership.
     p_model = ModelParams(; _su_common_kw...,
         theta=THETA_DFJ, kappa=KAPPA_DFJ,
         mwr=MWR_FOR_RUN, fixed_cost=FIXED_COST,
@@ -135,7 +138,6 @@ results_raw = parallel_solve(MAPPINGS) do (label, phi)
         survival_pessimism=SURVIVAL_PESSIMISM,
         consumption_decline=CONSUMPTION_DECLINE_ACTIVE,
         health_utility=phi,
-        lambda_w=LAMBDA_W,
         _su_grid_kw...)
     t0 = time()
     res = solve_and_evaluate(p_model, _su_grids, _su_base_surv,
