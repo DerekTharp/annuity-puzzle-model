@@ -90,11 +90,32 @@ const GH_WEIGHTS_11 = [1.439560393714e-6, 3.468194663233e-4, 0.0119113954449115,
                        0.4293597523561230, 0.6547592869145944, 0.4293597523561230, 0.1172278751677091,
                        0.0119113954449115, 3.468194663233e-4, 1.439560393714e-6]
 
+# 13-node and 15-node tables, used only for convergence diagnostics beyond
+# the 11-node production rule. Computed via FastGaussQuadrature.gausshermite.
+const GH_NODES_13 = [-4.1013375961786, -3.2466089783724, -2.5197356856782, -1.8531076516015,
+                      -1.2200550365908, -0.6057638791711, 0.0, 0.6057638791711,
+                      1.2200550365908, 1.8531076516015, 2.5197356856782, 3.2466089783724,
+                      4.1013375961786]
+const GH_WEIGHTS_13 = [4.8257319e-8, 2.0430360403e-5, 0.001207459992719, 0.02086277529617,
+                       0.140323320687024, 0.42161629689854, 0.604393187921165,
+                       0.42161629689854, 0.140323320687024, 0.02086277529617,
+                       0.001207459992719, 2.0430360403e-5, 4.8257319e-8]
+
+const GH_NODES_15 = [-4.4999907073094, -3.6699503734045, -2.9671669279056, -2.3257324861739,
+                      -1.7199925751865, -1.1361155852109, -0.5650695832556, 0.0,
+                      0.5650695832556, 1.1361155852109, 1.7199925751865, 2.3257324861739,
+                      2.9671669279056, 3.6699503734045, 4.4999907073094]
+const GH_WEIGHTS_15 = [1.522476e-9, 1.059115548e-6, 0.000100004441233, 0.002778068842913,
+                       0.030780033872546, 0.158488915795936, 0.412028687498898,
+                       0.564100308726418, 0.412028687498898, 0.158488915795936,
+                       0.030780033872546, 0.002778068842913, 0.000100004441233,
+                       1.059115548e-6, 1.522476e-9]
+
 """
 Return (nodes, weights) for Gauss-Hermite quadrature adapted to standard
 normal integration: E[f(Z)] ≈ Σ weights[i] × f(nodes[i]) where Z ~ N(0,1).
 
-Supports n ∈ {3, 5, 7, 9, 11}.
+Supports n ∈ {3, 5, 7, 9, 11, 13, 15}.
 """
 function gauss_hermite_normal(n::Int)
     if n == 3
@@ -107,8 +128,12 @@ function gauss_hermite_normal(n::Int)
         raw_x, raw_w = GH_NODES_9, GH_WEIGHTS_9
     elseif n == 11
         raw_x, raw_w = GH_NODES_11, GH_WEIGHTS_11
+    elseif n == 13
+        raw_x, raw_w = GH_NODES_13, GH_WEIGHTS_13
+    elseif n == 15
+        raw_x, raw_w = GH_NODES_15, GH_WEIGHTS_15
     else
-        error("Gauss-Hermite quadrature only implemented for n ∈ {3, 5, 7, 9, 11}, got n=$n")
+        error("Gauss-Hermite quadrature only implemented for n ∈ {3, 5, 7, 9, 11, 13, 15}, got n=$n")
     end
     # Transform: z_i = √2 × x_i (standard normal nodes)
     # Weights: w_i / √π (normalized for ∫ f(z) φ(z) dz)

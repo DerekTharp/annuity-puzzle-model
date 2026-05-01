@@ -663,7 +663,7 @@ Varying $\psi$ from 0.970 to 1.000 (objective beliefs) shifts predicted ownershi
 
 \paragraph{Grid convergence.} At the \pNQuad-node production quadrature rule, ownership varies by 1.1 percentage points across grid resolutions from $60 \times 20$ to $100 \times 40$ (Table~\ref{A-tab:grid_convergence}, Panel A). Mean $\bar{\alpha}$ is stable within 0.002.
 
-\paragraph{Quadrature convergence.} Binary ownership oscillates across quadrature node counts (Table~\ref{A-tab:grid_convergence}, Panel B) because the lognormal medical expense distribution ($\sigma \approx 1.4$) has heavy tails that interact with the Medicaid floor. Nine-node Gauss--Hermite quadrature is well-converged across grids and is adopted as the production standard. Appendix~\ref{A-app:quadrature} provides details.
+\paragraph{Quadrature convergence.} Binary ownership stabilizes from 9-node Gauss--Hermite onward (Table~\ref{A-tab:grid_convergence}, Panel B): values at $n_{\text{quad}} \in \{9, 11, 13, 15\}$ are 25.47\%, 25.75\%, 25.65\%, and 25.47\% at the diagnostic specification, a range of 0.28 pp. Lower-order rules ($n_{\text{quad}} \leq 7$) deviate by up to 2.7 pp because the heavy lognormal medical-expense tail interacts with the Medicaid floor. Nine-node quadrature is adopted as the smallest order with negligible numerical error relative to the channel contributions; Appendix~\ref{A-app:quadrature} provides details.
 
 \paragraph{Bequest specification.} The DFJ luxury-good specification ($\theta = \pThetaDFJ$, $\kappa = \pKappaDFJ$) produces \ownSevenChannel{} ownership at baseline; removing bequests raises this to \ownBequestNone. See Section~\ref{sec:model} for discussion of why $\theta$ and $\kappa$ must be interpreted jointly.
 
