@@ -221,13 +221,18 @@ function compute_cev_population(
             end
             W_rem < 0.0 && continue
 
-            A_new = pi * payout_rate
+            # Convert real premium pi (age-65 dollars) to nominal at purchase
+            # age. A_state stores the constant nominal annual payment; the
+            # Bellman deflates via A_real(t) = A * (1+π)^-(t-1).
+            inflation_factor = (1.0 + p.inflation_rate)^(t - 1)
+            nominal_premium = pi * inflation_factor
+            A_new = nominal_premium * payout_rate
             A_total = y_0 + A_new
             W_rc = clamp(W_rem, g.W[1], g.W[end])
             A_tc = clamp(A_total, g.A[1], g.A[end])
             V_val = V_interp(W_rc, A_tc)
             if p.psi_purchase > 0.0
-                V_val -= purchase_penalty(pi, payout_rate, p.gamma,
+                V_val -= purchase_penalty(nominal_premium, payout_rate, p.gamma,
                 p.psi_purchase, p.psi_purchase_c_ref, p.beta, sol.base_surv)
             end
             if V_val > best_V
