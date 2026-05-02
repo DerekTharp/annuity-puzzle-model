@@ -240,12 +240,15 @@ macros = load_macros()
         if !isfile(path)
             @test_skip "psi_sensitivity.csv not yet generated"
         else
+            # UK 2015 pension-freedoms anchors (Anchor C variants) plus
+            # the rational benchmark (psi=0) and the no-tax-correction
+            # B-low alternative.
             cases = [
-                "ownTenChannelPsiRational"          => "Rational benchmark",
-                "ownTenChannelPsiLight"             => "Light friction",
-                "ownTenChannelPsiBlanchettFinke"    => "Blanchett-Finke",
-                "ownTenChannelPsiChalmersReuterMid" => "Chalmers-Reuter mid",
-                "ownTenChannelPsiChalmersReuterFull"=> "Chalmers-Reuter full",
+                "ownPsiZero"      => "No PED (rational + SDU only)",
+                "ownPsiUKLow"     => "UK low (55pp behavioral)",
+                "ownPsiUKMid"     => "UK mid (60pp behavioral)",
+                "ownPsiUKHigh"    => "UK high (65pp behavioral)",
+                "ownPsiUKBLow"    => "UK low total (75pp drop)",
             ]
             for (name, label) in cases
                 row = nothing
