@@ -374,7 +374,12 @@ function compute_ownership_rate(
             end
             W_rem < 0.0 && continue
 
-            A_new = pi * payout_rate
+            # Convert real premium pi (age-65 dollars) to nominal at purchase
+            # age. A_state stores the constant nominal annual payment; the
+            # Bellman deflates via A_real(t) = A * (1+π)^-(t-1).
+            inflation_factor = (1.0 + p.inflation_rate)^(t - 1)
+            nominal_premium = pi * inflation_factor
+            A_new = nominal_premium * payout_rate
             A_total = y_0 + A_new
             W_c = clamp(W_rem, g.W[1], g.W[end])
             A_c = clamp(A_total, g.A[1], g.A[end])
@@ -606,14 +611,23 @@ function compute_ownership_rate_health(
             end
             W_rem < 0.0 && continue
 
-            A_new = pi * payout_rate
+            # Convert the real premium pi (in age-65 dollars) to a nominal
+            # premium at the purchase age. compute_payout_rate returns nominal
+            # payment per nominal premium, so we need a nominal-units bridge.
+            inflation_factor = (1.0 + p.inflation_rate)^(t - 1)
+            nominal_premium = pi * inflation_factor
+            # A_state stores the constant nominal annuity payment. The Bellman
+            # then converts to age-65 real dollars via A_real(t) = A * (1+π)^-(t-1).
+            A_new = nominal_premium * payout_rate
             A_total = y_0 + A_new
             W_c = clamp(W_rem, g.W[1], g.W[end])
             A_c = clamp(A_total, g.A[1], g.A[end])
             V_val = V_interp(W_c, A_c)
-            # Narrow-framing purchase penalty NPV
+            # Narrow-framing purchase penalty NPV: the agent's mental accounting
+            # tracks nominal cumulative receipts vs nominal premium, so pass
+            # the nominal premium (not the real one).
             if p.psi_purchase > 0.0
-                V_val -= purchase_penalty(pi, payout_rate, p.gamma,
+                V_val -= purchase_penalty(nominal_premium, payout_rate, p.gamma,
                     p.psi_purchase, p.psi_purchase_c_ref, p.beta, sol.base_surv)
             end
             if V_val > best_V
