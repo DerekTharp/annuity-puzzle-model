@@ -37,7 +37,7 @@ hrs_raw = readdlm(hrs_path, ',', Any; skipstart=1)
 n_pop = size(hrs_raw, 1)
 population = zeros(n_pop, 4)
 population[:, 1] = Float64.(hrs_raw[:, 1])
-population[:, 2] = Float64.(hrs_raw[:, 2])
+population[:, 2] .= 0.0                      # A grid = 0 (SS via ss_func, matches production convention)
 population[:, 3] = Float64.(hrs_raw[:, 3])
 if size(hrs_raw, 2) >= 4
     population[:, 4] = Float64.(hrs_raw[:, 4])  # observed health (1=Good, 2=Fair, 3=Poor)
@@ -361,7 +361,7 @@ sim_wealth_levels = [200_000.0, 500_000.0, 1_000_000.0]
 for W_0 in sim_wealth_levels
     comp = simulate_welfare_comparison(
         sol_sim, W_0, 1, base_surv, p_sim;
-        payout_rate=loaded_pr, y_existing=median_income,
+        payout_rate=loaded_pr, y_existing=y_existing_for_grid,
         n_sim=5_000, rng_seed=42,
     )
 
