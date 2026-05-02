@@ -25,7 +25,7 @@ KEY_NAME=${KEY_NAME:-annuity-key}
 KEY_FILE=${KEY_FILE:-$HOME/.ssh/annuity-key.pem}
 SG_NAME=${SG_NAME:-annuity-ssh}
 SPOT=${SPOT:-1}
-NAME_TAG="annuity-puzzle-10ch-$(date +%Y%m%d-%H%M)"
+NAME_TAG="annuity-puzzle-11ch-$(date +%Y%m%d-%H%M)"
 
 echo "=== AWS Annuity-Puzzle Pipeline Launcher ==="
 echo "Region:        $REGION"
