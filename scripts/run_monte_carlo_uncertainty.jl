@@ -249,7 +249,7 @@ open(tex_path, "w") do f
     println(f, "\\item Risk aversion fixed at $(ds)\\gamma = $(GAMMA_FIXED)$(ds). Joint draws over six")
     println(f, raw"calibration-uncertain parameters: $\mu_P \sim U(2.0, 3.5)$, $\pi \sim U(0.015, 0.025)$,")
     println(f, raw"MWR $\sim U(0.83, 0.91)$, $\psi \sim U(0.97, 1.0)$, $\delta_c \sim U(0.01, 0.03)$,")
-    println(f, raw"$\psi_{\text{purchase}} \sim U(0.30, 1.00)$. Full ten-channel model.")
+    println(f, raw"$\psi_{\text{purchase}} \sim U(0.005, 0.030)$. Full eleven-channel model.")
     println(f, raw"\end{tablenotes}")
     println(f, raw"\end{table}")
 end

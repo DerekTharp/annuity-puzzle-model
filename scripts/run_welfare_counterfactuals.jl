@@ -260,12 +260,17 @@ println("  PART 2: CEV WELFARE ANALYSIS BY HOUSEHOLD TYPE")
 println("=" ^ 70)
 flush(stdout)
 
-# CEV configs: baseline + top 3 counterfactuals
+# CEV configs: baseline + top 3 counterfactuals.
+# Each row: (label, mwr, infl, surv_pessimism, psi_purchase).
+# "Best feasible" combines supply-side reform (group pricing, real annuity)
+# with the demand-side default architecture (psi_purchase = 0). Without the
+# psi_purchase override the "Best feasible" CEV would understate the welfare
+# gain by holding the narrow-framing penalty at the production value.
 cev_configs = [
-    ("Baseline",            MWR_LOADED, INFLATION, SURVIVAL_PESSIMISM),
-    ("Group pricing",       0.90,       INFLATION, SURVIVAL_PESSIMISM),
-    ("Real annuity",        MWR_LOADED, 0.0,       SURVIVAL_PESSIMISM),
-    ("Best feasible",       0.90,       0.0,       1.0),
+    ("Baseline",      MWR_LOADED, INFLATION, SURVIVAL_PESSIMISM, PSI_PURCHASE),
+    ("Group pricing", 0.90,       INFLATION, SURVIVAL_PESSIMISM, PSI_PURCHASE),
+    ("Real annuity",  MWR_LOADED, 0.0,       SURVIVAL_PESSIMISM, PSI_PURCHASE),
+    ("Best feasible", 0.90,       0.0,       1.0,                0.0),
 ]
 
 bequest_specs = [
@@ -284,9 +289,9 @@ flush(stdout)
 
 cev_results = Dict{String, Any}()
 
-for (label, mwr, infl, psi) in cev_configs
-    @printf("\n  --- CEV Grid: %s (MWR=%.2f, infl=%.1f%%, psi=%.3f) ---\n",
-        label, mwr, infl * 100, psi)
+for (label, mwr, infl, surv_pess, psi_p) in cev_configs
+    @printf("\n  --- CEV Grid: %s (MWR=%.2f, infl=%.1f%%, surv_pess=%.3f, psi_p=%.4f) ---\n",
+        label, mwr, infl * 100, surv_pess, psi_p)
     flush(stdout)
 
     cev_out = compute_cev_grid(
@@ -305,10 +310,10 @@ for (label, mwr, infl, psi) in cev_configs
         age_start=AGE_START, age_end=AGE_END,
         annuity_grid_power=A_GRID_POW,
         hazard_mult=HAZARD_MULT,
-        survival_pessimism=psi,
+        survival_pessimism=surv_pess,
         consumption_decline=CONSUMPTION_DECLINE,
         health_utility=Float64.(HEALTH_UTILITY),
-        psi_purchase=PSI_PURCHASE,
+        psi_purchase=psi_p,
         lambda_w=LAMBDA_W,
         verbose=true,
     )
@@ -350,7 +355,7 @@ println("  (DFJ bequests, Good health)")
 println("=" ^ 70)
 
 @printf("\n  %-12s", "Wealth")
-for (label, _, _, _) in cev_configs
+for (label, _, _, _, _) in cev_configs
     @printf("  %16s", label)
 end
 println()
@@ -359,7 +364,7 @@ println("  " * "-" ^ (12 + 18 * length(cev_configs)))
 for (iw, w) in enumerate(wealth_eval)
     W_str = string("\$", round(Int, w / 1000), "K")
     @printf("  %-12s", W_str)
-    for (label, _, _, _) in cev_configs
+    for (label, _, _, _, _) in cev_configs
         r = cev_results[label].grid[iw, 2, 1]  # DFJ bequests, Good health
         @printf("  %15.2f%%", r.cev * 100)
     end
@@ -370,7 +375,7 @@ println("  " * "-" ^ (12 + 18 * length(cev_configs)))
 # Same for Fair health
 println("\n  (DFJ bequests, Fair health)")
 @printf("  %-12s", "Wealth")
-for (label, _, _, _) in cev_configs
+for (label, _, _, _, _) in cev_configs
     @printf("  %16s", label)
 end
 println()
@@ -379,7 +384,7 @@ println("  " * "-" ^ (12 + 18 * length(cev_configs)))
 for (iw, w) in enumerate(wealth_eval)
     W_str = string("\$", round(Int, w / 1000), "K")
     @printf("  %-12s", W_str)
-    for (label, _, _, _) in cev_configs
+    for (label, _, _, _, _) in cev_configs
         r = cev_results[label].grid[iw, 2, 2]  # DFJ bequests, Fair health
         @printf("  %15.2f%%", r.cev * 100)
     end
@@ -399,7 +404,7 @@ println("=" ^ 70)
     "Counterfactual", "Bequest Spec", "Mean CEV", "Med CEV", "CEV>0", "CEV>1%")
 println("  " * "-" ^ 78)
 
-for (label, _, _, _) in cev_configs
+for (label, _, _, _, _) in cev_configs
     cev_out = cev_results[label]
     for pcev in cev_out.population_cev
         @printf("  %-20s  %-16s  %8.2f%%  %8.2f%%  %7.1f%%  %7.1f%%\n",
@@ -438,7 +443,7 @@ println("\n  Ownership CSV saved: ", csv_path)
 cev_csv_path = joinpath(tables_dir, "csv", "cev_counterfactuals.csv")
 open(cev_csv_path, "w") do f
     print(f, "wealth,health")
-    for (label, _, _, _) in cev_configs
+    for (label, _, _, _, _) in cev_configs
         @printf(f, ",cev_%s,alpha_%s",
             replace(lowercase(label), " " => "_"),
             replace(lowercase(label), " " => "_"))
@@ -448,7 +453,7 @@ open(cev_csv_path, "w") do f
     for (iw, w) in enumerate(wealth_eval)
         for ih in 1:3
             @printf(f, "%.0f,%s", w, health_names[ih])
-            for (label, _, _, _) in cev_configs
+            for (label, _, _, _, _) in cev_configs
                 r = cev_results[label].grid[iw, 2, ih]  # DFJ bequests
                 @printf(f, ",%.4f,%.4f", r.cev, r.alpha_star)
             end
@@ -514,7 +519,7 @@ open(cev_tex_path, "w") do f
     println(f, raw"\toprule")
     # Header
     print(f, "Wealth")
-    for (label, _, _, _) in cev_configs
+    for (label, _, _, _, _) in cev_configs
         @printf(f, " & %s", label)
     end
     println(f, " \\\\")
@@ -524,7 +529,7 @@ open(cev_tex_path, "w") do f
     for (iw, w) in enumerate(wealth_eval)
         W_str = string("\\\$", round(Int, w / 1000), "K")
         print(f, W_str)
-        for (label, _, _, _) in cev_configs
+        for (label, _, _, _, _) in cev_configs
             r = cev_results[label].grid[iw, 2, 1]
             @printf(f, " & %.2f", r.cev * 100)
         end
@@ -536,7 +541,7 @@ open(cev_tex_path, "w") do f
     for (iw, w) in enumerate(wealth_eval)
         W_str = string("\\\$", round(Int, w / 1000), "K")
         print(f, W_str)
-        for (label, _, _, _) in cev_configs
+        for (label, _, _, _, _) in cev_configs
             r = cev_results[label].grid[iw, 2, 2]
             @printf(f, " & %.2f", r.cev * 100)
         end
@@ -548,7 +553,7 @@ open(cev_tex_path, "w") do f
     for (iw, w) in enumerate(wealth_eval)
         W_str = string("\\\$", round(Int, w / 1000), "K")
         print(f, W_str)
-        for (label, _, _, _) in cev_configs
+        for (label, _, _, _, _) in cev_configs
             r = cev_results[label].grid[iw, 1, 1]
             @printf(f, " & %.2f", r.cev * 100)
         end
@@ -559,10 +564,12 @@ open(cev_tex_path, "w") do f
     println(f, raw"\begin{tablenotes}")
     println(f, raw"\small")
     println(f, raw"\item CEV: consumption-equivalent variation (\% of lifetime consumption")
-    println(f, raw"agent would pay for annuity market access). Evaluated at median")
-    println(f, raw"SS income (\$12{,}600/yr). Baseline: MWR=0.82, 2\% inflation,")
-    println(f, raw"$\psi=0.981$. Group pricing: MWR=0.90. Real annuity: 0\% inflation,")
-    println(f, raw"MWR=0.82. Best feasible: MWR=0.90, real, $\psi=1.0$.")
+    println(f, raw"agent would pay for annuity market access). Welfare model uses representative")
+    println(f, raw"SS income (\$18{,}500/yr, median quartile). Baseline: MWR=0.87, 2\% inflation,")
+    println(f, raw"$\psi=0.981$, $\psi_{\text{purchase}}=0.0163$. Group pricing: MWR=0.90.")
+    println(f, raw"Real annuity: 0\% inflation, MWR=0.87. Best feasible combines group pricing,")
+    println(f, raw"real annuity, no survival pessimism ($\psi=1.0$), and default architecture")
+    println(f, raw"($\psi_{\text{purchase}}=0$).")
     println(f, raw"\end{tablenotes}")
     println(f, raw"\end{table}")
 end
