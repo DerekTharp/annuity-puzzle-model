@@ -6,8 +6,8 @@
 #   julia --project=. run_all.jl --tests-only # run tests only
 #
 # Expected runtime on AWS c7a.48xlarge (192 vCPU): ~3 hours.
-# Single-thread:  ~80 hours (1024 Shapley + 6 psi + 1000 MC + everything else).
-# 19 stages total; expects all subset/Shapley/MC stages parallelized.
+# Single-thread:  ~80 hours (2048 Shapley + 7 psi + 1000 MC + everything else).
+# 20 stages total; expects all subset/Shapley/MC stages parallelized.
 # For faster development runs, use --skip-tests and comment out Stage 12.
 #
 # Output:

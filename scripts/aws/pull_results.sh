@@ -1,7 +1,7 @@
 #!/bin/bash
 # Pull pipeline results from the AWS instance and apply them locally.
 
-set -e
+set -euo pipefail
 cd "$(dirname "$0")/../.."
 [ -f .aws-instance.meta ] || { echo "No .aws-instance.meta"; exit 1; }
 source .aws-instance.meta
@@ -31,16 +31,23 @@ echo "=== Results applied ==="
 ls -1 tables/csv/ | head -5
 echo "..."
 
-# Regenerate manuscript macros
+# Regenerate manuscript macros and validate them against the pulled CSVs. The
+# remote pipeline already ran Stage 16, but this script mutates numbers.tex
+# locally after extraction, so repeat the integrity check before compiling.
 echo
 echo "Regenerating paper/numbers.tex..."
 julia --project=. scripts/export_manuscript_numbers.jl
+
+echo
+echo "Validating paper/numbers.tex against pulled CSVs..."
+julia --project=. test/test_manuscript_numbers.jl
 
 # Recompile manuscripts
 echo
 echo "Recompiling paper..."
 cd paper && pdflatex -interaction=nonstopmode -halt-on-error main.tex >/dev/null && \
-    pdflatex -interaction=nonstopmode -halt-on-error appendix.tex >/dev/null
+    pdflatex -interaction=nonstopmode -halt-on-error appendix.tex >/dev/null && \
+    pdflatex -interaction=nonstopmode -halt-on-error cover_letter.tex >/dev/null
 cd ..
 
 echo
