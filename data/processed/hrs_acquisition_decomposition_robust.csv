@@ -1,0 +1,12 @@
+definition,category,n_persons,share_of_confirmed
+lenient,pre65,37,0.248322
+lenient,at_retirement,36,0.241611
+lenient,post65,69,0.463087
+lenient,left_censored,7,0.046980
+lenient,unknown,0,0.000000
+robust,pre65,24,0.307692
+robust,at_retirement,8,0.102564
+robust,post65,46,0.589744
+robust,left_censored,0,0.000000
+robust,transient_positive,71,0.910256
+robust,unknown,0,0.000000

@@ -1,0 +1,10 @@
+variable,label,pooled_yes,pooled_no,pooled_pct
+wpirpan,annuity (lump sum),11,858,1.2658
+wpirpsv,saved (cash ISA),224,645,25.7768
+wpirpiv,invested (ISA),111,758,12.7733
+wpirpla,bought property,26,843,2.9919
+wpirpdb,paid off debts,92,777,10.5869
+wpirpsp,spent it,394,475,45.3395
+wpirpfr,gave to family,40,829,4.6030
+wpirp95,other,62,807,7.1346
+wpdcpan,plan: annuitize remaining DC pot,587,16178,3.5013
