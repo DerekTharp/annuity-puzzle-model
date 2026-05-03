@@ -25,7 +25,7 @@ KEY_NAME=${KEY_NAME:-annuity-key}
 KEY_FILE=${KEY_FILE:-$HOME/.ssh/annuity-key.pem}
 SG_NAME=${SG_NAME:-annuity-ssh}
 SPOT=${SPOT:-1}
-NAME_TAG="annuity-puzzle-11ch-$(date +%Y%m%d-%H%M)"
+NAME_TAG="annuity-puzzle-10ch-$(date +%Y%m%d-%H%M)"
 
 echo "=== AWS Annuity-Puzzle Pipeline Launcher ==="
 echo "Region:        $REGION"
@@ -140,9 +140,16 @@ echo
 echo "Syncing project to instance..."
 RSYNC_OPTS=(-avz --delete --compress-level=9
     --exclude '.git/'
+    --exclude '.claude/'
+    --exclude '.aws-instance.meta*'
+    --exclude 'archive/'
     --exclude 'logs/'
+    --exclude 'review_reports*/'
+    --exclude 'potential references/'
+    --exclude 'data/raw/'
     --exclude 'results-latest.tar.gz'
     --exclude 'results_*.tar.gz'
+    --exclude 'results-*.tar.gz'
     --exclude 'paper/*.pdf'
     --exclude 'paper/*.aux'
     --exclude 'paper/*.fdb_latexmk'
