@@ -6,7 +6,7 @@
 #   julia --project=. run_all.jl --tests-only # run tests only
 #
 # Expected runtime on AWS c7a.48xlarge (192 vCPU): ~3 hours.
-# Single-thread:  ~80 hours (2048 Shapley + 7 psi + 1000 MC + everything else).
+# Single-thread:  ~50 hours (1024 Shapley + 10 psi + 1000 MC + everything else).
 # 20 stages total; expects all subset/Shapley/MC stages parallelized.
 # For faster development runs, use --skip-tests and comment out Stage 12.
 #
@@ -165,10 +165,10 @@ function main()
         joinpath(CALIB_DIR, "recalibrate_bequests.jl"))
     push!(timings, "Bequests" => t)
 
-    # --- Stage 10: Exact Shapley decomposition (2048 subsets) ---
+    # --- Stage 10: Exact Shapley decomposition (1024 subsets, 10 channels) ---
     # Produces: shapley_exact.tex/.csv
     t = run_stage(
-        "10. Exact Shapley Decomposition (2048 subsets)",
+        "10. Exact Shapley Decomposition (1024 subsets)",
         joinpath(SCRIPTS_DIR, "run_subset_enumeration.jl"); parallel=true)
     push!(timings, "Shapley" => t)
 
@@ -202,7 +202,7 @@ function main()
         joinpath(SCRIPTS_DIR, "run_psi_sensitivity.jl"); parallel=true)
     push!(timings, "Psi sensitivity" => t)
 
-    # --- Stage 13c: Monte Carlo parameter uncertainty (11-channel) ---
+    # --- Stage 13c: Monte Carlo parameter uncertainty (10-channel) ---
     # Produces: monte_carlo_ownership.csv, monte_carlo_summary.tex.
     # 1000 joint draws over (gamma fixed) hazard_poor, inflation, MWR,
     # pessimism, delta_c, psi_purchase. Yields 90% CI bands on the headline.

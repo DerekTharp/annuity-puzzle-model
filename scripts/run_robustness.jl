@@ -14,7 +14,7 @@
 # Parallelism strategy: every sub-section that needs a full-model resolve is
 # flattened into a SINGLE master spec list and dispatched via one parallel_solve
 # call. Wall-clock time is therefore the longest single solve (~20-30 min for
-# the full 11-channel model), not the sum of sub-section times. Each sub-section
+# the full 10-channel model), not the sum of sub-section times. Each sub-section
 # then filters the master results and renders its block of output in the format
 # the manuscript expects.
 #
