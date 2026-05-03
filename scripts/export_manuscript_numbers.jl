@@ -431,9 +431,10 @@ function build_macros!()
             length(toks) == 5 || continue
             regime, measure, n_yes, n_denom, pct = toks
             if regime == "pre_freedoms_w6" && measure == "annuity_style_of_dc_recipients"
-                def!("nELSAW6DC",         fmt_int(parse(Int, n_denom)))
-                def!("nELSAW6Annuity",    fmt_int(parse(Int, n_yes)))
-                def!("pctELSAW6Annuity",  fmt_pct(parse(Float64, pct); digits=1))
+                # LaTeX macro names cannot contain digits, so "W6" -> "WaveSix".
+                def!("nELSAWaveSixDC",         fmt_int(parse(Int, n_denom)))
+                def!("nELSAWaveSixAnnuity",    fmt_int(parse(Int, n_yes)))
+                def!("pctELSAWaveSixAnnuity",  fmt_pct(parse(Float64, pct); digits=1))
             elseif regime == "post_freedoms_w8_11" && measure == "lumpsum_annuitize"
                 def!("nELSAPostLumpSum",  fmt_int(parse(Int, n_denom)))
                 def!("nELSAPostAnnuity",  fmt_int(parse(Int, n_yes)))
