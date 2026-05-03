@@ -394,6 +394,70 @@ function build_macros!()
     def!("pctHRSObserved",      fmt_pct(hrs.pct_owners; digits=1))
     def!("nHRSOwners",          fmt_int(hrs.n_owners))
 
+    # ----------------------------------------------------------------------
+    # Section C2 — HRS lifetime annuity indicator (fat-file q286 series)
+    # Source: data/processed/hrs_lifetime_ownership.csv (POOLED row)
+    # ----------------------------------------------------------------------
+    hrs_lifetime_path = joinpath(REPO_ROOT, "data", "processed", "hrs_lifetime_ownership.csv")
+    if isfile(hrs_lifetime_path)
+        for (i, line) in enumerate(eachline(hrs_lifetime_path))
+            i == 1 && continue
+            startswith(line, "POOLED,") || continue
+            toks = split(chopprefix(line, "POOLED,"), ',')
+            n_elig    = parse(Int, toks[1])
+            n_iann    = parse(Int, toks[2])
+            n_lifetime = parse(Int, toks[4])
+            iann_pct  = parse(Float64, toks[5])
+            lifetime_pct = parse(Float64, toks[7])
+            def!("nHRSLifetimeEligible", commas(n_elig))
+            def!("nHRSLifetimeOwners",   fmt_int(n_lifetime))
+            def!("pctHRSLifetime",       fmt_pct(lifetime_pct; digits=2))
+            def!("pctHRSIannPooled",     fmt_pct(iann_pct;     digits=2))
+            def!("nHRSIannOwners",       fmt_int(n_iann))
+            break
+        end
+    end
+
+    # ----------------------------------------------------------------------
+    # Section C3 — UK ELSA pre/post 2015 freedoms empirical evidence
+    # Source: data/processed/elsa_pre_post_freedoms.csv,
+    #         data/processed/elsa_disposition_pooled.csv
+    # ----------------------------------------------------------------------
+    elsa_pp_path = joinpath(REPO_ROOT, "data", "processed", "elsa_pre_post_freedoms.csv")
+    if isfile(elsa_pp_path)
+        for (i, line) in enumerate(eachline(elsa_pp_path))
+            i == 1 && continue
+            toks = split(chomp(line), ',')
+            length(toks) == 5 || continue
+            regime, measure, n_yes, n_denom, pct = toks
+            if regime == "pre_freedoms_w6" && measure == "annuity_style_of_dc_recipients"
+                def!("nELSAW6DC",         fmt_int(parse(Int, n_denom)))
+                def!("nELSAW6Annuity",    fmt_int(parse(Int, n_yes)))
+                def!("pctELSAW6Annuity",  fmt_pct(parse(Float64, pct); digits=1))
+            elseif regime == "post_freedoms_w8_11" && measure == "lumpsum_annuitize"
+                def!("nELSAPostLumpSum",  fmt_int(parse(Int, n_denom)))
+                def!("nELSAPostAnnuity",  fmt_int(parse(Int, n_yes)))
+                def!("pctELSAPostAnnuity", fmt_pct(parse(Float64, pct); digits=2))
+            elseif regime == "post_freedoms_pool_w8_11" && measure == "lumpsum_annuitize"
+                def!("nELSAPostLumpSum",  fmt_int(parse(Int, n_denom)))
+                def!("nELSAPostAnnuity",  fmt_int(parse(Int, n_yes)))
+                def!("pctELSAPostAnnuity", fmt_pct(parse(Float64, pct); digits=2))
+            elseif regime == "post_freedoms_pool_w8_11" && measure == "plan_annuitize"
+                def!("nELSAPostPlanDC",      fmt_int(parse(Int, n_denom)))
+                def!("nELSAPostPlanAnnuity", fmt_int(parse(Int, n_yes)))
+                def!("pctELSAPostPlanAnnuity", fmt_pct(parse(Float64, pct); digits=1))
+            end
+        end
+        # Implied behavioral elasticity: pre - post (for both lump-sum and plan measures)
+        # Pre = 90.2%, post (lump-sum) = 1.27%, post (plan) = 3.50%
+        # Headline drop:
+        #   90.2 - 1.27 = 88.9 pp (lump-sum disposition basis)
+        #   90.2 - 3.50 = 86.7 pp (forward-plan basis)
+        def!("ELSADropLumpSum", fmt_num(88.9; digits=0))
+        def!("ELSADropPlan",    fmt_num(86.7; digits=0))
+        def!("ELSADropRange",   "87--89")
+    end
+
     # ======================================================================
     # Section D — Sequential decomposition (retention path)
     # Bitmasks follow the decomposition ordering used by run_subset_enumeration.jl
@@ -679,18 +743,23 @@ function build_macros!()
     # Section L — Behavioral channel: psi_purchase sensitivity
     # Source: tables/csv/psi_sensitivity.csv (skipped if missing)
     # ======================================================================
-    # Anchors from the UK 2015 pension freedoms calibration (Anchor C variants)
-    # plus the rational benchmark (psi=0). The "B-low" anchor uses the raw
-    # 75 pp UK ownership drop without correcting for the simultaneous tax-rule
-    # change. Above-range values are reported as a corner-bound diagnostic.
+    # Anchors from the UK 2015 pension freedoms calibration:
+    # - C-variants (55/60/65pp): ABI aggregate, strip of rational tax-removal
+    # - ELSA-strip (70/74pp): UK ELSA wave 6 vs waves 8-11 microdata, strip
+    # - B-low (75pp): ABI aggregate, no tax correction
+    # - ELSA-total (88pp): UK ELSA microdata total drop, no tax correction
+    # Above-range values reported as a corner-bound diagnostic.
     psi_macros = [
-        ("Zero",      "No PED (rational + SDU only)"),
-        ("UKLow",     "UK low (55pp behavioral)"),    # Anchor C-low
-        ("UKMid",     "UK mid (60pp behavioral)"),    # Anchor C-mid (production)
-        ("UKHigh",    "UK high (65pp behavioral)"),   # Anchor C-high
-        ("UKBLow",    "UK low total (75pp drop)"),    # Anchor B-low (no tax correction)
-        ("AboveRange","Above sensitivity range"),
-        ("Corner",    "Corner-bound region"),
+        ("Zero",        "No PED (rational + SDU only)"),
+        ("UKLow",       "UK low (55pp behavioral)"),               # Anchor C-low
+        ("UKMid",       "UK mid (60pp behavioral)"),               # Anchor C-mid (production)
+        ("UKHigh",      "UK high (65pp behavioral)"),              # Anchor C-high
+        ("UKELSALow",   "UK ELSA strip-low (70pp behavioral)"),    # ELSA microdata, low strip
+        ("UKELSAHigh",  "UK ELSA strip-high (74pp behavioral)"),   # ELSA microdata, high strip
+        ("UKBLow",      "UK low total (75pp drop)"),               # Anchor B-low (ABI total)
+        ("UKELSATotal", "UK ELSA total (88pp drop)"),              # ELSA microdata total
+        ("AboveRange",  "Above sensitivity range"),
+        ("Corner",      "Corner-bound region"),
     ]
     for (suffix, label) in psi_macros
         s = psi_sensitivity(label)
