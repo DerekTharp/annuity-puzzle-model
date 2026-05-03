@@ -37,7 +37,14 @@ echo "Memory: $(free -h | awk '/^Mem:/ {print $2}')" | tee -a "$LOG"
 # Julia. Skip eager Pkg.precompile (some packages with native deps fail
 # eager precompile on AL2023; they precompile lazily on first load).
 echo "Instantiating Julia project..." | tee -a "$LOG"
-rm -f Manifest.toml
+# Manifest deletion is opt-in — set ANNUITY_REFRESH_MANIFEST=1 to force a
+# fresh resolve. By default the AWS pipeline reuses the local Manifest so
+# that results are bit-for-bit reproducible against the committed lockfile,
+# matching the README's reproducibility claim.
+if [ "${ANNUITY_REFRESH_MANIFEST:-0}" = "1" ]; then
+    echo "ANNUITY_REFRESH_MANIFEST=1 set — deleting Manifest.toml" | tee -a "$LOG"
+    rm -f Manifest.toml
+fi
 if ! julia --project=. -e '
     using Pkg
     reg_dir = joinpath(DEPOT_PATH[1], "registries")

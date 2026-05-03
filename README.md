@@ -1,37 +1,42 @@
 # Quantifying the Annuity Puzzle: A Unified Lifecycle Decomposition
 
 Replication package for Tharp (working paper). A calibrated lifecycle model
-nests eleven channels proposed to explain low voluntary annuity demand among
+nests ten channels proposed to explain low voluntary annuity demand among
 US retirees, organized in three layers:
 
-- **Seven rational channels:** pre-existing Social Security annuitization,
-  bequest motives, medical expenditure risk, health-mortality correlation
-  (Reichling-Smetters), subjective survival pessimism, pricing loads, and
-  inflation erosion.
+- **Six rational channels:** pre-existing Social Security annuitization,
+  bequest motives, combined medical expenditure risk and health-mortality
+  correlation (Reichling-Smetters bundled with medical risk because R-S has
+  no economic content without stochastic medical costs to correlate against),
+  subjective survival pessimism, pricing loads, and inflation erosion.
 - **Two preference channels:** age-varying consumption needs
   (Aguiar-Hurst 2013) and state-dependent utility (Finkelstein-Luttmer-
   Notowidigdo 2013).
 - **Two behavioral channels operating at distinct decision moments and pointing
   in opposite directions:** source-dependent utility (Force A; Blanchett-Finke
   2024, 2025) raises annuitization by converting portfolio wealth into
-  "spendable income"; a narrow-framing purchase penalty (Force B;
+  "spendable income"; a narrow-framing purchase-event disutility (Force B;
   Barberis-Huang 2009 narrow framing under Tversky-Kahneman 1992 loss
   aversion) suppresses it through loss aversion over the unrecouped premium
   until breakeven.
 
 Under baseline parameters (gamma = 2.5, MWR = 0.87, modern Wettstein-2021
-pricing), the rational channels alone reduce predicted ownership from a
-frictionless population benchmark of 41.4% to 35.6%. Adding the preference
-channels brings the prediction to 22.3%. Adding Force A (source-dependent
-utility, lambda_W = 0.625) raises it to 77.2%; adding Force B (narrow-framing
-penalty, psi_purchase = 0.0163 calibrated to the UK 2015 pension freedoms
-reform via single-moment SMM) yields the production point estimate of 17.4%.
-Across alternative single-moment SMM specifications anchored to the UK
-reform, psi_purchase falls in [0.0142, 0.0281] and predicted US ownership
-ranges from 2.2% to 22.0%, a bracket that contains the observed HRS rate of
-3.4%.
+pricing), the six rational channels predict 44.2% ownership relative to a
+frictionless population benchmark of 41.4%. Adding the two preference
+channels brings the prediction to 34.3%; adding Force A (source-dependent
+utility, lambda_W = 0.625) raises it to 79.3%. The Force B parameter
+psi_purchase is anchored to UK post-reform evidence (2015 pension freedoms),
+combining the conservative ABI aggregate (60 pp behavioral residual after
+stripping the rational tax-removal response, psi=0.0163) and a descriptive
+ELSA microdata sensitivity bound (88 pp total drop, psi=0.0335). The
+corresponding bracket of predicted US voluntary ownership is [2.3%, 24.5%].
+Two HRS measures of US lifetime annuity ownership are reported in parallel
+as out-of-sample empirical targets: 2.02% (95% CI [1.68%, 2.43%], the
+cleaner fat-file q286 lifetime annuity contract indicator) and 3.34% (95% CI
+[2.89%, 3.85%], the conventional any-annuity income proxy). Both are
+consistent with the model's UK-anchored bracket.
 
-An exact Shapley decomposition over all 2,048 channel subsets attributes the
+An exact Shapley decomposition over all 1,024 channel subsets attributes the
 demand reduction without order dependence. The narrow-framing purchase
 penalty has the largest single Shapley value; Force A enters with the
 opposite sign, confirming that the two behavioral channels are empirically

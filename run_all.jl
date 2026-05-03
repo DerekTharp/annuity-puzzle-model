@@ -317,11 +317,9 @@ function main()
     if isempty(missing_files)
         @printf("  All %d expected manuscript tables verified.\n\n", length(expected_tex))
     else
-        println("  WARNING: Missing manuscript tables:")
-        for f in missing_files
-            println("    $f")
-        end
-        println()
+        # Fail closed: a pipeline that completed every stage but did not
+        # produce every expected manuscript table is not submission-grade.
+        error("Missing manuscript tables: " * join(missing_files, ", "))
     end
 end
 
