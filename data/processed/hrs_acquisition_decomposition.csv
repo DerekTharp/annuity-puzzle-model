@@ -1,0 +1,6 @@
+category,n_persons,share_of_traced
+pre65,37,0.248322
+at_retirement,36,0.241611
+post65,69,0.463087
+left_censored,7,0.046980
+unknown,0,0.000000
