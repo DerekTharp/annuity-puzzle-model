@@ -298,6 +298,18 @@ Table~\ref{tab:pashchenko} evaluates her channel set within the present framewor
 \input{../tables/tex/pashchenko_comparison.tex}
 
 
+\subsection{Replication checks against prior literature}
+\label{app:replication_checks}
+
+The model implementation is checked against three prior papers in the annuity-puzzle literature. The checks are not full replications (the present model differs from each in nontrivial respects), but they verify that the implementation of shared components reproduces the published quantitative patterns.
+
+\textbf{\citet{lockwood2012}.} The repository's automated test suite (\texttt{test/test\_lockwood.jl}) exercises eight checks against Lockwood's published moments: (i) the SSA cumulative death probability life table reproduces Lockwood's Table-A1 conditional survival at age 65 to 1e-8 tolerance; (ii) the fair payout rate at $\gamma = 2$, $r = 0.03$ matches Lockwood's reported 7.16\% annual payout per dollar of premium; (iii) the willingness-to-pay (WTP) for a fair annuity without bequest motives reproduces Lockwood's $\approx$25\% of non-annuitized wealth; (iv) WTP declines monotonically with the pre-annuitized wealth fraction as Lockwood reports; (v) WTP collapses with bequest motives at the magnitudes Lockwood documents; (vi) loaded annuities reduce WTP consistent with Lockwood's loaded-pricing exhibits; (vii) the bequest-parameter calibration reproduces Lockwood's Table-1 estimates; (viii) the value function exhibits Lockwood's monotonicity and concavity properties. All checks pass under the present production grid.
+
+\textbf{\citet{pashchenko2013}.} The Pashchenko comparison is reported as Table~\ref{tab:pashchenko}. The six-channel rational model predicts \ownSixChannel{} ownership, close to her reported $\approx$20\%, confirming that standard rational channels alone leave a residual gap relative to observed ownership. The channels Pashchenko omits (the combined Med+R-S correlation, survival pessimism, age-varying needs, and inflation erosion) close the residual gap once added.
+
+\textbf{\citet{reichlingsmetters2015}.} Their core mechanism---the health-mortality correlation that makes annuities ``valuation-risky'' precisely when liquid wealth is most valuable---is operationalized in this paper as the combined Med+R-S channel (Section~\ref{M-sec:results}). The bundling reflects a structural fact noted by the present paper: R-S has no economic content without stochastic medical costs to correlate against. Activating the combined channel reduces predicted ownership by \magDeltaMedRS{}~pp in the sequential decomposition, contributing \shapMedRS{}~pp in the order-independent Shapley attribution. The qualitative R-S sign-flip pattern (annuity demand falls when health-correlated medical risk is added on top of pure stochastic mortality) is reproduced by the present model under their parameter choices, verified in \texttt{test/test\_health.jl}.
+
+
 %% ================================================================
 %%  E. DIA/QLAC EXTENSION
 %% ================================================================
