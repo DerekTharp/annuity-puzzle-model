@@ -1,0 +1,16 @@
+regime,measure,n_yes,n_denom,pct
+pre_freedoms_w6,annuity_style_of_dc_recipients,4793,5313,90.2127
+pre_freedoms_w6,drawdown_of_dc_recipients,12,5313,0.2259
+post_freedoms_pool_w8_11,plan_annuitize,587,16765,3.5013
+post_freedoms_pool_w8_11,plan_drawdown_/_regular_income,7562,16765,45.1059
+post_freedoms_pool_w8_11,plan_single_lump_sum,1118,16765,6.6687
+post_freedoms_pool_w8_11,plan_multiple_cash_withdrawals,574,16765,3.4238
+post_freedoms_pool_w8_11,plan_haven't_decided,7246,16765,43.2210
+post_freedoms_pool_w8_11,lumpsum_annuitize,11,869,1.2658
+post_freedoms_pool_w8_11,lumpsum_saved,224,869,25.7768
+post_freedoms_pool_w8_11,lumpsum_invested,111,869,12.7733
+post_freedoms_pool_w8_11,lumpsum_bought_property,26,869,2.9919
+post_freedoms_pool_w8_11,lumpsum_paid_off_debts,92,869,10.5869
+post_freedoms_pool_w8_11,lumpsum_spent_it,394,869,45.3395
+post_freedoms_pool_w8_11,lumpsum_gave_to_family,40,869,4.6030
+post_freedoms_pool_w8_11,lumpsum_other,62,869,7.1346
