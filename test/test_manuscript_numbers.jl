@@ -20,18 +20,22 @@ const CSV_DIR = joinpath(REPO_ROOT, "tables", "csv")
 const HRS_CSV = joinpath(REPO_ROOT, "data", "processed", "lockwood_hrs_sample.csv")
 
 # Channel bit mask constants (must match run_subset_enumeration.jl).
-# Eleven channels: nine rational + two behavioral (SDU + narrow-framing PED).
+# Ten channels: Medical and R-S correlation are combined into a single
+# channel (R-S has no economic content without medical risk).
 const B_SS         = 1 << 0
 const B_BEQUESTS   = 1 << 1
-const B_MEDICAL    = 1 << 2
-const B_RS         = 1 << 3
-const B_PESSIMISM  = 1 << 4
-const B_AGE_NEEDS  = 1 << 5
-const B_STATE_UTIL = 1 << 6
-const B_LOADS      = 1 << 7
-const B_INFLATION  = 1 << 8
-const B_SDU          = 1 << 9    # Force A: source-dependent utility
-const B_PSI_PURCHASE = 1 << 10   # Force B: narrow-framing purchase penalty
+const B_MED_RS     = 1 << 2   # Combined: medical + R-S correlation
+const B_PESSIMISM  = 1 << 3
+const B_AGE_NEEDS  = 1 << 4
+const B_STATE_UTIL = 1 << 5
+const B_LOADS      = 1 << 6
+const B_INFLATION  = 1 << 7
+const B_SDU          = 1 << 8   # Force A: source-dependent utility
+const B_PSI_PURCHASE = 1 << 9   # Force B: narrow-framing purchase penalty
+
+# Backward-compat aliases (prose macros may still reference these names).
+const B_MEDICAL = B_MED_RS
+const B_RS      = B_MED_RS
 
 # ---------------------------------------------------------------------------
 # Parse paper/numbers.tex into a macro dictionary.
@@ -64,16 +68,16 @@ function subset_ownership_pct(bitmask::Int)
     error("bitmask $bitmask not in subset_enumeration.csv")
 end
 
-# Returns true when subset_enumeration.csv reflects the current 11-channel
-# code (2048 subsets). When the CSV is stale (1024 subsets, pre-SDU build),
-# tests that assume the new bit layout skip cleanly. Stage 16's post-run
-# validation runs AFTER a fresh export and will see 2048 rows, so strict
-# checks always run on fresh state.
-function subset_csv_is_eleven_channel()
+# Returns true when subset_enumeration.csv reflects the current 10-channel
+# code (1024 subsets — Medical and R-S now combined into one channel).
+# Older CSVs from the 11-channel build had 2048 rows but contained 512
+# duplicate evaluations due to the R-S/Medical coupling. Stage 16's
+# post-run validation runs AFTER a fresh export and will see 1024 rows.
+function subset_csv_is_ten_channel()
     path = joinpath(CSV_DIR, "subset_enumeration.csv")
     isfile(path) || return false
     n_rows = countlines(path) - 1  # subtract header
-    return n_rows >= 2048
+    return n_rows >= 1024 && n_rows < 2048
 end
 
 function shapley_value_pp(channel::AbstractString)
@@ -114,64 +118,78 @@ macros = load_macros()
         @test length(macros) > 100
     end
 
-    # Sequential decomposition: bitmask → ownership percent
+    # Sequential decomposition: bitmask → ownership percent.
+    # The bitmask schema below is the 10-channel reformulation (Med+R-S=bit 4).
+    # Legacy 11-channel CSVs use a different bit ordering (Medical=4, R-S=8,
+    # Pessimism=16, ...) so the lookups would resolve to the wrong rows. When
+    # the CSV is in the legacy schema, this test set is deferred until the
+    # AWS rerun produces a 1024-row 10-channel CSV.
     @testset "decomposition ownership" begin
-        cases = [
-            "ownFrictionless"     => 0,
-            "ownAddSS"            => B_SS,
-            "ownAddBequests"      => B_SS | B_BEQUESTS,
-            "ownAddMedical"       => B_SS | B_BEQUESTS | B_MEDICAL,
-            "ownAddRS"            => B_SS | B_BEQUESTS | B_MEDICAL | B_RS,
-            "ownAddPessimism"     => B_SS | B_BEQUESTS | B_MEDICAL | B_RS | B_PESSIMISM,
-            "ownAddLoads"         => B_SS | B_BEQUESTS | B_MEDICAL | B_RS | B_PESSIMISM | B_LOADS,
-            "ownSevenChannel"     => B_SS | B_BEQUESTS | B_MEDICAL | B_RS | B_PESSIMISM | B_LOADS | B_INFLATION,
-            "ownEightChannel"     => B_SS | B_BEQUESTS | B_MEDICAL | B_RS | B_PESSIMISM | B_AGE_NEEDS | B_LOADS | B_INFLATION,
-            "ownNineChannel"      => B_SS | B_BEQUESTS | B_MEDICAL | B_RS | B_PESSIMISM | B_AGE_NEEDS | B_STATE_UTIL | B_LOADS | B_INFLATION,
-            "ownTenChannel"       => B_SS | B_BEQUESTS | B_MEDICAL | B_RS | B_PESSIMISM | B_AGE_NEEDS | B_STATE_UTIL | B_LOADS | B_INFLATION | B_SDU,
-            "ownElevenChannel"    => B_SS | B_BEQUESTS | B_MEDICAL | B_RS | B_PESSIMISM | B_AGE_NEEDS | B_STATE_UTIL | B_LOADS | B_INFLATION | B_SDU | B_PSI_PURCHASE,
-        ]
-        # The two final-layer cases (ownTenChannel = +SDU, ownElevenChannel =
-        # +PED) require subset_enumeration.csv to have 2048 rows. Skip them
-        # when running pre-pipeline against stale 1024-row CSVs; Stage 16
-        # post-run validation will see fresh state and check strictly.
-        eleven_ch = subset_csv_is_eleven_channel()
-        for (name, bm) in cases
-            if !eleven_ch && (name == "ownTenChannel" || name == "ownElevenChannel")
-                continue
+        ten_ch = subset_csv_is_ten_channel()
+        if !ten_ch
+            @test_skip "subset_enumeration.csv is legacy 11-channel schema; awaiting 10-channel rerun"
+        else
+            cases = [
+                "ownFrictionless"     => 0,
+                "ownAddSS"            => B_SS,
+                "ownAddBequests"      => B_SS | B_BEQUESTS,
+                "ownAddMedical"       => B_SS | B_BEQUESTS | B_MED_RS,
+                "ownAddRS"            => B_SS | B_BEQUESTS | B_MED_RS,
+                "ownAddMedRS"         => B_SS | B_BEQUESTS | B_MED_RS,
+                "ownAddPessimism"     => B_SS | B_BEQUESTS | B_MED_RS | B_PESSIMISM,
+                "ownAddLoads"         => B_SS | B_BEQUESTS | B_MED_RS | B_PESSIMISM | B_LOADS,
+                "ownSevenChannel"     => B_SS | B_BEQUESTS | B_MED_RS | B_PESSIMISM | B_LOADS | B_INFLATION,
+                "ownEightChannel"     => B_SS | B_BEQUESTS | B_MED_RS | B_PESSIMISM | B_AGE_NEEDS | B_LOADS | B_INFLATION,
+                "ownNineChannel"      => B_SS | B_BEQUESTS | B_MED_RS | B_PESSIMISM | B_AGE_NEEDS | B_STATE_UTIL | B_LOADS | B_INFLATION,
+                "ownTenChannel"       => B_SS | B_BEQUESTS | B_MED_RS | B_PESSIMISM | B_AGE_NEEDS | B_STATE_UTIL | B_LOADS | B_INFLATION | B_SDU,
+                "ownElevenChannel"    => B_SS | B_BEQUESTS | B_MED_RS | B_PESSIMISM | B_AGE_NEEDS | B_STATE_UTIL | B_LOADS | B_INFLATION | B_SDU | B_PSI_PURCHASE,
+            ]
+            for (name, bm) in cases
+                @test haskey(macros, name)
+                @test macros[name] == fmt_pct(subset_ownership_pct(bm); digits=1)
             end
-            @test haskey(macros, name)
-            @test macros[name] == fmt_pct(subset_ownership_pct(bm); digits=1)
         end
     end
 
-    # Shapley values (pp) — signed, 1 decimal. Eleven channels: nine
-    # rational + Force A (SDU) + Force B (narrow-framing PED).
+    # Shapley values (pp) — signed, 1 decimal. Ten channels: eight
+    # rational/preference + Force A (SDU) + Force B (narrow-framing PED).
+    # The "Medical+R-S" channel only exists in the 10-channel reformulation
+    # CSV; legacy 11-channel CSVs have separate "Medical" and "R-S" rows
+    # that the export script aggregates.
     @testset "shapley values" begin
-        cases = [
+        # Channels that exist in both schemas
+        common_cases = [
             "shapLoads"      => "Loads",
-            "shapRS"         => "R-S",
             "shapPessimism"  => "Pessimism",
             "shapAgeNeeds"   => "Age needs",
             "shapInflation"  => "Inflation",
             "shapBequests"   => "Bequests",
-            "shapMedical"    => "Medical",
             "shapStateUtil"  => "State utility",
             "shapSS"         => "SS",
             "shapSDU"        => "SDU (Force A)",
             "shapNarrowFraming" => "Narrow framing (Force B)",
         ]
-        for (name, ch) in cases
-            haskey(macros, name) || continue  # macros for missing channels skip silently
+        for (name, ch) in common_cases
+            haskey(macros, name) || continue
             @test macros[name] == fmt_num(shapley_value_pp(ch); digits=1)
         end
-        # Critical channels MUST be present, but the two behavioral channels
-        # (shapSDU, shapNarrowFraming) only appear after the 11-channel pipeline
-        # has run. Skip when subset CSV is stale; Stage 16 will check strictly.
-        eleven_ch = subset_csv_is_eleven_channel()
-        for required in ("shapLoads", "shapRS")
-            @test haskey(macros, required)
+        # Med+R-S: native lookup if 10-channel CSV, else sum of legacy rows.
+        if haskey(macros, "shapMedRS")
+            shap_path = joinpath(CSV_DIR, "shapley_exact.csv")
+            csv_text = read(shap_path, String)
+            expected = if occursin("Medical+R-S,", csv_text)
+                fmt_num(shapley_value_pp("Medical+R-S"); digits=1)
+            else
+                # Legacy CSV: aggregate the two separate rows
+                fmt_num(shapley_value_pp("Medical") + shapley_value_pp("R-S"); digits=1)
+            end
+            @test macros["shapMedRS"] == expected
         end
-        if eleven_ch
+        # Critical channels MUST be present after AWS rerun
+        ten_ch = subset_csv_is_ten_channel()
+        @test haskey(macros, "shapLoads")
+        @test haskey(macros, "shapMedRS")
+        if ten_ch
             for required in ("shapSDU", "shapNarrowFraming")
                 @test haskey(macros, required)
             end
