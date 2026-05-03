@@ -30,18 +30,25 @@ const OUT_PATH  = joinpath(REPO_ROOT, "paper", "numbers.tex")
 const HRS_PATH  = joinpath(REPO_ROOT, "data", "processed", "lockwood_hrs_sample.csv")
 
 # Channel bits (must match run_subset_enumeration.jl).
-# Eleven channels: nine rational + two behavioral (SDU + narrow-framing PED).
+# Ten channels: eight rational/preference + two behavioral. Medical and R-S
+# correlation are combined into a single channel because R-S has no
+# economic content without stochastic medical costs to correlate against
+# (see review_reports/ for panel discussion).
 const B_SS         = 1 << 0
 const B_BEQUESTS   = 1 << 1
-const B_MEDICAL    = 1 << 2
-const B_RS         = 1 << 3
-const B_PESSIMISM  = 1 << 4
-const B_AGE_NEEDS  = 1 << 5
-const B_STATE_UTIL = 1 << 6
-const B_LOADS      = 1 << 7
-const B_INFLATION  = 1 << 8
-const B_SDU          = 1 << 9    # Force A: source-dependent utility (FPR / Blanchett-Finke)
-const B_PSI_PURCHASE = 1 << 10   # Force B: narrow-framing purchase penalty (Barberis-Huang)
+const B_MED_RS     = 1 << 2   # Combined: medical risk + R-S correlation
+const B_PESSIMISM  = 1 << 3
+const B_AGE_NEEDS  = 1 << 4
+const B_STATE_UTIL = 1 << 5
+const B_LOADS      = 1 << 6
+const B_INFLATION  = 1 << 7
+const B_SDU          = 1 << 8   # Force A: source-dependent utility
+const B_PSI_PURCHASE = 1 << 9   # Force B: narrow-framing purchase penalty
+
+# Backward compatibility aliases for prose macros that used the old names.
+# B_MEDICAL alone is no longer meaningful (always implies the R-S correlation).
+const B_MEDICAL = B_MED_RS
+const B_RS      = B_MED_RS
 
 # ---------------------------------------------------------------------------
 # Formatting helpers
@@ -217,6 +224,18 @@ function shapley_lookup()
     for r in eachrow(rows)
         out[String(r[1])] = (value_pp=Float64(r[2]), share_pct=Float64(r[3]))
     end
+    # 10-channel reformulation compatibility: if only the old separate "Medical"
+    # and "R-S" rows are present (pre-reformulation pipeline output), synthesize
+    # a combined "Medical+R-S" entry. Owen's coupled-coalition aggregation reduces
+    # to summing the two components when they always travel together; for the
+    # legacy CSV this is the closest defensible approximation until the AWS
+    # rerun produces the proper combined Shapley value.
+    if !haskey(out, "Medical+R-S") && haskey(out, "Medical") && haskey(out, "R-S")
+        m  = out["Medical"]
+        rs = out["R-S"]
+        out["Medical+R-S"] = (value_pp = m.value_pp + rs.value_pp,
+                              share_pct = m.share_pct + rs.share_pct)
+    end
     out
 end
 
@@ -386,31 +405,38 @@ function build_macros!()
     def!("ownAddSS",            fmt_pct(subset_ownership(B_SS); digits=1))
     # + Bequests (SS + Bequests)
     def!("ownAddBequests",      fmt_pct(subset_ownership(B_SS | B_BEQUESTS); digits=1))
-    # + Medical
-    def!("ownAddMedical",       fmt_pct(subset_ownership(B_SS | B_BEQUESTS | B_MEDICAL); digits=1))
-    # + R-S
-    def!("ownAddRS",            fmt_pct(subset_ownership(B_SS | B_BEQUESTS | B_MEDICAL | B_RS); digits=1))
+    # + Medical risk + R-S correlation (combined channel under 10-channel reformulation)
+    def!("ownAddMedRS",         fmt_pct(subset_ownership(B_SS | B_BEQUESTS | B_MED_RS); digits=1))
+    # Backward-compat aliases — under 10-channel structure both add the same bundle.
+    def!("ownAddMedical",       fmt_pct(subset_ownership(B_SS | B_BEQUESTS | B_MED_RS); digits=1))
+    def!("ownAddRS",            fmt_pct(subset_ownership(B_SS | B_BEQUESTS | B_MED_RS); digits=1))
     # + Pessimism
-    def!("ownAddPessimism",     fmt_pct(subset_ownership(B_SS | B_BEQUESTS | B_MEDICAL | B_RS | B_PESSIMISM); digits=1))
+    def!("ownAddPessimism",     fmt_pct(subset_ownership(B_SS | B_BEQUESTS | B_MED_RS | B_PESSIMISM); digits=1))
     # + Loads (skip age needs / state utility — these come in the extension table)
-    def!("ownAddLoads",         fmt_pct(subset_ownership(B_SS | B_BEQUESTS | B_MEDICAL | B_RS | B_PESSIMISM | B_LOADS); digits=1))
-    # + Inflation  (= 7-channel rational, bitmask 415)
-    def!("ownSevenChannel",     fmt_pct(subset_ownership(B_SS | B_BEQUESTS | B_MEDICAL | B_RS | B_PESSIMISM | B_LOADS | B_INFLATION); digits=1))
-    # + Age needs   (= 8-channel, bitmask 447)
-    def!("ownEightChannel",     fmt_pct(subset_ownership(B_SS | B_BEQUESTS | B_MEDICAL | B_RS | B_PESSIMISM | B_AGE_NEEDS | B_LOADS | B_INFLATION); digits=1))
-    # + State utility (= full 9-channel rational+preferences, bitmask 511)
-    def!("ownNineChannel",      fmt_pct(subset_ownership(B_SS | B_BEQUESTS | B_MEDICAL | B_RS | B_PESSIMISM | B_AGE_NEEDS | B_STATE_UTIL | B_LOADS | B_INFLATION); digits=1))
-    # + SDU (= 10-channel: rational + Force A only). Bitmask 1023.
+    def!("ownAddLoads",         fmt_pct(subset_ownership(B_SS | B_BEQUESTS | B_MED_RS | B_PESSIMISM | B_LOADS); digits=1))
+    # + Inflation  (= 6-channel rational under 10-channel reformulation, bitmask 207)
+    def!("ownSixChannel",       fmt_pct(subset_ownership(B_SS | B_BEQUESTS | B_MED_RS | B_PESSIMISM | B_LOADS | B_INFLATION); digits=1))
+    # Backward-compat alias (was 7-channel under old 11-channel naming).
+    def!("ownSevenChannel",     fmt_pct(subset_ownership(B_SS | B_BEQUESTS | B_MED_RS | B_PESSIMISM | B_LOADS | B_INFLATION); digits=1))
+    # + Age needs   (= 7-channel under 10-channel reformulation, bitmask 223)
+    def!("ownSevenChannelExt",  fmt_pct(subset_ownership(B_SS | B_BEQUESTS | B_MED_RS | B_PESSIMISM | B_AGE_NEEDS | B_LOADS | B_INFLATION); digits=1))
+    def!("ownEightChannel",     fmt_pct(subset_ownership(B_SS | B_BEQUESTS | B_MED_RS | B_PESSIMISM | B_AGE_NEEDS | B_LOADS | B_INFLATION); digits=1))
+    # + State utility (= 8-channel rational+preferences under 10-channel, bitmask 255)
+    def!("ownEightChannelExt",  fmt_pct(subset_ownership(B_SS | B_BEQUESTS | B_MED_RS | B_PESSIMISM | B_AGE_NEEDS | B_STATE_UTIL | B_LOADS | B_INFLATION); digits=1))
+    def!("ownNineChannel",      fmt_pct(subset_ownership(B_SS | B_BEQUESTS | B_MED_RS | B_PESSIMISM | B_AGE_NEEDS | B_STATE_UTIL | B_LOADS | B_INFLATION); digits=1))
+    # + SDU (= 9-channel: rational + Force A only). Bitmask 511.
     try
-        def!("ownTenChannel",   fmt_pct(subset_ownership(B_SS | B_BEQUESTS | B_MEDICAL | B_RS | B_PESSIMISM | B_AGE_NEEDS | B_STATE_UTIL | B_LOADS | B_INFLATION | B_SDU); digits=1))
+        def!("ownNineChannelSDU", fmt_pct(subset_ownership(B_SS | B_BEQUESTS | B_MED_RS | B_PESSIMISM | B_AGE_NEEDS | B_STATE_UTIL | B_LOADS | B_INFLATION | B_SDU); digits=1))
+        def!("ownTenChannel",     fmt_pct(subset_ownership(B_SS | B_BEQUESTS | B_MED_RS | B_PESSIMISM | B_AGE_NEEDS | B_STATE_UTIL | B_LOADS | B_INFLATION | B_SDU); digits=1))
     catch e
-        @warn "Skipping ownTenChannel macro (11-channel pipeline not yet run)" exception=e
+        @warn "Skipping ownTenChannel macro (10-channel pipeline not yet run)" exception=e
     end
-    # + Narrow-framing PED (= full 11-channel, bitmask 2047). Headline production.
+    # + Narrow-framing PED (= full 10-channel under reformulation, bitmask 1023). Headline production.
     try
-        def!("ownElevenChannel", fmt_pct(subset_ownership(B_SS | B_BEQUESTS | B_MEDICAL | B_RS | B_PESSIMISM | B_AGE_NEEDS | B_STATE_UTIL | B_LOADS | B_INFLATION | B_SDU | B_PSI_PURCHASE); digits=1))
+        def!("ownTenChannelFull", fmt_pct(subset_ownership(B_SS | B_BEQUESTS | B_MED_RS | B_PESSIMISM | B_AGE_NEEDS | B_STATE_UTIL | B_LOADS | B_INFLATION | B_SDU | B_PSI_PURCHASE); digits=1))
+        def!("ownElevenChannel",  fmt_pct(subset_ownership(B_SS | B_BEQUESTS | B_MED_RS | B_PESSIMISM | B_AGE_NEEDS | B_STATE_UTIL | B_LOADS | B_INFLATION | B_SDU | B_PSI_PURCHASE); digits=1))
     catch e
-        @warn "Skipping ownElevenChannel macro (11-channel pipeline not yet run)" exception=e
+        @warn "Skipping ownElevenChannel macro (10-channel pipeline not yet run)" exception=e
     end
 
     # Retention rate for SS step (complement as percent)
@@ -419,44 +445,49 @@ function build_macros!()
     def!("retentionSS",         fmt_pct(own_ss / own_friction * 100; digits=1))
 
     # Specific prose values
-    # "retention 86.1%, a -13.0 pp effect" for pessimism
-    own_pre_pessimism = subset_ownership(B_SS | B_BEQUESTS | B_MEDICAL | B_RS)  # 93.2
-    own_post_pessimism = subset_ownership(B_SS | B_BEQUESTS | B_MEDICAL | B_RS | B_PESSIMISM)  # 80.2
+    own_pre_pessimism = subset_ownership(B_SS | B_BEQUESTS | B_MED_RS)
+    own_post_pessimism = subset_ownership(B_SS | B_BEQUESTS | B_MED_RS | B_PESSIMISM)
     def!("ownPrePessimism",     fmt_pct(own_pre_pessimism; digits=1))
     def!("deltaPessimism",      fmt_num(own_post_pessimism - own_pre_pessimism; digits=1))
     def!("retentionPessimism",  fmt_pct(own_post_pessimism / own_pre_pessimism * 100; digits=1))
 
-    # Loads step: 80.2% -> 33.8%
-    own_post_loads = subset_ownership(B_SS | B_BEQUESTS | B_MEDICAL | B_RS | B_PESSIMISM | B_LOADS)  # 33.8
+    # Loads step
+    own_post_loads = subset_ownership(B_SS | B_BEQUESTS | B_MED_RS | B_PESSIMISM | B_LOADS)
     def!("retentionLoads",      fmt_pct(own_post_loads / own_post_pessimism * 100; digits=1))
 
-    # Inflation step: 33.8% -> 18.3%
-    own_post_inflation = subset_ownership(B_SS | B_BEQUESTS | B_MEDICAL | B_RS | B_PESSIMISM | B_LOADS | B_INFLATION)
+    # Inflation step
+    own_post_inflation = subset_ownership(B_SS | B_BEQUESTS | B_MED_RS | B_PESSIMISM | B_LOADS | B_INFLATION)
     def!("retentionInflation",  fmt_pct(own_post_inflation / own_post_loads * 100; digits=1))
 
-    # Medical-only delta (97.4% retention, -2.6 pp)
-    own_pre_medical = subset_ownership(B_SS | B_BEQUESTS)
-    own_post_medical = subset_ownership(B_SS | B_BEQUESTS | B_MEDICAL)
-    def!("deltaMedical",        fmt_num(own_post_medical - own_pre_medical; digits=1))
-    def!("magDeltaMedical",     fmt_num(abs(own_post_medical - own_pre_medical); digits=1))
-    def!("retentionMedical",    fmt_pct(own_post_medical / own_pre_medical * 100; digits=1))
-
-    # R-S retention (Health-mortality correlation step)
-    own_pre_rs  = subset_ownership(B_SS | B_BEQUESTS | B_MEDICAL)
-    own_post_rs = subset_ownership(B_SS | B_BEQUESTS | B_MEDICAL | B_RS)
-    def!("retentionRS",         fmt_pct(own_post_rs / own_pre_rs * 100; digits=1))
-    def!("deltaRS",             fmt_num(own_post_rs - own_pre_rs; digits=1))
-    def!("magDeltaRS",          fmt_num(abs(own_post_rs - own_pre_rs); digits=1))
+    # Combined Medical+R-S delta under 10-channel reformulation.
+    # The medical risk and R-S correlation channels are coupled (R-S has no
+    # economic content without medical costs to correlate against), so they
+    # are added together as a single bundle.
+    own_pre_med_rs = subset_ownership(B_SS | B_BEQUESTS)
+    own_post_med_rs = subset_ownership(B_SS | B_BEQUESTS | B_MED_RS)
+    def!("deltaMedRS",          fmt_num(own_post_med_rs - own_pre_med_rs; digits=1))
+    def!("magDeltaMedRS",       fmt_num(abs(own_post_med_rs - own_pre_med_rs); digits=1))
+    def!("retentionMedRS",      fmt_pct(own_post_med_rs / own_pre_med_rs * 100; digits=1))
+    # Backward-compat aliases for prose still using the old separate names.
+    # Both refer to the combined Medical+R-S bundle delta.
+    def!("deltaMedical",        fmt_num(own_post_med_rs - own_pre_med_rs; digits=1))
+    def!("magDeltaMedical",     fmt_num(abs(own_post_med_rs - own_pre_med_rs); digits=1))
+    def!("retentionMedical",    fmt_pct(own_post_med_rs / own_pre_med_rs * 100; digits=1))
+    def!("deltaRS",             fmt_num(own_post_med_rs - own_pre_med_rs; digits=1))
+    def!("magDeltaRS",          fmt_num(abs(own_post_med_rs - own_pre_med_rs); digits=1))
+    def!("retentionRS",         fmt_pct(own_post_med_rs / own_pre_med_rs * 100; digits=1))
 
     # ======================================================================
-    # Section E — Extension path (8-channel, 9-channel headlines)
+    # Section E — Extension path
+    # Under 10-channel reformulation: 6-channel rational (SS, Bequests, Med+R-S,
+    # Pessimism, Loads, Inflation) → +Age needs → +State utility = 8-channel.
+    # Old 11-channel naming retained as aliases for manuscript backward compat.
     # ======================================================================
-    # Delta 7-ch -> 8-ch (adding age-varying needs)
-    own_7 = subset_ownership(B_SS | B_BEQUESTS | B_MEDICAL | B_RS | B_PESSIMISM | B_LOADS | B_INFLATION)
-    own_8 = subset_ownership(B_SS | B_BEQUESTS | B_MEDICAL | B_RS | B_PESSIMISM | B_AGE_NEEDS | B_LOADS | B_INFLATION)
-    own_9 = subset_ownership(B_SS | B_BEQUESTS | B_MEDICAL | B_RS | B_PESSIMISM | B_AGE_NEEDS | B_STATE_UTIL | B_LOADS | B_INFLATION)
-    def!("deltaAgeNeeds",       fmt_num(own_8 - own_7; digits=1))
-    def!("deltaStateUtil",      fmt_num(own_9 - own_8; digits=1))
+    own_base = subset_ownership(B_SS | B_BEQUESTS | B_MED_RS | B_PESSIMISM | B_LOADS | B_INFLATION)
+    own_with_age = subset_ownership(B_SS | B_BEQUESTS | B_MED_RS | B_PESSIMISM | B_AGE_NEEDS | B_LOADS | B_INFLATION)
+    own_with_state = subset_ownership(B_SS | B_BEQUESTS | B_MED_RS | B_PESSIMISM | B_AGE_NEEDS | B_STATE_UTIL | B_LOADS | B_INFLATION)
+    def!("deltaAgeNeeds",       fmt_num(own_with_age - own_base; digits=1))
+    def!("deltaStateUtil",      fmt_num(own_with_state - own_with_age; digits=1))
 
     # ======================================================================
     # Section F — Shapley values (from shapley_exact.csv)
@@ -464,8 +495,11 @@ function build_macros!()
     sh = shapley_lookup()
     def!("shapSS",              fmt_num(sh["SS"].value_pp; digits=1))
     def!("shapBequests",        fmt_num(sh["Bequests"].value_pp; digits=1))
-    def!("shapMedical",         fmt_num(sh["Medical"].value_pp; digits=1))
-    def!("shapRS",              fmt_num(sh["R-S"].value_pp; digits=1))
+    # Combined Medical + R-S correlation channel (10-channel reformulation).
+    def!("shapMedRS",           fmt_num(sh["Medical+R-S"].value_pp; digits=1))
+    # Backward-compat aliases for prose still using the old separate names.
+    def!("shapMedical",         fmt_num(sh["Medical+R-S"].value_pp; digits=1))
+    def!("shapRS",              fmt_num(sh["Medical+R-S"].value_pp; digits=1))
     def!("shapPessimism",       fmt_num(sh["Pessimism"].value_pp; digits=1))
     def!("shapAgeNeeds",        fmt_num(sh["Age needs"].value_pp; digits=1))
     def!("shapStateUtil",       fmt_num(sh["State utility"].value_pp; digits=1))
@@ -480,8 +514,9 @@ function build_macros!()
 
     def!("shapShareSS",         fmt_pct(sh["SS"].share_pct; digits=0))
     def!("shapShareBequests",   fmt_pct(sh["Bequests"].share_pct; digits=0))
-    def!("shapShareMedical",    fmt_pct(sh["Medical"].share_pct; digits=0))
-    def!("shapShareRS",         fmt_pct(sh["R-S"].share_pct; digits=0))
+    def!("shapShareMedRS",      fmt_pct(sh["Medical+R-S"].share_pct; digits=0))
+    def!("shapShareMedical",    fmt_pct(sh["Medical+R-S"].share_pct; digits=0))  # alias
+    def!("shapShareRS",         fmt_pct(sh["Medical+R-S"].share_pct; digits=0))  # alias
     def!("shapSharePessimism",  fmt_pct(sh["Pessimism"].share_pct; digits=0))
     def!("shapShareAgeNeeds",   fmt_pct(sh["Age needs"].share_pct; digits=0))
     def!("shapShareStateUtil",  fmt_pct(sh["State utility"].share_pct; digits=0))
@@ -494,9 +529,9 @@ function build_macros!()
         def!("shapShareNarrowFraming", fmt_pct(sh["Narrow framing (Force B)"].share_pct; digits=0))
     end
 
-    # Non-pricing non-traditional channels sum: R-S + Pessimism + Age needs
-    rs_pess_age_pp    = sh["R-S"].value_pp + sh["Pessimism"].value_pp + sh["Age needs"].value_pp
-    rs_pess_age_share = sh["R-S"].share_pct + sh["Pessimism"].share_pct + sh["Age needs"].share_pct
+    # Non-pricing non-traditional channels sum: Med+R-S + Pessimism + Age needs
+    rs_pess_age_pp    = sh["Medical+R-S"].value_pp + sh["Pessimism"].value_pp + sh["Age needs"].value_pp
+    rs_pess_age_share = sh["Medical+R-S"].share_pct + sh["Pessimism"].share_pct + sh["Age needs"].share_pct
     def!("shapRSPessAge",       fmt_num(rs_pess_age_pp; digits=1))
     def!("shapShareRSPessAge",  fmt_pct(rs_pess_age_share; digits=0))
 
@@ -720,15 +755,17 @@ backfill_num_variants!()
 # ---------------------------------------------------------------------------
 
 function write_extension_path_table()
-    # 7-channel rational
-    bm7 = B_SS | B_BEQUESTS | B_MEDICAL | B_RS | B_PESSIMISM | B_LOADS | B_INFLATION
+    # 6-channel rational baseline (under 10-channel reformulation Med+R-S is one channel).
+    # Variable names retain "bm7..bm11" for layout backward compat with the table prose,
+    # but the count of distinct channels under the reformulation is 6/7/8/9/10.
+    bm7 = B_SS | B_BEQUESTS | B_MED_RS | B_PESSIMISM | B_LOADS | B_INFLATION
     # + age needs
     bm8 = bm7 | B_AGE_NEEDS
-    # + state utility (= 9-channel rational+preferences)
+    # + state utility (= 8-channel rational+preferences under reformulation)
     bm9 = bm8 | B_STATE_UTIL
-    # + SDU (Force A; = 10-channel: rational + source-dependent utility)
+    # + SDU (Force A; = 9-channel under reformulation)
     bm10 = bm9 | B_SDU
-    # + narrow-framing PED (Force B; = full 11-channel)
+    # + narrow-framing PED (Force B; = full 10-channel under reformulation)
     bm11 = bm10 | B_PSI_PURCHASE
 
     own = Dict{Int,Float64}()

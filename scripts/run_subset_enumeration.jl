@@ -1,7 +1,7 @@
 # Full subset enumeration of annuity ownership channels.
 #
 # Precomputes the ownership rate for every combination of 10 channels
-# (2^11 = 2048 subsets), then reconstructs any decomposition ordering,
+# (2^10 = 1024 subsets), then reconstructs any decomposition ordering,
 # exact Shapley values, and pairwise interactions from the lookup table.
 #
 # Channels:
@@ -56,23 +56,29 @@ const PSI_PURCHASE_VAL = PSI_PURCHASE
 # ===================================================================
 # Channel index definitions
 # ===================================================================
+# 10-channel structure: medical-expense risk and the Reichling-Smetters
+# health-mortality correlation are combined into a single "R-S correlation
+# (incl. medical risk)" channel, because R-S has no economic content
+# without stochastic medical costs to correlate against. Following the
+# Owen (1977) coalition-structure value, this is the cleanest mathematical
+# treatment for two players that cannot be separated. See review_reports/
+# for the panel discussion that motivated this reformulation.
 @everywhere const CH_SS            = 1
 @everywhere const CH_BEQUESTS      = 2
-@everywhere const CH_MEDICAL       = 3
-@everywhere const CH_RS            = 4
-@everywhere const CH_PESSIMISM     = 5
-@everywhere const CH_AGE_NEEDS     = 6
-@everywhere const CH_STATE_UTIL    = 7
-@everywhere const CH_LOADS         = 8
-@everywhere const CH_INFLATION     = 9
-@everywhere const CH_SDU           = 10  # Source-dependent utility (Force A)
-@everywhere const CH_PSI_PURCHASE  = 11  # Narrow-framing penalty (Force B)
+@everywhere const CH_MED_RS        = 3   # Combined: medical risk + R-S correlation
+@everywhere const CH_PESSIMISM     = 4
+@everywhere const CH_AGE_NEEDS     = 5
+@everywhere const CH_STATE_UTIL    = 6
+@everywhere const CH_LOADS         = 7
+@everywhere const CH_INFLATION     = 8
+@everywhere const CH_SDU           = 9   # Source-dependent utility (Force A)
+@everywhere const CH_PSI_PURCHASE  = 10  # Narrow-framing penalty (Force B)
 
-const N_CHANNELS = 11
-const N_SUBSETS = 2^N_CHANNELS  # 2048
+const N_CHANNELS = 10
+const N_SUBSETS = 2^N_CHANNELS  # 1024
 const CHANNEL_NAMES = [
-    "SS", "Bequests", "Medical", "R-S", "Pessimism",
-    "Age needs", "State utility", "Loads", "Inflation",
+    "SS", "Bequests", "Medical+R-S", "Pessimism", "Age needs",
+    "State utility", "Loads", "Inflation",
     "SDU (Force A)", "Narrow framing (Force B)",
 ]
 
@@ -165,11 +171,12 @@ end
         theta = theta_dfj
         kappa = kappa_dfj
     end
-    # R-S requires Medical: if R-S is on, Medical must also be on
-    if CH_MEDICAL in active || CH_RS in active
+    # Combined R-S + Medical channel: setting it activates both stochastic
+    # medical-expense risk AND the health-mortality correlation. R-S has
+    # no economic content without medical costs, so the two are not
+    # separately switchable in our 10-channel structure.
+    if CH_MED_RS in active
         medical_enabled = true
-    end
-    if CH_RS in active
         health_mortality_corr = true
     end
     if CH_PESSIMISM in active
@@ -210,7 +217,7 @@ end
 end
 
 # ===================================================================
-# Solve all 2048 subsets
+# Solve all 1024 subsets
 # ===================================================================
 println("\nSolving all $N_SUBSETS channel subsets...")
 flush(stdout)
@@ -393,13 +400,13 @@ println("  SEQUENTIAL DECOMPOSITION (from lookup table)")
 println("=" ^ 70)
 
 # Default ordering matches the manuscript decomposition (3-layer structure):
-#   Layer 1 (rational): SS, Bequests, Medical, R-S, Pessimism, Loads, Inflation
+#   Layer 1 (rational): SS, Bequests, MED+R-S (combined), Pessimism, Loads, Inflation
 #   Layer 2 (preferences): Age needs, State utility
-#   Layer 3 (behavioral): Purchase-event disutility
-default_order = [CH_SS, CH_BEQUESTS, CH_MEDICAL, CH_RS, CH_PESSIMISM,
+#   Layer 3 (behavioral): Force A (SDU), Force B (narrow framing)
+default_order = [CH_SS, CH_BEQUESTS, CH_MED_RS, CH_PESSIMISM,
                  CH_LOADS, CH_INFLATION,
                  CH_AGE_NEEDS, CH_STATE_UTIL,
-                 CH_PSI_PURCHASE]
+                 CH_SDU, CH_PSI_PURCHASE]
 
 """
 Reconstruct a sequential decomposition for any channel ordering
@@ -412,10 +419,7 @@ function sequential_from_lookup(ordering::Vector{Int}, lookup::Dict{Int, Float64
     push!(steps, ("Yaari benchmark", prev_own, 0.0))
 
     for ch in ordering
-        # R-S dependency: if adding R-S and Medical not yet active, add Medical too
-        if ch == CH_RS && (mask >> (CH_MEDICAL - 1)) & 1 == 0
-            mask |= (1 << (CH_MEDICAL - 1))
-        end
+        # No coupling needed; CH_MED_RS is a single combined channel.
         mask |= (1 << (ch - 1))
         own = lookup[mask]
         delta = own - prev_own
@@ -471,28 +475,17 @@ function exact_shapley(n::Int, lookup::Dict{Int, Float64})
         bit_i = 1 << (i - 1)
         phi_i = 0.0
 
-        # Sum over all subsets S that do NOT contain channel i
+        # Sum over all subsets S that do NOT contain channel i.
+        # Standard Shapley over the full power set 2^n with no coupling;
+        # the prior R-S/Medical special case is no longer needed because
+        # they are now a single combined channel (CH_MED_RS).
         for s_mask in 0:((1 << n) - 1)
             (s_mask & bit_i) != 0 && continue  # skip if i is in S
 
             s_size = count_ones(s_mask)
-
-            # Build S union {i}, handling R-S -> Medical dependency
             s_union_i = s_mask | bit_i
-            # If adding R-S (ch 4) and Medical (ch 3) is not in s_union_i, add it
-            if i == CH_RS && (s_union_i >> (CH_MEDICAL - 1)) & 1 == 0
-                s_union_i |= (1 << (CH_MEDICAL - 1))
-            end
-            # Also handle the case where S already has R-S but not Medical
-            if (s_mask >> (CH_RS - 1)) & 1 == 1 && (s_mask >> (CH_MEDICAL - 1)) & 1 == 0
-                # S has R-S but not Medical — this shouldn't happen in a consistent
-                # enumeration because we force Medical on when R-S is on.
-                # But the lookup table was built with this enforcement, so
-                # the ownership for s_mask already includes Medical.
-                # No special handling needed here.
-            end
 
-            # Marginal contribution of channel i to coalition S
+            # Marginal contribution of channel i to coalition S:
             # v(S ∪ {i}) - v(S) where v(S) = yaari - ownership(S)
             # = (yaari - ownership(S ∪ {i})) - (yaari - ownership(S))
             # = ownership(S) - ownership(S ∪ {i})
@@ -547,16 +540,8 @@ for i in 1:N_CHANNELS
         mask_j = 1 << (j - 1)
         mask_ij = mask_i | mask_j
 
-        # Handle R-S -> Medical dependency in all relevant masks
-        if i == CH_RS || j == CH_RS
-            mask_ij |= (1 << (CH_MEDICAL - 1))
-        end
-        if i == CH_RS
-            mask_i |= (1 << (CH_MEDICAL - 1))
-        end
-        if j == CH_RS
-            mask_j |= (1 << (CH_MEDICAL - 1))
-        end
+        # CH_MED_RS is now a single combined channel; no R-S/Medical
+        # dependency handling needed.
 
         own_i = ownership_lookup[mask_i]
         own_j = ownership_lookup[mask_j]
@@ -657,16 +642,7 @@ open(pw_csv_path, "w") do f
             mask_i = 1 << (i - 1)
             mask_j = 1 << (j - 1)
             mask_ij = mask_i | mask_j
-            # Apply R-S dependency for display
-            if i == CH_RS
-                mask_i |= (1 << (CH_MEDICAL - 1))
-            end
-            if j == CH_RS
-                mask_j |= (1 << (CH_MEDICAL - 1))
-            end
-            if i == CH_RS || j == CH_RS
-                mask_ij |= (1 << (CH_MEDICAL - 1))
-            end
+            # CH_MED_RS is a single combined channel; no coupling adjustment.
             @printf(f, "%s,%s,%.2f,%.2f,%.2f,%.2f\n",
                 CHANNEL_NAMES[i], CHANNEL_NAMES[j],
                 ownership_lookup[mask_i] * 100,
@@ -686,11 +662,9 @@ println("\n" * "=" ^ 70)
 println("  SUMMARY STATISTICS")
 println("=" ^ 70)
 
-# Most/least effective single channels
+# Most/least effective single channels.
+# CH_MED_RS is the combined R-S + Medical channel; no special handling needed.
 single_drops = [(CHANNEL_NAMES[i], yaari_own - ownership_lookup[1 << (i - 1)]) for i in 1:N_CHANNELS]
-# For R-S, use mask that includes Medical
-rs_mask = (1 << (CH_RS - 1)) | (1 << (CH_MEDICAL - 1))
-single_drops[CH_RS] = (CHANNEL_NAMES[CH_RS], yaari_own - ownership_lookup[rs_mask])
 
 sort!(single_drops, by=x -> -x[2])
 
