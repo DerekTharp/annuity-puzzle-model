@@ -267,6 +267,13 @@ function solve_annuitization(
     sol::Solution,
     payout_rate::Float64,
 )
+    # The age-65 alpha decision is the only purchase moment in this solver.
+    # For purchases at age > 65 (e.g., delayed-purchase robustness), the
+    # bridge fix in welfare.jl/wtp.jl converts the real premium pi*W_0 into
+    # a nominal premium nominal_premium = pi * (1+inflation_rate)^(t-1) before
+    # multiplying by the payout rate. Here t = 1 by construction, so the
+    # inflation factor is 1.0 and pi == nominal_premium. Adding A_new = pi *
+    # payout_rate is therefore correct without an explicit gross-up.
     p = sol.params
     g = sol.grids
     nW = length(g.W)
@@ -324,6 +331,8 @@ function solve_annuitization_health(
     payout_rate::Float64;
     initial_health::Int=1,  # 1=Good, 2=Fair, 3=Poor
 )
+    # See solve_annuitization for the bridge-fix argument: t = 1 here, so
+    # nominal_premium = pi * (1+pi)^0 = pi and no gross-up is needed.
     p = sol.params
     g = sol.grids
     nW = length(g.W)

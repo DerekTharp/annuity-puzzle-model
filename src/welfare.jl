@@ -79,13 +79,17 @@ function compute_cev(
         end
         W_rem < 0.0 && continue
 
-        A_new = pi * payout_rate
+        # Age-65 purchase: nominal_premium = pi (inflation_factor = 1).
+        # Convention matches wtp.jl/welfare.jl elsewhere: pass nominal_premium
+        # to purchase_penalty so the dollar amount is unambiguous.
+        nominal_premium = pi
+        A_new = nominal_premium * payout_rate
         A_total = y_existing + A_new
         W_rc = clamp(W_rem, g.W[1], g.W[end])
         A_tc = clamp(A_total, g.A[1], g.A[end])
         V_val = V_interp(W_rc, A_tc)
         if p.psi_purchase > 0.0
-            V_val -= purchase_penalty(pi, payout_rate, p.gamma,
+            V_val -= purchase_penalty(nominal_premium, payout_rate, p.gamma,
                 p.psi_purchase, p.psi_purchase_c_ref, p.beta, sol.base_surv)
         end
         if V_val > best_V
@@ -105,8 +109,19 @@ function compute_cev(
         return CEVResult(0.0, 0.0, V_no_ann, V_no_ann)
     end
 
-    # CRRA CEV formula: lambda = (V_with / V_without)^(1/(1-gamma)) - 1
-    # Both V values are negative for gamma > 1, so the ratio is positive.
+    # CRRA value-ratio CEV approximation: lambda = (V_with / V_without)^(1/(1-gamma)) - 1.
+    #
+    # NOTE: This is an APPROXIMATION when the model includes non-CRRA value
+    # contributions — specifically the bequest shifter kappa (V_bequest is
+    # CRRA in (b + kappa), not CRRA in c), the consumption floor c_floor (a
+    # kink), source-dependent utility (lambda_W reweights consumption by
+    # source), and the Force B purchase-event disutility (additive
+    # adjustment to V at the purchase moment, not a flow). The exact CEV
+    # would solve V_no_access(c * (1 + lambda)) = V_access for lambda. The
+    # closed-form ratio is exact only in the pure CRRA + Yaari special case
+    # and is reported here as a tractable approximation; see appendix
+    # discussion of welfare interpretation. The ranking of CEV across
+    # scenarios (and signs) is preserved by the approximation.
     gamma = p.gamma
     if gamma == 1.0
         # Log utility: V = log(c) + ..., CEV = exp(V_with - V_without) - 1
@@ -495,13 +510,15 @@ function simulate_welfare_comparison(
             W_rem -= p.fixed_cost
         end
         W_rem < 0.0 && continue
-        A_new = pi * payout_rate
+        # Age-65 purchase: nominal_premium = pi (inflation_factor = 1).
+        nominal_premium = pi
+        A_new = nominal_premium * payout_rate
         A_total = y_existing + A_new
         W_rc = clamp(W_rem, g.W[1], g.W[end])
         A_tc = clamp(A_total, g.A[1], g.A[end])
         V_val = V_interp(W_rc, A_tc)
         if p.psi_purchase > 0.0
-            V_val -= purchase_penalty(pi, payout_rate, p.gamma,
+            V_val -= purchase_penalty(nominal_premium, payout_rate, p.gamma,
                 p.psi_purchase, p.psi_purchase_c_ref, p.beta, sol.base_surv)
         end
         if V_val > best_V
