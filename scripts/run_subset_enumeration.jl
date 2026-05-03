@@ -131,10 +131,10 @@ flush(stdout)
 # Build channel config from bitmask
 # ===================================================================
 # Convert an integer bitmask (0 to 1023) to the set of active channel indices.
-# Bit i (0-indexed) corresponds to channel i+1.
+# Bit i (0-indexed) corresponds to channel i+1. Ten channels: bits 0-9.
 @everywhere function bitmask_to_channels(mask::Int)
     active = Set{Int}()
-    for i in 0:10  # 11 channels: bits 0-10
+    for i in 0:9  # 10 channels: bits 0-9
         if (mask >> i) & 1 == 1
             push!(active, i + 1)
         end
