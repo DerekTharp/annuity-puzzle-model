@@ -397,7 +397,19 @@ function build_macros!()
     # ----------------------------------------------------------------------
     # Section C2 — HRS lifetime annuity indicator (fat-file q286 series)
     # Source: data/processed/hrs_lifetime_ownership.csv (POOLED row)
+    # Wilson 95% binomial CIs computed for both lifetime (q286) and any-annuity
+    # (r{w}iann income proxy) measures so the manuscript can present both with
+    # sampling tolerance.
     # ----------------------------------------------------------------------
+    function wilson_ci(k::Int, n::Int; z::Float64=1.96)
+        # Wilson score interval — robust for proportions near zero.
+        p = k / n
+        denom = 1 + z^2 / n
+        center = (p + z^2 / (2n)) / denom
+        halfwidth = z * sqrt(p * (1 - p) / n + z^2 / (4 * n^2)) / denom
+        return (lo = center - halfwidth, hi = center + halfwidth)
+    end
+
     hrs_lifetime_path = joinpath(REPO_ROOT, "data", "processed", "hrs_lifetime_ownership.csv")
     if isfile(hrs_lifetime_path)
         for (i, line) in enumerate(eachline(hrs_lifetime_path))
@@ -414,6 +426,14 @@ function build_macros!()
             def!("pctHRSLifetime",       fmt_pct(lifetime_pct; digits=2))
             def!("pctHRSIannPooled",     fmt_pct(iann_pct;     digits=2))
             def!("nHRSIannOwners",       fmt_int(n_iann))
+
+            # Wilson 95% CIs for both measures
+            ci_life = wilson_ci(n_lifetime, n_elig)
+            ci_iann = wilson_ci(n_iann, n_elig)
+            def!("pctHRSLifetimeCILow",  fmt_pct(100 * ci_life.lo; digits=2))
+            def!("pctHRSLifetimeCIHigh", fmt_pct(100 * ci_life.hi; digits=2))
+            def!("pctHRSIannCILow",      fmt_pct(100 * ci_iann.lo; digits=2))
+            def!("pctHRSIannCIHigh",     fmt_pct(100 * ci_iann.hi; digits=2))
             break
         end
     end
@@ -776,6 +796,34 @@ function build_macros!()
     def!("pLambdaW", fmt_num(0.625; digits=3))
     # Reference consumption for narrow-framing penalty (config.jl PSI_PURCHASE_C_REF)
     def!("pPsiPurchaseCRef", "18{,}000")
+
+    # ----------------------------------------------------------------------
+    # Section L2 — Headline bracket (UK ELSA microdata + ABI aggregate)
+    # The "headline bracket" reflects the empirically defensible UK behavioral
+    # anchor range. Lower ψ corresponds to higher predicted ownership.
+    #   Bracket low (ψ=0.0163): conservative, ABI aggregate stripped (60pp behavioral)
+    #   Bracket high (ψ=0.0335): aggressive, ELSA microdata total drop (88pp)
+    # The wider sensitivity range adds the corner-bound and below-anchor values.
+    # ----------------------------------------------------------------------
+    let
+        s_low  = psi_sensitivity("UK mid (60pp behavioral)")        # ψ=0.0163
+        s_high = psi_sensitivity("UK ELSA total (88pp drop)")       # ψ=0.0335
+        if s_low !== nothing && s_high !== nothing
+            # ownBracketHigh = upper end of ownership range (lower ψ, conservative)
+            # ownBracketLow  = lower end of ownership range (higher ψ, aggressive)
+            def!("ownBracketHigh", fmt_pct(s_low.ownership_pct;  digits=1))
+            def!("ownBracketLow",  fmt_pct(s_high.ownership_pct; digits=1))
+            def!("pPsiBracketLow",  fmt_num(s_low.psi;  digits=4))
+            def!("pPsiBracketHigh", fmt_num(s_high.psi; digits=4))
+        end
+        # Wider sensitivity range (UKLow → corner-bound)
+        s_widel = psi_sensitivity("UK low (55pp behavioral)")
+        s_wideh = psi_sensitivity("Above sensitivity range")
+        if s_widel !== nothing && s_wideh !== nothing
+            def!("ownBracketWideHigh", fmt_pct(s_widel.ownership_pct; digits=1))
+            def!("ownBracketWideLow",  fmt_pct(s_wideh.ownership_pct; digits=1))
+        end
+    end
 
     # ======================================================================
     # Section M — Monte Carlo parameter uncertainty
