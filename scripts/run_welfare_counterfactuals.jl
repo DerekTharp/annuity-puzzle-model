@@ -142,9 +142,9 @@ configs = [
         "Group + correct pessimism", 0.90, INFLATION, 1.0, C_FLOOR, 1.0, PSI_PURCHASE,
         "MWR=0.90 + veridical survival beliefs — test interaction"),
     CounterfactualConfig(
-        "Medicaid relaxation (2x)", MWR_LOADED, INFLATION, SURVIVAL_PESSIMISM,
+        "Public consumption floor doubled", MWR_LOADED, INFLATION, SURVIVAL_PESSIMISM,
         C_FLOOR * 2.0, 1.0, PSI_PURCHASE,
-        "Double Medicaid asset threshold (c_floor)"),
+        "Double the public consumption floor (c_floor); proxy for SSI/Medicaid expansion"),
     CounterfactualConfig(
         "Best feasible package", 0.90, 0.0, 1.0, C_FLOOR, 1.0, PSI_PURCHASE,
         "Group pricing + real annuity + correct pessimism"),

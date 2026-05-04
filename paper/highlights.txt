@@ -1,7 +1,7 @@
 Highlights
 
-- Seven standard rational channels reduce predicted ownership from 41.4% to 18.3%
-- Age-varying consumption needs lower predicted ownership further to 7.4%
-- The full nine-channel model predicts 6.6%, close to observed rates of 3-6%
-- Exact Shapley decomposition shows pricing loads are the largest single channel (30.3 pp, 87%)
-- Social Security can both crowd in and crowd out private annuitization; group pricing raises ownership to 43.1%
+- Six standard rational channels predict 44.2% ownership relative to a frictionless population benchmark of 41.4%; adding two preference channels (age-varying needs, state-dependent utility) brings the prediction to 34.3%
+- Adding source-dependent utility (Force A; Blanchett-Finke spending differential) raises predicted ownership to 79.3%; adding the UK-anchored narrow-framing purchase-event disutility (Force B) yields the bracket [2.3%, 24.5%]
+- Both HRS measures of US lifetime annuity ownership are consistent with the model's UK-anchored bracket: 3.34% on the conventional any-annuity income proxy (95% CI [2.89%, 3.85%]) sits inside the bracket; 2.02% on the cleaner fat-file lifetime contract indicator (95% CI [1.68%, 2.43%]) overlaps the bracket's lower edge
+- Exact Shapley decomposition over all 1,024 channel subsets attributes ownership reduction without order dependence; the two behavioral channels enter with opposite-sign Shapley values, confirming empirically distinct mechanisms
+- Two distinct policy levers: supply-side (group pricing raises ownership) and demand-side (default architecture, psi_purchase = 0, raises ownership to 79.3%) operate on different margins
