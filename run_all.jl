@@ -90,16 +90,74 @@ function main()
     end
 
     # --- Stage 0b: Build HRS sample (skipped if processed CSV already present) ---
-    # Produces: data/processed/lockwood_hrs_sample.csv
+    # Produces: data/processed/lockwood_hrs_sample.csv from RAND HRS Longitudinal File.
+    # Set ANNUITY_FORCE_HRS_REBUILD=1 to force regeneration.
     hrs_csv = joinpath(PROJECT_DIR, "data", "processed", "lockwood_hrs_sample.csv")
-    if isfile(hrs_csv)
-        @printf("\n  Skipping Stage 0b: %s already exists.\n", hrs_csv)
+    force_rebuild = get(ENV, "ANNUITY_FORCE_HRS_REBUILD", "0") == "1"
+    if isfile(hrs_csv) && !force_rebuild
+        @printf("\n  Skipping Stage 0b: %s already exists (set ANNUITY_FORCE_HRS_REBUILD=1 to force).\n", hrs_csv)
         push!(timings, "HRS sample (skipped)" => 0.0)
     else
         t = run_stage(
             "0b. Build HRS Population Sample",
             joinpath(PROJECT_DIR, "calibration", "build_hrs_sample.jl"))
         push!(timings, "HRS sample" => t)
+    end
+
+    # --- Stage 0c: Compute HRS lifetime annuity rate (q286 fat-file indicator) ---
+    # Produces: data/processed/hrs_lifetime_ownership.csv. Requires the HRS
+    # pension/wealth fat files at data/raw/HRS/HRS Fat Files/. Skipped
+    # gracefully if raw fat files are absent.
+    hrs_lifetime_csv = joinpath(PROJECT_DIR, "data", "processed", "hrs_lifetime_ownership.csv")
+    if isfile(hrs_lifetime_csv) && !force_rebuild
+        @printf("  Skipping Stage 0c: %s already exists.\n", hrs_lifetime_csv)
+        push!(timings, "HRS lifetime (skipped)" => 0.0)
+    else
+        try
+            t = run_stage(
+                "0c. Compute HRS Lifetime Annuity Rate (q286 fat-file)",
+                joinpath(PROJECT_DIR, "calibration", "compute_lifetime_ownership_rate.jl"))
+            push!(timings, "HRS lifetime" => t)
+        catch e
+            @warn "Stage 0c failed (raw HRS fat files likely unavailable). Skipping; using checked-in CSV." exception=e
+        end
+    end
+
+    # --- Stage 0d: ELSA pre/post 2015 freedoms regime comparison ---
+    # Produces: data/processed/elsa_pre_post_freedoms.csv. Requires the ELSA
+    # archive (UK Data Service deposit 5050) at data/raw/ELSA/ or via the
+    # ANNUITY_ELSA_ARCHIVE env var. Skipped gracefully if archive is absent.
+    elsa_csv = joinpath(PROJECT_DIR, "data", "processed", "elsa_pre_post_freedoms.csv")
+    if isfile(elsa_csv) && !force_rebuild
+        @printf("  Skipping Stage 0d: %s already exists.\n", elsa_csv)
+        push!(timings, "ELSA pre/post (skipped)" => 0.0)
+    else
+        try
+            t = run_stage(
+                "0d. ELSA Pre/Post 2015 Freedoms Comparison",
+                joinpath(PROJECT_DIR, "calibration", "elsa_pre_post_freedoms.jl"))
+            push!(timings, "ELSA pre/post" => t)
+        catch e
+            @warn "Stage 0d failed (ELSA archive likely unavailable). Skipping; using checked-in CSV." exception=e
+        end
+    end
+
+    # --- Stage 0e: ELSA pooled disposition (waves 8-11) ---
+    # Produces: data/processed/elsa_disposition_pooled.csv. Same raw-data
+    # requirements as Stage 0d.
+    elsa_disp_csv = joinpath(PROJECT_DIR, "data", "processed", "elsa_disposition_pooled.csv")
+    if isfile(elsa_disp_csv) && !force_rebuild
+        @printf("  Skipping Stage 0e: %s already exists.\n", elsa_disp_csv)
+        push!(timings, "ELSA disposition (skipped)" => 0.0)
+    else
+        try
+            t = run_stage(
+                "0e. ELSA Pooled Disposition (waves 8-11)",
+                joinpath(PROJECT_DIR, "calibration", "elsa_disposition_pooled.jl"))
+            push!(timings, "ELSA disposition" => t)
+        catch e
+            @warn "Stage 0e failed (ELSA archive likely unavailable). Skipping; using checked-in CSV." exception=e
+        end
     end
 
     # --- Stage 1: Lockwood (2012) replication ---

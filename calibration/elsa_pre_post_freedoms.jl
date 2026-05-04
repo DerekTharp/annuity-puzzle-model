@@ -21,9 +21,31 @@ using ReadStatTables
 using Printf
 
 const PROJ = joinpath(@__DIR__, "..")
-const ELSA_BASE = joinpath(homedir(), "Documents", "_Datasets",
-                            "ELSA (English Longitudinal Study of Aging)")
-const ELSA_ZIP = joinpath(ELSA_BASE, "5050_ELSA_Main_Waves0-11_1998-2024.zip")
+
+# ELSA archive location. Configurable via ANNUITY_ELSA_ARCHIVE env var.
+# Falls back to (1) project-local data/raw/ELSA, then (2) the author's
+# personal _Datasets folder for backward compatibility. The archive is
+# the UK Data Service deposit 5050 (waves 0-11, 1998-2024).
+const ELSA_ZIP = let
+    env_path = get(ENV, "ANNUITY_ELSA_ARCHIVE", "")
+    project_path = joinpath(PROJ, "data", "raw", "ELSA",
+        "5050_ELSA_Main_Waves0-11_1998-2024.zip")
+    legacy_path = joinpath(homedir(), "Documents", "_Datasets",
+        "ELSA (English Longitudinal Study of Aging)",
+        "5050_ELSA_Main_Waves0-11_1998-2024.zip")
+    if !isempty(env_path) && isfile(env_path)
+        env_path
+    elseif isfile(project_path)
+        project_path
+    elseif isfile(legacy_path)
+        legacy_path
+    else
+        error("ELSA archive not found. Set ANNUITY_ELSA_ARCHIVE to the path of " *
+              "5050_ELSA_Main_Waves0-11_1998-2024.zip, or place the file at " *
+              "data/raw/ELSA/. UK Data Service deposit 5050 " *
+              "(https://beta.ukdataservice.ac.uk/datacatalogue/series/series?id=200011).")
+    end
+end
 const TMP_DIR = "/tmp/elsa_extract"
 
 function ensure_extracted(filename)

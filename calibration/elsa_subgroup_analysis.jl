@@ -9,9 +9,27 @@ using Printf
 using Statistics
 
 const PROJ = joinpath(@__DIR__, "..")
-const ELSA_BASE = joinpath(homedir(), "Documents", "_Datasets",
-                            "ELSA (English Longitudinal Study of Aging)")
-const ELSA_ZIP = joinpath(ELSA_BASE, "5050_ELSA_Main_Waves0-11_1998-2024.zip")
+
+# ELSA archive location. Configurable via ANNUITY_ELSA_ARCHIVE env var.
+const ELSA_ZIP = let
+    env_path = get(ENV, "ANNUITY_ELSA_ARCHIVE", "")
+    project_path = joinpath(PROJ, "data", "raw", "ELSA",
+        "5050_ELSA_Main_Waves0-11_1998-2024.zip")
+    legacy_path = joinpath(homedir(), "Documents", "_Datasets",
+        "ELSA (English Longitudinal Study of Aging)",
+        "5050_ELSA_Main_Waves0-11_1998-2024.zip")
+    if !isempty(env_path) && isfile(env_path)
+        env_path
+    elseif isfile(project_path)
+        project_path
+    elseif isfile(legacy_path)
+        legacy_path
+    else
+        error("ELSA archive not found. Set ANNUITY_ELSA_ARCHIVE to the path of " *
+              "5050_ELSA_Main_Waves0-11_1998-2024.zip, or place the file at " *
+              "data/raw/ELSA/. UK Data Service deposit 5050.")
+    end
+end
 const TMP_DIR = "/tmp/elsa_extract"
 
 const WAVES = [
