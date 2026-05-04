@@ -160,7 +160,13 @@ function purchase_penalty(premium::Float64,
                           psi_purchase::Float64,
                           c_ref::Float64,
                           beta::Float64,
-                          surv::Vector{Float64})
+                          surv::Vector{Float64};
+                          purchase_period::Int=1)
+    # purchase_period: index into `surv` for the period of purchase. Defaults
+    # to 1 (age-65 / period-1 purchase, which is the only call site in the
+    # current pipeline). For purchases at later ages, pass purchase_period =
+    # period-of-purchase so the cumulative survival starts conditional on
+    # being alive at the purchase moment, not at age 65.
     psi_purchase <= 0.0 && return 0.0
     premium <= 0.0 && return 0.0
     payout_rate <= 0.0 && return 0.0
@@ -172,18 +178,26 @@ function purchase_penalty(premium::Float64,
     # After breakeven, max(0, premium - A*(t-1)) = 0 and the stream contributes nothing.
     breakeven_t = ceil(Int, 1.0 / payout_rate) + 1  # +1 for the period at-which underwater hits 0
 
+    # Slice survival schedule from the purchase period forward. surv[t] is the
+    # one-period survival probability at age 65+t-1, so for a purchase at
+    # period p_t we want surv[p_t], surv[p_t+1], ... as the conditional one-
+    # period probabilities going forward.
+    surv_offset = purchase_period - 1
+    surv_remaining = surv_offset == 0 ? surv : @view surv[purchase_period:end]
+
     npv = 0.0
-    cum_surv = 1.0
-    horizon = min(breakeven_t, length(surv) + 1)
+    cum_surv = 1.0  # alive at purchase by construction
+    horizon = min(breakeven_t, length(surv_remaining) + 1)
     for t in 1:horizon
         underwater = max(0.0, premium - A * (t - 1))
         underwater <= 0.0 && break
         flow = psi_purchase * mu_ref * underwater
         discount = beta^(t - 1)
         npv += cum_surv * discount * flow
-        # Update cumulative survival for next period
-        if t <= length(surv)
-            cum_surv *= surv[t]
+        # Update cumulative survival for next period (conditional on alive at
+        # the purchase moment).
+        if t <= length(surv_remaining)
+            cum_surv *= surv_remaining[t]
         end
     end
     return npv

@@ -58,6 +58,40 @@ function simulate_lifecycle(
 
     A_nom_c = clamp(A_nominal, g.A[1], g.A[end])
 
+    # Build health-weighted continuation interpolations for each (ih, t)
+    # so we can re-optimize consumption given the realized medical shock
+    # (matching solve.jl's source-aware accounting). The stored c_policy is
+    # E_m[c*(m)] -- the m-averaged optimum -- which is not what the agent
+    # would do at any single realized m. Re-optimizing fixes that. The
+    # continuation V at (t+1) is health-weighted using the current period's
+    # health-transition matrix.
+    if c_interps === nothing
+        # Caller did not precompute V_hw_interps; build them locally for
+        # this single simulation. simulate_batch precomputes them across
+        # threads to amortize the cost.
+        nW = length(g.W); nA = length(g.A); nH = 3
+        V_hw_interps = Matrix{Any}(undef, nH, T)
+        for ih in 1:nH
+            for tt in 1:T
+                if tt < T
+                    V_hw = zeros(nW, nA)
+                    for ih_next in 1:nH
+                        prob = health_trans[tt][ih, ih_next]
+                        @views V_hw .+= prob .* sol.V[:, :, ih_next, tt + 1]
+                    end
+                else
+                    # Terminal period: continuation is bequest only;
+                    # solve_consumption handles this via the surv=0 path.
+                    V_hw = zeros(nW, nA)
+                end
+                V_hw_interps[ih, tt] = linear_interpolation(
+                    (g.W, g.A), V_hw,
+                    extrapolation_bc=Interpolations.Flat(),
+                )
+            end
+        end
+    end
+
     for t in 1:T
         age = p.age_start + t - 1
         wealth_path[t] = W
@@ -76,24 +110,33 @@ function simulate_lifecycle(
         end
         medical_path[t] = m
 
-        # Available resources after medical expenses (Medicaid floor)
-        cash = max(W + A_real + ss_val - m, p.c_floor)
-
-        # Look up consumption from policy function
-        W_c = clamp(W, g.W[1], g.W[end])
-        if c_interps !== nothing
-            c_itp = c_interps[H, t]
-        else
-            c_itp = linear_interpolation(
-                (g.W, g.A), sol.c_policy[:, :, H, t],
-                extrapolation_bc=Interpolations.Flat(),
-            )
+        # Source-aware accounting (matches solve.jl): medical absorbs
+        # income first, then portfolio. The Medicaid floor lifts inc_after
+        # if total resources fall below c_floor.
+        inc_gross = ss_val + A_real
+        inc_after = max(0.0, inc_gross - m)
+        port_drain = max(0.0, m - inc_gross)
+        W_after = max(W - port_drain, 0.0)
+        if inc_after + W_after < p.c_floor
+            inc_after = p.c_floor - W_after
         end
-        c = c_itp(W_c, A_nom_c)
-        c = clamp(c, p.c_floor, cash)
+
+        # Re-optimize consumption given the realized shock. solve_consumption
+        # handles the SDU kink and the c_floor corner. The continuation is
+        # the health-weighted V at t+1 evaluated at the agent's nominal A.
+        W_after_c = clamp(W_after, g.W[1], g.W[end])
+        V_hw_interp_2d = c_interps === nothing ? V_hw_interps[H, t] : c_interps[H, t]
+        # Build a 1D continuation V(W) at the agent's fixed nominal A.
+        V_next_interp = let A_fixed = A_nom_c, V_hw_2d = V_hw_interp_2d
+            W_eval -> V_hw_2d(clamp(W_eval, g.W[1], g.W[end]), A_fixed)
+        end
+        s_t_h = surv_health[t, H]
+        _, c = solve_consumption(W_after_c, 0.0, inc_after,
+                                 V_next_interp, s_t_h, p, t, H)
         consumption_path[t] = c
 
-        # Next-period wealth
+        # Next-period wealth: cash net of consumption.
+        cash = inc_after + W_after
         W_next = (1.0 + p.r) * (cash - c)
         W_next = max(W_next, 0.0)
 
@@ -154,12 +197,28 @@ function simulate_batch(
     T = p.T
     g = sol.grids
 
-    # Precompute all consumption policy interpolations: 3 health × T periods
-    c_interps = Matrix{Any}(undef, 3, T)
-    for ih in 1:3
+    # Precompute health-weighted V continuation interpolations once.
+    # simulate_lifecycle re-optimizes consumption given the realized medical
+    # shock (matching solve.jl's source-aware accounting). The continuation
+    # V at (t+1) is health-weighted using the current period's health
+    # transition matrix; we precompute these 2D (W, A) interps here so
+    # individual sims share the work.
+    nW = length(g.W); nA = length(g.A); nH = 3
+    health_trans_pre = build_all_health_transitions(p)
+    c_interps = Matrix{Any}(undef, nH, T)  # name preserved for backward compat
+    for ih in 1:nH
         for t in 1:T
+            if t < T
+                V_hw = zeros(nW, nA)
+                for ih_next in 1:nH
+                    prob = health_trans_pre[t][ih, ih_next]
+                    @views V_hw .+= prob .* sol.V[:, :, ih_next, t + 1]
+                end
+            else
+                V_hw = zeros(nW, nA)  # terminal: continuation is zero (bequest handled elsewhere)
+            end
             c_interps[ih, t] = linear_interpolation(
-                (g.W, g.A), sol.c_policy[:, :, ih, t],
+                (g.W, g.A), V_hw,
                 extrapolation_bc=Interpolations.Flat(),
             )
         end

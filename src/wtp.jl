@@ -625,10 +625,13 @@ function compute_ownership_rate_health(
             V_val = V_interp(W_c, A_c)
             # Narrow-framing purchase penalty NPV: the agent's mental accounting
             # tracks nominal cumulative receipts vs nominal premium, so pass
-            # the nominal premium (not the real one).
+            # the nominal premium (not the real one). purchase_period=t slices
+            # the survival schedule conditional on being alive at the purchase
+            # age (default purchase_period=1 was wrong for any age > 65).
             if p.psi_purchase > 0.0
                 V_val -= purchase_penalty(nominal_premium, payout_rate, p.gamma,
-                    p.psi_purchase, p.psi_purchase_c_ref, p.beta, sol.base_surv)
+                    p.psi_purchase, p.psi_purchase_c_ref, p.beta, sol.base_surv;
+                    purchase_period=t)
             end
             if V_val > best_V
                 best_V = V_val
