@@ -91,9 +91,35 @@ across alternative SMM specifications), 9-node Gauss-Hermite quadrature,
 
 ## Data
 
-Processed HRS sample (5,303 person-wave observations with observed health) is at
-`data/processed/lockwood_hrs_sample.csv`. Raw data requires a RAND HRS
-Longitudinal File account (free, https://hrsdata.isr.umich.edu).
+The repository ships with all processed CSVs needed to run the structural
+pipeline (Stages 1+) without raw-data access. Raw inputs are only needed to
+regenerate the processed CSVs from scratch (Stages 0b--0e).
+
+**Processed CSVs (checked in):**
+- `data/processed/lockwood_hrs_sample.csv` -- HRS population sample
+  (5,303 person-wave observations, single retirees aged 65--69, waves 5--9).
+- `data/processed/hrs_lifetime_ownership.csv` -- HRS lifetime annuity
+  contract indicator (q286 fat-file series), pooled across waves 5--9.
+- `data/processed/elsa_pre_post_freedoms.csv` -- UK ELSA wave 6 vs.
+  waves 8--11 disposition comparison.
+- `data/processed/elsa_disposition_pooled.csv` -- UK ELSA waves 8--11
+  pooled lump-sum disposition rates.
+- `data/processed/elsa_disposition_subgroups.csv` -- UK ELSA subgroup
+  robustness (age, sex, education, health).
+
+**Raw inputs (not checked in; institutional access required):**
+- RAND HRS Longitudinal File 2022 (v1) -- free, requires HRS account,
+  <https://hrsdata.isr.umich.edu>.
+- HRS public survey "fat files" -- pension/wealth modules per wave.
+- UK ELSA archive deposit 5050 -- UK Data Service registration required,
+  <https://beta.ukdataservice.ac.uk/datacatalogue/series/series?id=200011>.
+
+See `data/raw/README.md` for full provenance and expected paths.
+
+The pipeline gracefully skips raw-data stages if the source files are
+absent and falls back to the checked-in processed CSVs. To force full
+regeneration when raw inputs are present, set `ANNUITY_FORCE_HRS_REBUILD=1`.
+The ELSA archive path can be overridden via `ANNUITY_ELSA_ARCHIVE`.
 
 ## Code Organization
 

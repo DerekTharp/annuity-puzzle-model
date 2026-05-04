@@ -1,5 +1,9 @@
 # Raw HRS data (restricted-use, large files)
-data/raw/
+# Use glob form (data/raw/*) instead of bare directory (data/raw/) so the
+# negation below for README.md works (git ignores file negations inside
+# fully-ignored directories).
+data/raw/*
+!data/raw/README.md
 
 # macOS
 .DS_Store
