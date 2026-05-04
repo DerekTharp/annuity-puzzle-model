@@ -247,8 +247,12 @@ function compute_cev_population(
             A_tc = clamp(A_total, g.A[1], g.A[end])
             V_val = V_interp(W_rc, A_tc)
             if p.psi_purchase > 0.0
+                # purchase_period=t passes the survival clock starting at the
+                # actual purchase age (period t), not period 1. Default
+                # purchase_period=1 was wrong for any age-of-purchase > 65.
                 V_val -= purchase_penalty(nominal_premium, payout_rate, p.gamma,
-                p.psi_purchase, p.psi_purchase_c_ref, p.beta, sol.base_surv)
+                    p.psi_purchase, p.psi_purchase_c_ref, p.beta, sol.base_surv;
+                    purchase_period=t)
             end
             if V_val > best_V
                 best_V = V_val

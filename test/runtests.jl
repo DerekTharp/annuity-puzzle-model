@@ -22,6 +22,7 @@ const TEST_FILES = [
     "test_10channel_smoke.jl",
     "test_age_invariance.jl",
     "test_manuscript_numbers.jl",
+    "test_grid_clamp_audit.jl",
 ]
 
 function run_test_file(filename::String)
