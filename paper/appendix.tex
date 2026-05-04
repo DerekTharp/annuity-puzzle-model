@@ -126,7 +126,7 @@ The age-varying needs weight $w(t) = (1 - \delta_c)^{t-1}$ with $\delta_c = \pDe
 
 The channel reduces annuity demand because the annuity delivers a level income stream while the individual's consumption needs decline. An agent with declining needs prefers front-loaded consumption, which liquid wealth supports better than an annuity stream. The Shapley value of \shapAgeNeeds{} pp (\shapShareAgeNeeds{} share) indicates this is a quantitatively meaningful channel, comparable to survival pessimism and inflation erosion.
 
-Table~\ref{tab:dc_sensitivity} reports the sensitivity of the full nine-channel model to the decline rate $\delta_c$, computed using mean Social Security income across all quartiles for computational tractability. Ownership in this auxiliary exercise declines monotonically from 20.0\% ($\delta_c = 0$) to 10.0\% ($\delta_c = 0.03$). At the baseline $\delta_c = \pDeltaC$, ownership in this mean-SS specification is 13.4\%. These levels differ from the headline results in the main text (which use per-quartile SS assignment); the purpose of this table is to show the monotonic sensitivity to $\delta_c$, not to reproduce the exact headline numbers.
+Table~\ref{tab:dc_sensitivity} reports the sensitivity of the full eight-channel rational+preference model to the decline rate $\delta_c$, computed using mean Social Security income across all quartiles for computational tractability. Ownership in this auxiliary exercise declines monotonically from 20.0\% ($\delta_c = 0$) to 10.0\% ($\delta_c = 0.03$). At the baseline $\delta_c = \pDeltaC$, ownership in this mean-SS specification is 13.4\%. These levels differ from the headline results in the main text (which use per-quartile SS assignment); the purpose of this table is to show the monotonic sensitivity to $\delta_c$, not to reproduce the exact headline numbers.
 
 \begin{table}[htbp]
 \centering
@@ -146,7 +146,7 @@ $\delta_c$ & Ownership (\%) & Mean $\bar{\alpha}$ \\
 \end{tabular}
 \begin{tablenotes}
 \small
-\item Full nine-channel model with state-dependent utility ($\varphi = [\pHealthUtilGood, \pHealthUtilFair, \pHealthUtilPoor]$), mean Social Security, production grid ($\pNWealth \times \pNAnnuity$), \pNQuad-node Gauss--Hermite quadrature.
+\item Full eight-channel rational+preference model with state-dependent utility ($\varphi = [\pHealthUtilGood, \pHealthUtilFair, \pHealthUtilPoor]$), mean Social Security, production grid ($\pNWealth \times \pNAnnuity$), \pNQuad-node Gauss--Hermite quadrature.
 \end{tablenotes}
 \end{table}
 
@@ -155,7 +155,7 @@ $\delta_c$ & Ownership (\%) & Mean $\bar{\alpha}$ \\
 
 The health-utility weights $\varphi = [\pHealthUtilGood, \pHealthUtilFair, \pHealthUtilPoor]$ are based on the central estimates of \citet{finkelsteinluttmer2013}, who used variation in health induced by the onset of chronic conditions to estimate the effect of health on the marginal utility of consumption. Their central estimates imply that individuals in poor health value a dollar of consumption roughly 10--25\% less than those in good health. \citet{reichlingsmetters2015} adopted a softer translation of these estimates, $\varphi = [1.00, \pHealthUtilFairRS, \pHealthUtilPoorRS]$, noting that HRS self-reported health categories do not map perfectly onto FLN's chronic-condition onset states and that FLN's confidence intervals cover the full 10--25\% range.
 
-Under the raw FLN mapping the full nine-channel model predicts \ownNineChannelFLN{} ownership; under the softer Reichling--Smetters mapping it predicts \ownNineChannelRS{}, a difference of \deltaNineChannelRSmFLN{} pp. The production calibration uses the raw FLN central values; the Reichling--Smetters mapping is reported as a robustness check. In the calibrated model, state-dependent utility has a negligible effect on predicted ownership (Shapley value of \shapStateUtil{} pp) in either calibration. This near-zero effect reflects the modest magnitude of the health-utility weights and the fact that poor-health states already receive low weight through the mortality channel: individuals in Poor health face high mortality, so their contribution to the annuity's expected value is small regardless of the utility weight.
+Under the raw FLN mapping the full eight-channel rational+preference model predicts \ownNineChannelFLN{} ownership; under the softer Reichling--Smetters mapping it predicts \ownNineChannelRS{}, a difference of \deltaNineChannelRSmFLN{} pp. The production calibration uses the raw FLN central values; the Reichling--Smetters mapping is reported as a robustness check. In the calibrated model, state-dependent utility has a negligible effect on predicted ownership (Shapley value of \shapStateUtil{} pp) in either calibration. This near-zero effect reflects the modest magnitude of the health-utility weights and the fact that poor-health states already receive low weight through the mortality channel: individuals in Poor health face high mortality, so their contribution to the annuity's expected value is small regardless of the utility weight.
 
 \subsection{Calibration anchor sensitivity for \texorpdfstring{$\psi_{\text{purchase}}$}{psi}}
 \label{app:psi_anchors}
