@@ -33,8 +33,9 @@ corresponding bracket of predicted US voluntary ownership is [2.3%, 24.5%].
 Two HRS measures of US lifetime annuity ownership are reported in parallel
 as out-of-sample empirical targets: 2.02% (95% CI [1.68%, 2.43%], the
 cleaner fat-file q286 lifetime annuity contract indicator) and 3.34% (95% CI
-[2.89%, 3.85%], the conventional any-annuity income proxy). Both are
-consistent with the model's UK-anchored bracket.
+[2.89%, 3.85%], the conventional any-annuity income proxy). The conventional
+income-proxy measure lies inside the model's UK-anchored bracket; the
+cleaner lifetime-contract indicator overlaps only the bracket's lower edge.
 
 An exact Shapley decomposition over all 1,024 channel subsets attributes the
 demand reduction without order dependence. The narrow-framing purchase
