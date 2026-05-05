@@ -43,3 +43,8 @@ AUDIT_CONVERGENCE_REPORT.md
 potential references/
 scripts.zip
 *.zip
+
+# AWS launch artifacts
+.aws-instance.meta
+.aws-instance.meta.terminated.*
+.aws-launch-provenance.txt

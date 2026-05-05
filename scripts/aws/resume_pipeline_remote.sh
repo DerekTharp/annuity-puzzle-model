@@ -66,6 +66,9 @@ run_stage "12. Robustness and Sensitivity Analysis" scripts/run_robustness.jl pa
 # Stage 13c — Monte Carlo joint parameter uncertainty
 [ "$OVERALL_RC" = "0" ] && { run_stage "13c. Monte Carlo Parameter Uncertainty" scripts/run_monte_carlo_uncertainty.jl parallel || OVERALL_RC=$?; }
 
+# Stage 13d — UK-anchored psi estimation (single-moment SMM)
+[ "$OVERALL_RC" = "0" ] && { run_stage "13d. UK-anchored psi estimation" scripts/estimate_psi.jl parallel || OVERALL_RC=$?; }
+
 # Stage 14 — figure generation (reads fresh CSVs)
 [ "$OVERALL_RC" = "0" ] && { run_stage "14. Figure Generation" scripts/generate_figures.jl || OVERALL_RC=$?; }
 

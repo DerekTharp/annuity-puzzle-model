@@ -295,7 +295,7 @@ Table~\ref{tab:bequest_recal} reports a forward simulation test at $\gamma = 2.0
 
 \citet{pashchenko2013} conducted a sequential decomposition with four channels: pre-existing annuitization (Social Security and DB pensions), bequest motives, minimum purchase requirements, and pricing loads. Her full model predicted approximately 20\% participation, roughly four times the observed rate of 5\%.
 
-Table~\ref{tab:pashchenko} evaluates her channel set within the present framework. This comparison differs from a replication in three respects: the present model uses DFJ luxury-good bequests rather than the homothetic specification she employed; a continuous annuitization fraction rather than a binary purchase decision; and no housing illiquidity. The six-channel rational model under the present 10-channel reformulation predicts \ownSixChannel, in the neighborhood of her approximately 20\% finding, confirming that standard rational channels explain substantial but not all of the Yaari-to-observed gap. The channels she omitted (the combined Med+R-S health-mortality correlation, survival pessimism, and inflation erosion), combined with the novel age-varying needs channel, close the residual gap.
+Table~\ref{tab:pashchenko} evaluates her channel set within the present framework. This comparison differs from a replication in three respects: the present model uses DFJ luxury-good bequests rather than the homothetic specification she employed; a continuous annuitization fraction rather than a binary purchase decision; and no housing illiquidity. The six-channel rational model under the present 10-channel reformulation predicts \ownSixChannel, in the neighborhood of her approximately 20\% finding, confirming that standard rational channels explain substantial but not all of the Yaari-to-observed gap. Adding the channels Pashchenko omitted (the combined Med+R-S health-mortality correlation, survival pessimism, age-varying needs, and inflation erosion) reduces predicted ownership further to \ownEightChannelExt{}, but a substantial residual remains: the eight rational + preference channels still substantially overshoot both empirical targets. Closing the residual to the empirical bracket requires the two behavioral additions documented in the body (Force A: source-dependent utility; Force B: UK-disciplined narrow-framing purchase-event disutility); see Section~\ref{M-sec:behavioral_results}.
 
 \input{../tables/tex/pashchenko_comparison.tex}
 
@@ -307,7 +307,7 @@ The model implementation is checked against three prior papers in the annuity-pu
 
 \textbf{\citet{lockwood2012}.} The repository's automated test suite (\texttt{test/test\_lockwood.jl}) exercises eight checks against Lockwood's published moments: (i) the SSA cumulative death probability life table reproduces Lockwood's Table-A1 conditional survival at age 65 to 1e-8 tolerance; (ii) the fair payout rate at $\gamma = 2$, $r = 0.03$ matches Lockwood's reported 7.16\% annual payout per dollar of premium; (iii) the willingness-to-pay (WTP) for a fair annuity without bequest motives reproduces Lockwood's $\approx$25\% of non-annuitized wealth; (iv) WTP declines monotonically with the pre-annuitized wealth fraction as Lockwood reports; (v) WTP collapses with bequest motives at the magnitudes Lockwood documents; (vi) loaded annuities reduce WTP consistent with Lockwood's loaded-pricing exhibits; (vii) the bequest-parameter calibration reproduces Lockwood's Table-1 estimates; (viii) the value function exhibits Lockwood's monotonicity and concavity properties. All checks pass under the present production grid.
 
-\textbf{\citet{pashchenko2013}.} The Pashchenko comparison is reported as Table~\ref{tab:pashchenko}. The six-channel rational model predicts \ownSixChannel{} ownership, close to her reported $\approx$20\%, confirming that standard rational channels alone leave a residual gap relative to observed ownership. The channels Pashchenko omits (the combined Med+R-S correlation, survival pessimism, age-varying needs, and inflation erosion) close the residual gap once added.
+\textbf{\citet{pashchenko2013}.} The Pashchenko comparison is reported as Table~\ref{tab:pashchenko}. The six-channel rational model predicts \ownSixChannel{} ownership, close to her reported $\approx$20\%, confirming that standard rational channels alone leave a substantial residual gap relative to observed ownership. The channels Pashchenko omits (the combined Med+R-S correlation, survival pessimism, age-varying needs, and inflation erosion) reduce the residual but do not close it on their own; the residual is closed only after the two behavioral additions documented in the body (Section~\ref{M-sec:behavioral_results}).
 
 \textbf{\citet{reichlingsmetters2015}.} Their core mechanism---the health-mortality correlation that makes annuities ``valuation-risky'' precisely when liquid wealth is most valuable---is operationalized in this paper as the combined Med+R-S channel (Section~\ref{M-sec:results}). The bundling reflects a structural fact noted by the present paper: R-S has no economic content without stochastic medical costs to correlate against. Activating the combined channel reduces predicted ownership by \magDeltaMedRS{}~pp in the sequential decomposition, contributing \shapMedRS{}~pp in the order-independent Shapley attribution. The qualitative R-S sign-flip pattern (annuity demand falls when health-correlated medical risk is added on top of pure stochastic mortality) is reproduced by the present model under their parameter choices, verified in \texttt{test/test\_health.jl}.
 
@@ -348,15 +348,15 @@ Category & Specification & Ownership (\%) \\
 \multicolumn{3}{l}{\textit{Risk aversion ($\gamma$)}} \\
  & $\gamma = 1.50$ & 0.0 \\
  & $\gamma = 2.00$ & \ownGammaTwoNum \\
- & $\gamma = 2.20$ & 0.7 \\
+ & $\gamma = 2.20$ & 19.4 \\
  & $\gamma = 2.30$ & \ownGammaTwoPointThreeNum \\
  & $\gamma = 2.40$ & \ownGammaTwoPointFourNum \\
  & $\gamma = \pGamma$ (baseline) & \ownGammaTwoPointFiveNum \\
- & $\gamma = 2.60$ & 22.9 \\
+ & $\gamma = 2.60$ & 25.6 \\
  & $\gamma = 3.00$ & \ownGammaThreeNum \\
- & $\gamma = 3.50$ & 31.9 \\
- & $\gamma = 4.00$ & 31.0 \\
- & $\gamma = 5.00$ & 27.4 \\[4pt]
+ & $\gamma = 3.50$ & 24.3 \\
+ & $\gamma = 4.00$ & 23.4 \\
+ & $\gamma = 5.00$ & 32.7 \\[4pt]
 \multicolumn{3}{l}{\textit{Money's worth ratio}} \\
  & MWR = 0.82               & \ownMWREightyTwoNum \\
  & MWR = 0.85               & \ownMWREightyFiveNum \\

@@ -41,6 +41,37 @@ echo
 chmod 400 "$KEY_FILE"
 aws --version >/dev/null || { echo "ERROR: aws CLI not found"; exit 1; }
 
+# Provenance gate: refuse to launch from a dirty working tree unless the
+# operator explicitly opts out via ANNUITY_ALLOW_DIRTY=1. Without this,
+# AWS could rsync uncommitted local mutations or stale generated outputs
+# and produce an unreproducible results bundle.
+if [ "${ANNUITY_ALLOW_DIRTY:-0}" != "1" ]; then
+    if ! git diff --quiet || ! git diff --cached --quiet; then
+        echo "ERROR: Working tree has uncommitted changes. Commit or stash first," >&2
+        echo "       or set ANNUITY_ALLOW_DIRTY=1 to override (not recommended for" >&2
+        echo "       any run whose outputs will be cited in the manuscript)." >&2
+        git status --short >&2
+        exit 1
+    fi
+fi
+
+# Write provenance manifest into the project root so the rsynced tree
+# carries the launch metadata. The remote pipeline picks this up alongside
+# results-latest.tar.gz on completion.
+GIT_HEAD=$(git rev-parse HEAD)
+GIT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
+GIT_DIRTY=$(git diff --quiet && git diff --cached --quiet && echo "clean" || echo "dirty")
+cat > "$PROJECT_ROOT/.aws-launch-provenance.txt" <<EOF
+launched_at:    $(date -u +%Y-%m-%dT%H:%M:%SZ)
+git_head:       $GIT_HEAD
+git_branch:     $GIT_BRANCH
+git_state:      $GIT_DIRTY
+launcher_user:  $(whoami)@$(hostname)
+instance_type:  $INSTANCE_TYPE
+region:         $REGION
+EOF
+echo "Provenance manifest: $PROJECT_ROOT/.aws-launch-provenance.txt"
+
 # Resolve security group
 SG_ID=$(aws ec2 describe-security-groups \
     --filters "Name=group-name,Values=$SG_NAME" \
@@ -150,14 +181,22 @@ RSYNC_OPTS=(-avz --delete --compress-level=9
     --exclude 'results-latest.tar.gz'
     --exclude 'results_*.tar.gz'
     --exclude 'results-*.tar.gz'
+    # Exclude all generated outputs so the remote pipeline regenerates them
+    # cleanly from source rather than inheriting any stale local artifacts.
+    --exclude 'figures/pdf/'
+    --exclude 'figures/png/'
+    --exclude 'tables/csv/'
+    --exclude 'tables/tex/'
+    --exclude 'results/'
     --exclude 'paper/*.pdf'
     --exclude 'paper/*.aux'
+    --exclude 'paper/*.bbl'
+    --exclude 'paper/*.blg'
     --exclude 'paper/*.fdb_latexmk'
     --exclude 'paper/*.fls'
     --exclude 'paper/*.log'
+    --exclude 'paper/*.out'
     --exclude 'paper/*.synctex.gz'
-    --exclude 'figures/pdf/'
-    --exclude 'figures/png/'
     --exclude '.aws-instance.meta'
     -e "ssh -i $KEY_FILE -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
 )
