@@ -283,7 +283,10 @@ function main()
     push!(timings, "Psi estimation" => t)
 
     # --- Stage 14: Figure generation (reads CSVs) ---
-    # Produces: figures/pdf/fig1-fig6.pdf, figures/png/fig1-fig6.png (6 figures)
+    # Produces: figures/pdf/fig1-fig5.pdf, figures/png/fig1-fig5.png (5 figures).
+    # If a fig6 (Monte Carlo distribution) is needed in a future revision,
+    # extend generate_figures.jl to read tables/csv/monte_carlo_ownership.csv
+    # and emit fig6 alongside the others.
     t = run_stage(
         "14. Figure Generation",
         joinpath(SCRIPTS_DIR, "generate_figures.jl"))
