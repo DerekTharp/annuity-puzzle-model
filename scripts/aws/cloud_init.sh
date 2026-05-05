@@ -10,14 +10,16 @@ echo "=== Annuity Puzzle Cloud-Init: $(date) ==="
 # AL2023 / RHEL family
 dnf install -y tar gzip wget gcc make rsync git
 
-# Install Julia 1.10.4 (matches Manifest.toml lock)
-JULIA_VERSION="1.10.4"
+# Install Julia 1.12.5 to match Manifest.toml lockfile (julia_version = "1.12.5").
+# Set ANNUITY_JULIA_VERSION in the launch environment to override.
+JULIA_VERSION="${ANNUITY_JULIA_VERSION:-1.12.5}"
+JULIA_MINOR=$(echo "$JULIA_VERSION" | cut -d. -f1-2)
 JULIA_DIR="/opt/julia-${JULIA_VERSION}"
 JULIA_TARBALL="julia-${JULIA_VERSION}-linux-x86_64.tar.gz"
 
 if [ ! -d "$JULIA_DIR" ]; then
     cd /tmp
-    wget -q "https://julialang-s3.julialang.org/bin/linux/x64/1.10/${JULIA_TARBALL}"
+    wget -q "https://julialang-s3.julialang.org/bin/linux/x64/${JULIA_MINOR}/${JULIA_TARBALL}"
     tar -xzf "$JULIA_TARBALL"
     mv "julia-${JULIA_VERSION}" "$JULIA_DIR"
     ln -sf "${JULIA_DIR}/bin/julia" /usr/local/bin/julia

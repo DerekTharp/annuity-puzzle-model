@@ -69,15 +69,15 @@ function subset_ownership_pct(bitmask::Int)
 end
 
 # Returns true when subset_enumeration.csv reflects the current 10-channel
-# code (1024 subsets — Medical and R-S now combined into one channel).
-# Older CSVs from the 11-channel build had 2048 rows but contained 512
-# duplicate evaluations due to the R-S/Medical coupling. Stage 16's
-# post-run validation runs AFTER a fresh export and will see 1024 rows.
+# code (exactly 1024 subsets — Medical and R-S combined into one channel).
+# Stage 16's post-run validation runs after a fresh export and must see
+# exactly 1024 rows. The earlier check (>=1024 && <2048) was too permissive
+# and accepted partial or pre-reformulation CSVs as valid.
 function subset_csv_is_ten_channel()
     path = joinpath(CSV_DIR, "subset_enumeration.csv")
     isfile(path) || return false
     n_rows = countlines(path) - 1  # subtract header
-    return n_rows >= 1024 && n_rows < 2048
+    return n_rows == 1024
 end
 
 function shapley_value_pp(channel::AbstractString)

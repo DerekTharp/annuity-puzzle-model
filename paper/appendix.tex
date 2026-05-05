@@ -171,22 +171,24 @@ The headline calibration bracket sets $\psi_{\text{purchase}} \in [\pPsiBracketL
 \toprule
 Anchor & Identifying moment & $\hat{\psi}_{\text{purchase}}$ & Predicted US ownership & Notes \\
 \midrule
-A & UK retention level (17\%, mid)            & 0.0164 & 17.00\% & Level match \\
-B$_{\text{low}}$ & UK total drop low (75 pp)     & 0.0281 &  2.16\% & Includes tax effect \\
-B$_{\text{mid}}$ & UK total drop mid (81 pp)    & --     &  0.00\% & Corner; not interior-identified \\
-B$_{\text{high}}$ & UK total drop high (87 pp)   & --     &  0.00\% & Corner; not interior-identified \\
-\textbf{C}$_{\text{low}}$  & UK behavioral residual low (55 pp)  & 0.0142 & 22.16\% & Tax-stripped \\
-\textbf{C}$_{\text{mid}}$ & UK behavioral residual mid (60 pp) & \textbf{0.0163} & \textbf{17.16\%} & \textbf{Production calibration} \\
-\textbf{C}$_{\text{high}}$ & UK behavioral residual high (65 pp) & 0.0194 & 12.16\% & Tax-stripped \\
+\textbf{C}$_{\text{low}}$  & ABI behavioral residual low (55 pp)  & \pPsiUKLow  & \ownPsiUKLow  & Tax-stripped (ABI aggregate) \\
+\textbf{C}$_{\text{mid}}$  & ABI behavioral residual mid (60 pp)  & \textbf{\pPsiUKMid}  & \textbf{\ownPsiUKMid}  & \textbf{Conservative bracket end (ABI)} \\
+\textbf{C}$_{\text{high}}$ & ABI behavioral residual high (65 pp) & \pPsiUKHigh & \ownPsiUKHigh & Tax-stripped (ABI aggregate) \\
+ELSA$_{\text{strip-low}}$  & ELSA strip-low (70 pp)               & \pPsiUKELSALow  & \ownPsiUKELSALow  & ELSA microdata, low strip \\
+ELSA$_{\text{strip-high}}$ & ELSA strip-high (74 pp)              & \pPsiUKELSAHigh & \ownPsiUKELSAHigh & ELSA microdata, high strip \\
+B$_{\text{low}}$           & UK total drop (75 pp, ABI aggregate) & \pPsiUKBLow & \ownPsiUKBLow  & No tax stripping \\
+\textbf{ELSA}$_{\text{total}}$ & ELSA microdata total drop (88 pp) & \textbf{\pPsiUKELSATotal} & \textbf{\ownPsiUKELSATotal} & \textbf{Aggressive bracket end (ELSA)} \\
 \midrule
-\multicolumn{2}{l}{\emph{No-PED baseline (Force B off)}} & 0.0000 & 77.16\% & Rational + SDU only \\
-\multicolumn{2}{l}{\emph{Observed (HRS, single retirees 65--69)}} & --- & \pctHRSObserved{} & Out-of-sample target \\
+\multicolumn{2}{l}{\emph{No-PED baseline (Force B off)}} & 0.0000 & \ownPsiZero & Rational + SDU only \\
+\multicolumn{2}{l}{\emph{HRS lifetime contract indicator (q286)}} & --- & \pctHRSLifetime & Out-of-sample empirical target (cleaner) \\
+\multicolumn{2}{l}{\emph{HRS any-annuity income proxy (r\{w\}iann)}} & --- & \pctHRSIannPooled & Out-of-sample empirical target (conventional) \\
 \bottomrule
 \end{tabular}
 \begin{tablenotes}
 \small
-\item Anchor A matches the UK voluntary opt-in retention level (FCA Retirement Outcomes Review). Anchor B matches the raw aggregate drop in annuity sales pre/post-reform (ABI annual data). Anchor C matches the behavioral residual after subtracting the rational tax-effect component (15--25 pp from the 55\% lump-sum tax penalty removal). The production calibration uses $\psi_{\text{purchase}} = \pPsiPurchase$ from Anchor C-mid (60 pp behavioral elasticity), chosen because (i) it isolates the structural primitive that $\psi_{\text{purchase}}$ governs from rational-channel effects already represented elsewhere in the model, (ii) it preserves interior identification (Anchors B$_{\text{mid}}$ and B$_{\text{high}}$ produce corner solutions where $\psi$ is not point-identified), and (iii) under \citet{heckmanpinto2018} transportability, behavioral elasticities to architectural change transport across the UK--US tax/pension differences captured by the model's rational channels, while levels (Anchor A) do not.
-\item All US ownership predictions are out-of-sample: the calibration target is UK data only; observed US ownership is not used.
+\item The headline calibration bracket is $\psi_{\text{purchase}} \in [\pPsiBracketLow, \pPsiBracketHigh]$, with the conservative bracket end (C-mid, ABI aggregate after stripping the rational tax-removal response) and the aggressive bracket end (ELSA microdata, raw 88 pp pre/post drop with no tax stripping). The corresponding bracket of predicted US voluntary ownership is $[\ownBracketLow, \ownBracketHigh]$. Values shown for additional anchors are computed from the same single-moment SMM under alternative identifying targets and reported as a sensitivity range.
+\item The ABI aggregate-data anchors (rows C-low, C-mid, C-high) treat 15--25 pp of the raw 75 pp UK ownership drop as the rational tax-removal response (lump-sum 55\% tax penalty removal). The ELSA-microdata-strip anchors (ELSA-strip-low/high) instead use the household-level disposition-record drop after the same correction. The ELSA-total anchor adopts the raw 88 pp drop without any tax correction; this is the most aggressive specification and corresponds to the bracket's lower-ownership end.
+\item All US ownership predictions are out-of-sample: the calibration anchors use only UK data; observed US ownership is not used to discipline $\psi_{\text{purchase}}$.
 \end{tablenotes}
 \end{threeparttable}
 \end{table}
@@ -469,7 +471,7 @@ For each draw, the model is solved repeatedly via bisection over $\gamma$ until 
 
 \input{../tables/tex/implied_gamma.tex}
 
-The median implied $\gamma$ of 4.28 sits above the \citet{chetty2006} range of 1--3, with an interquartile range of [2.44, 4.70] and 43\% of draws falling inside the Chetty interval. All 300 draws converge. The wide spread reflects the substantial sensitivity of predicted ownership to the nuisance parameters: the six-channel rational model can match observed lifetime ownership of $\pctHRSLifetime$ only with risk aversion that is at the upper end of---or somewhat above---empirically plausible values, and the precise $\gamma$ required is highly sensitive to assumptions about mortality, inflation, and pricing. This is informative about the limits of $\gamma$-tuning as an alternative to the channel structure adopted in the body of the paper. Adding the two preference channels brings the baseline-$\gamma$ prediction to \ownEightChannelExt{}, and adding the two behavioral channels yields the bracket prediction $[\ownBracketLow, \ownBracketHigh]$ across the empirically defensible UK behavioral anchor range.
+The median implied $\gamma$ of 2.77 sits inside the upper half of the \citet{chetty2006} range of 1--3, with an interquartile range of [2.19, 4.55] and 57\% of draws falling inside the Chetty interval (n = 300, all converged). The wide spread reflects the substantial sensitivity of predicted ownership to the nuisance parameters: the six-channel rational model can match Lockwood's reported 3.6\% rate only across a wide $\gamma$ range that includes values somewhat above empirically plausible bounds, and the precise $\gamma$ required is highly sensitive to assumptions about mortality, inflation, and pricing. This is informative about the limits of $\gamma$-tuning as an alternative to the channel structure adopted in the body of the paper. Adding the two preference channels brings the baseline-$\gamma$ prediction to \ownEightChannelExt{}, and adding the two behavioral channels yields the bracket prediction $[\ownBracketLow, \ownBracketHigh]$ across the empirically defensible UK behavioral anchor range.
 
 For each draw, the full model is solved by backward induction on the production grid ($60 \times 20 \times 51$) and ownership is evaluated on the HRS population sample. The 300 bisection searches (each requiring 8--12 solves) are parallelized across available CPU cores.
 

@@ -938,10 +938,11 @@ write_extension_path_table()
 
 
 # ---------------------------------------------------------------------------
-# Fallback placeholders for macros that depend on CSVs that may not exist yet
-# (during partial pipeline runs). These let the manuscript compile against the
-# current macro set; once the corresponding CSV is generated the real value
-# replaces the placeholder on the next export run.
+# Submission-grade strict mode (default): every expected macro must come from
+# a real CSV value. Set ANNUITY_ALLOW_TBD_FALLBACKS=1 in the environment to
+# emit red TBD placeholders for missing values during partial pipeline runs;
+# this is intended for in-development use only and must NOT be set when
+# generating the artifact for journal submission.
 # ---------------------------------------------------------------------------
 
 const FALLBACKS = String[
@@ -954,10 +955,26 @@ const FALLBACKS = String[
     "mcMinOwnership", "mcMaxOwnership", "nMCDraws",
 ]
 
+allow_tbd = get(ENV, "ANNUITY_ALLOW_TBD_FALLBACKS", "0") == "1"
+missing_macros = String[]
 for name in FALLBACKS
     macro_exists(name) && continue
-    push!(MACROS, name => "{\\color{red}TBD}")
+    push!(missing_macros, name)
+    if allow_tbd
+        push!(MACROS, name => "{\\color{red}TBD}")
+    end
 end
+
+if !isempty(missing_macros) && !allow_tbd
+    error("Missing macros (no upstream CSV value available): " *
+          join(missing_macros, ", ") *
+          ". Run the full pipeline (run_all.jl) first, or set " *
+          "ANNUITY_ALLOW_TBD_FALLBACKS=1 to emit red TBD placeholders for " *
+          "in-development compilation.")
+elseif !isempty(missing_macros)
+    @warn "ANNUITY_ALLOW_TBD_FALLBACKS=1 is set; emitting TBD placeholders" missing_macros
+end
+
 backfill_num_variants!()
 
 write_numbers_tex()
