@@ -2,26 +2,32 @@
 # values of psi_purchase to bracket the empirical literature.
 #
 # Calibration anchors are derived from the UK 2015 pension freedoms reform.
-# Two evidence streams provide drop-magnitude estimates:
-#   - ABI aggregate (75pp total drop): industry data on annuity vs drawdown sales
-#   - ELSA microdata (87-89pp total drop): wave 6 (2012-13) pre-freedoms baseline
-#     vs waves 8-11 (2016-2024) post-freedoms disposition; n=869 DC pot holders,
+# Two evidence streams supply identifying targets:
+#   - ABI aggregate sales-volume decline (~75% proportional drop in annuity
+#     vs drawdown sales 2014-2016), mapped through the model into an
+#     ownership-rate change. About a quarter of that change is attributable
+#     to the simultaneous removal of a 55% lump-sum tax penalty already
+#     represented in the model's rational pricing channels; the residual is
+#     the "rational-corrected" target.
+#   - ELSA microdata: wave 6 (2012-13) pre-freedoms baseline vs waves 8-11
+#     (2016-2024) post-freedoms disposition; n=869 DC pot holders,
 #     subgroup-robust across age, sex, education, health.
 #
-# The "behavioral" anchors strip the rational tax-removal component (~15-25pp)
-# from the total drop. ELSA microdata implies a behavioral excess of ~62-74pp
-# (vs ABI's 50-60pp), reflecting that aggregate sales data understates the
-# decision-level shift in disposition.
+# The rational-corrected ABI sensitivity targets strip the tax-removal
+# component from the total drop; the ELSA rational-corrected targets do the
+# same against the microdata drop. The total-drop variants (no rational
+# stripping) are reported as the most aggressive sensitivity end and pin the
+# bracket's lower-ownership bound.
 #
-# Calibration anchors (psi → behavioral-pp via single-moment SMM mapping):
-#   psi = 0       : rational benchmark (no behavioral friction)
-#   psi = 0.0142  : Anchor C-low  (55pp behavioral)
-#   psi = 0.0163  : Anchor C-mid  (60pp behavioral, current production)
-#   psi = 0.0194  : Anchor C-high (65pp behavioral)
-#   psi = 0.0220  : ELSA strip-low  (~70pp behavioral, microdata-anchored)
-#   psi = 0.0240  : ELSA strip-high (~74pp behavioral, microdata-anchored)
-#   psi = 0.0281  : Anchor B-low (75pp total drop, ABI aggregate)
-#   psi = 0.0335  : ELSA total mid (88pp total drop, microdata)
+# Calibration anchors (psi via single-moment SMM mapping):
+#   psi = 0       : rational benchmark (no PED)
+#   psi = 0.0142  : ABI rational-corrected low
+#   psi = 0.0163  : ABI rational-corrected mid (production; bracket low end)
+#   psi = 0.0194  : ABI rational-corrected high
+#   psi = 0.0220  : ELSA rational-corrected low (microdata-anchored)
+#   psi = 0.0240  : ELSA rational-corrected high (microdata-anchored)
+#   psi = 0.0281  : ABI total drop, no rational stripping
+#   psi = 0.0335  : ELSA total drop, no rational stripping (bracket high end)
 #   psi = 0.0400+ : above-sensitivity range
 #
 # Output: tables/csv/psi_sensitivity.csv (one row per psi value)
@@ -45,16 +51,16 @@ const CONSUMPTION_DECLINE_ACTIVE = 0.02
 const HEALTH_UTILITY_ACTIVE = [1.0, 0.90, 0.75]
 
 const PSI_VALUES = [
-    ("No PED (rational + SDU only)",          0.000),
-    ("UK low (55pp behavioral)",              0.0142),  # Anchor C-low (ABI strip)
-    ("UK mid (60pp behavioral)",              0.0163),  # Anchor C-mid (production)
-    ("UK high (65pp behavioral)",             0.0194),  # Anchor C-high (ABI strip)
-    ("UK ELSA strip-low (70pp behavioral)",   0.0220),  # ELSA microdata, low strip
-    ("UK ELSA strip-high (74pp behavioral)",  0.0240),  # ELSA microdata, high strip
-    ("UK low total (75pp drop)",              0.0281),  # Anchor B-low (ABI aggregate)
-    ("UK ELSA total (88pp drop)",             0.0335),  # ELSA microdata total drop
-    ("Above sensitivity range",                0.040),
-    ("Corner-bound region",                    0.075),
+    ("No PED (rational + SDU only)",                0.000),
+    ("ABI rational-corrected low",                  0.0142),  # tax-stripped ABI aggregate
+    ("ABI rational-corrected mid",                  0.0163),  # production; bracket low end
+    ("ABI rational-corrected high",                 0.0194),  # tax-stripped ABI aggregate
+    ("ELSA rational-corrected low",                 0.0220),  # ELSA microdata, low strip
+    ("ELSA rational-corrected high",                0.0240),  # ELSA microdata, high strip
+    ("ABI total drop (no rational stripping)",      0.0281),  # ABI aggregate, raw
+    ("ELSA total drop (no rational stripping)",     0.0335),  # ELSA microdata, raw; bracket high end
+    ("Above sensitivity range",                     0.040),
+    ("Corner-bound region",                         0.075),
 ]
 
 const OUT_CSV = joinpath(@__DIR__, "..", "tables", "csv", "psi_sensitivity.csv")

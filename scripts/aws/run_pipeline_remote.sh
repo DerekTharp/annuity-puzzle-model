@@ -6,10 +6,15 @@
 # Run via:  nohup bash scripts/aws/run_pipeline_remote.sh > /tmp/run_all.log 2>&1 &
 #
 # Truthfulness contract:
-#   - `set -euo pipefail` so any unexpected error fails the script
-#   - `.pipeline-complete` is touched only after run_all.jl exits 0
-#   - tarball always written (so partial results can be inspected) but flagged
-#     with .pipeline-partial when run_all.jl failed
+#   - `set -uo pipefail` (no -e): unset variables and pipeline failures are
+#     fatal, but stage and tar return codes are captured explicitly so the
+#     script can write a partial bundle for diagnosis before exiting
+#     non-zero. `set -e` is intentionally not used because it would abort
+#     before the partial-bundle write and the .pipeline-partial touch.
+#   - PIPELINE_RC captures run_all.jl's exit code; TAR_RC and BUNDLE_RC
+#     gate the bundle write (required-file check + tar success).
+#   - `.pipeline-complete` is touched only when PIPELINE_RC=0 AND BUNDLE_RC=0.
+#     Otherwise `.pipeline-partial` is written and the script exits non-zero.
 #
 # Override truthfulness for explicit debug:
 #   ANNUITY_FORCE_COMPLETE=1 bash scripts/aws/run_pipeline_remote.sh

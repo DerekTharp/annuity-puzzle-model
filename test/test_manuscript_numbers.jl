@@ -259,18 +259,22 @@ macros = load_macros()
             @test_skip "psi_sensitivity.csv not yet generated"
         else
             # UK 2015 pension-freedoms anchors:
-            # - C-variants: ABI aggregate strip-of-rational (55/60/65pp behavioral)
-            # - ELSA microdata strip: 70-74pp behavioral (n=869 DC pot holders)
-            # - Total drop variants: ABI 75pp, ELSA 88pp
+            # - ABI rational-corrected (low/mid/high): aggregate sales-volume
+            #   decline mapped through the model after stripping the rational
+            #   tax-removal response.
+            # - ELSA rational-corrected (low/high): UK ELSA wave 6 vs waves 8-11
+            #   microdata after the same rational stripping (n=869 DC pot holders).
+            # - Total-drop variants: ABI aggregate and ELSA microdata, raw
+            #   (no rational stripping).
             cases = [
                 "ownPsiZero"          => "No PED (rational + SDU only)",
-                "ownPsiUKLow"         => "UK low (55pp behavioral)",
-                "ownPsiUKMid"         => "UK mid (60pp behavioral)",
-                "ownPsiUKHigh"        => "UK high (65pp behavioral)",
-                "ownPsiUKELSALow"     => "UK ELSA strip-low (70pp behavioral)",
-                "ownPsiUKELSAHigh"    => "UK ELSA strip-high (74pp behavioral)",
-                "ownPsiUKBLow"        => "UK low total (75pp drop)",
-                "ownPsiUKELSATotal"   => "UK ELSA total (88pp drop)",
+                "ownPsiUKLow"         => "ABI rational-corrected low",
+                "ownPsiUKMid"         => "ABI rational-corrected mid",
+                "ownPsiUKHigh"        => "ABI rational-corrected high",
+                "ownPsiUKELSALow"     => "ELSA rational-corrected low",
+                "ownPsiUKELSAHigh"    => "ELSA rational-corrected high",
+                "ownPsiUKBLow"        => "ABI total drop (no rational stripping)",
+                "ownPsiUKELSATotal"   => "ELSA total drop (no rational stripping)",
             ]
             for (name, label) in cases
                 row = nothing
