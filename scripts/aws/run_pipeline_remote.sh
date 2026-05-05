@@ -69,16 +69,31 @@ PIPELINE_RC=${PIPESTATUS[0]}
 echo "run_all.jl exit code: $PIPELINE_RC" | tee -a "$LOG"
 
 # Bundle whatever results exist (always — even on partial failure, having
-# the partial CSVs aids diagnosis).
+# the partial CSVs aids diagnosis). The bundle includes:
+#   - All CSVs and LaTeX tables (tables/{csv,tex})
+#   - All figures (figures/{pdf,png})
+#   - All intermediate result objects (results/*.json, *.jld2, etc.) so
+#     downstream provenance like psi_estimation.json travels with the run
+#   - Generated manuscript macros (paper/numbers.tex)
+#   - Lockfile snapshot (Project.toml, Manifest.toml) for reproducibility
+#   - Launch provenance manifest (.aws-launch-provenance.txt) tying the
+#     run to a specific committed git state
+#   - Run log (relative path; tar copes with absolute path warnings)
 echo "Bundling results..." | tee -a "$LOG"
 RESULTS_TARBALL="$PROJECT_DIR/results_$(date +%Y%m%d_%H%M%S).tar.gz"
+LOG_REL="logs/$(basename "$LOG")"
 tar -czf "$RESULTS_TARBALL" \
     tables/csv/*.csv \
     tables/tex/*.tex \
     figures/pdf/*.pdf \
     figures/png/*.png \
     paper/numbers.tex \
-    "$LOG" 2>/dev/null || echo "  (tar warning: some expected paths missing)" | tee -a "$LOG"
+    Project.toml \
+    Manifest.toml \
+    .aws-launch-provenance.txt \
+    "$LOG_REL" \
+    $(find results -type f 2>/dev/null) \
+    2>/dev/null || echo "  (tar warning: some expected paths missing)" | tee -a "$LOG"
 
 ln -sf "$RESULTS_TARBALL" "$PROJECT_DIR/results-latest.tar.gz"
 
