@@ -380,19 +380,19 @@ if @isdefined(grid_pairs)
     # Strips out the tax-effect component of UK reform.
     # ---------------------------------------------------------------------------
     println("\n" * "=" ^ 70)
-    println("  ANCHOR C: psi calibrated to UK BEHAVIORAL elasticity (60-65 pp)")
-    println("  (tax-effect-stripped UK behavioral component)")
+    println("  ANCHOR C: ABI rational-corrected sensitivity target (low/mid/high)")
+    println("  (aggregate sales-volume decline, tax-removal response stripped)")
     println("=" ^ 70)
-    @printf("\n  %-30s  %10s  %12s  %10s\n",
-            "UK behavioral drop (pp)", "psi_hat", "model drop pp", "US ownership")
-    println("  " * "-" ^ 70)
+    @printf("\n  %-40s  %10s  %12s  %10s\n",
+            "Rational-corrected drop (pp)", "psi_hat", "model drop pp", "US ownership")
+    println("  " * "-" ^ 80)
     anchor_c_55 = find_psi_for_drop(55.0)
     anchor_c_60 = find_psi_for_drop(60.0)
     anchor_c_65 = find_psi_for_drop(65.0)
-    for (lab, r) in [("UK low (55 pp behavioral)", anchor_c_55),
-                     ("UK mid (60 pp behavioral)", anchor_c_60),
-                     ("UK high (65 pp behavioral)", anchor_c_65)]
-        @printf("  %-30s  %10.4f  %12.2f  %10.2f%%\n",
+    for (lab, r) in [("ABI rational-corrected low (55 pp)",  anchor_c_55),
+                     ("ABI rational-corrected mid (60 pp)",  anchor_c_60),
+                     ("ABI rational-corrected high (65 pp)", anchor_c_65)]
+        @printf("  %-40s  %10.4f  %12.2f  %10.2f%%\n",
                 lab, r.psi, r.target_drop, r.ownership * 100)
     end
 end

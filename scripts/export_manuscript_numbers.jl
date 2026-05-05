@@ -765,20 +765,25 @@ function build_macros!()
     # Source: tables/csv/psi_sensitivity.csv (skipped if missing)
     # ======================================================================
     # Anchors from the UK 2015 pension freedoms calibration:
-    # - C-variants (55/60/65pp): ABI aggregate, strip of rational tax-removal
-    # - ELSA-strip (70/74pp): UK ELSA wave 6 vs waves 8-11 microdata, strip
-    # - B-low (75pp): ABI aggregate, no tax correction
-    # - ELSA-total (88pp): UK ELSA microdata total drop, no tax correction
+    # - ABI rational-corrected (low/mid/high): aggregate sales-volume decline
+    #   mapped through the model after stripping the rational tax-removal
+    #   response. Mid is the production / bracket-low end.
+    # - ELSA rational-corrected (low/high): UK ELSA wave 6 vs waves 8-11
+    #   microdata after the same rational stripping.
+    # - ABI total drop: aggregate sales-volume decline, no rational stripping.
+    # - ELSA total drop: ELSA microdata, no rational stripping; bracket-high end.
     # Above-range values reported as a corner-bound diagnostic.
+    # Macro suffixes (UKLow/UKMid/UKHigh/UKELSALow/UKELSAHigh/UKBLow/UKELSATotal)
+    # are stable internal keys referenced from the appendix anchor table.
     psi_macros = [
         ("Zero",        "No PED (rational + SDU only)"),
-        ("UKLow",       "UK low (55pp behavioral)"),               # Anchor C-low
-        ("UKMid",       "UK mid (60pp behavioral)"),               # Anchor C-mid (production)
-        ("UKHigh",      "UK high (65pp behavioral)"),              # Anchor C-high
-        ("UKELSALow",   "UK ELSA strip-low (70pp behavioral)"),    # ELSA microdata, low strip
-        ("UKELSAHigh",  "UK ELSA strip-high (74pp behavioral)"),   # ELSA microdata, high strip
-        ("UKBLow",      "UK low total (75pp drop)"),               # Anchor B-low (ABI total)
-        ("UKELSATotal", "UK ELSA total (88pp drop)"),              # ELSA microdata total
+        ("UKLow",       "ABI rational-corrected low"),                # tax-stripped ABI aggregate
+        ("UKMid",       "ABI rational-corrected mid"),                # production / bracket low end
+        ("UKHigh",      "ABI rational-corrected high"),               # tax-stripped ABI aggregate
+        ("UKELSALow",   "ELSA rational-corrected low"),               # ELSA microdata, low strip
+        ("UKELSAHigh",  "ELSA rational-corrected high"),              # ELSA microdata, high strip
+        ("UKBLow",      "ABI total drop (no rational stripping)"),    # ABI aggregate, raw
+        ("UKELSATotal", "ELSA total drop (no rational stripping)"),   # ELSA microdata, raw; bracket high end
         ("AboveRange",  "Above sensitivity range"),
         ("Corner",      "Corner-bound region"),
     ]
@@ -799,15 +804,19 @@ function build_macros!()
 
     # ----------------------------------------------------------------------
     # Section L2 — Headline bracket (UK ELSA microdata + ABI aggregate)
-    # The "headline bracket" reflects the empirically defensible UK behavioral
+    # The "headline bracket" reflects the empirically defensible UK calibration
     # anchor range. Lower ψ corresponds to higher predicted ownership.
-    #   Bracket low (ψ=0.0163): conservative, ABI aggregate stripped (60pp behavioral)
-    #   Bracket high (ψ=0.0335): aggressive, ELSA microdata total drop (88pp)
+    #   Bracket low  (ψ=0.0163): conservative; ABI rational-corrected mid
+    #                            (aggregate sales-volume decline mapped through
+    #                            the model after stripping the rational
+    #                            tax-removal response).
+    #   Bracket high (ψ=0.0335): aggressive; ELSA microdata total drop
+    #                            (no rational stripping).
     # The wider sensitivity range adds the corner-bound and below-anchor values.
     # ----------------------------------------------------------------------
     let
-        s_low  = psi_sensitivity("UK mid (60pp behavioral)")        # ψ=0.0163
-        s_high = psi_sensitivity("UK ELSA total (88pp drop)")       # ψ=0.0335
+        s_low  = psi_sensitivity("ABI rational-corrected mid")             # ψ=0.0163
+        s_high = psi_sensitivity("ELSA total drop (no rational stripping)") # ψ=0.0335
         if s_low !== nothing && s_high !== nothing
             # ownBracketHigh = upper end of ownership range (lower ψ, conservative)
             # ownBracketLow  = lower end of ownership range (higher ψ, aggressive)
@@ -817,7 +826,7 @@ function build_macros!()
             def!("pPsiBracketHigh", fmt_num(s_high.psi; digits=4))
         end
         # Wider sensitivity range (UKLow → corner-bound)
-        s_widel = psi_sensitivity("UK low (55pp behavioral)")
+        s_widel = psi_sensitivity("ABI rational-corrected low")
         s_wideh = psi_sensitivity("Above sensitivity range")
         if s_widel !== nothing && s_wideh !== nothing
             def!("ownBracketWideHigh", fmt_pct(s_widel.ownership_pct; digits=1))

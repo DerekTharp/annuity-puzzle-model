@@ -40,12 +40,19 @@ const HEALTH_UTILITY = [1.0, 0.90, 0.75]  # state-dep utility — raw FLN centra
 const PSI_PURCHASE = 0.0163       # narrow-framing purchase penalty (Barberis-Huang 2009;
                                    # Tversky-Kahneman 1992 loss aversion). Decays with
                                    # cumulative payouts; vanishes at breakeven.
-                                   # CALIBRATION: single-moment SMM on UK 2015 pension
-                                   # freedoms BEHAVIORAL elasticity (60pp drop, after
-                                   # stripping 15-25pp rational tax-removal component;
-                                   # Anchor C-mid). Sensitivity interval across alternative
-                                   # single-anchor SMM specifications: [0.014, 0.028]
-                                   # (see appendix). NOT calibrated to observed US 3.4%.
+                                   # CALIBRATION: single-moment SMM on the ABI
+                                   # rational-corrected mid sensitivity target — UK 2015
+                                   # pension freedoms aggregate sales-volume decline
+                                   # mapped through the model after stripping the
+                                   # rational tax-removal response (lump-sum 55% tax
+                                   # penalty removal already represented in the model's
+                                   # rational pricing channels). Production point;
+                                   # bracket low end. Bracket high end ψ=0.0335
+                                   # corresponds to the ELSA microdata total drop with
+                                   # no rational stripping. The full sensitivity range
+                                   # across alternative single-anchor SMM specifications
+                                   # is reported in the appendix. NOT calibrated to
+                                   # observed US ownership.
 const LAMBDA_W = 0.625            # source-dependent utility (FPR companion paper;
                                    # Blanchett-Finke 2024-25): retirees spend ~80% of
                                    # income but only ~50% of portfolio → 50/80 = 0.625.
