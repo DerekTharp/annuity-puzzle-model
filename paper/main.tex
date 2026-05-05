@@ -366,7 +366,7 @@ The dominant term is $\Phi_{\text{MWR}} = \pMwrBaseline$, which alone reduces th
 
 The model is solved by backward induction over the state space $(W, A, H, t)$. The wealth grid uses \pNWealth{} points with power-function spacing (denser at low wealth) over $[0, \pWMaxMillions]$, covering the 99.5th percentile of the HRS wealth distribution. The annuity income grid uses \pNAnnuity{} points with cubic spacing to resolve small purchases, and health is discrete with three states. Consumption is optimized at each grid point using Brent's method. Value function interpolation across the wealth dimension uses piecewise linear interpolation with flat extrapolation.
 
-The annuitization fraction $\alpha$ is optimized over a \pNAlpha-point grid at age 65. Grid convergence is verified: ownership varies by only 1.1 percentage points across grid resolutions from $60 \times 20$ to $120 \times 50$ at the \pNQuad-node production quadrature rule (see Appendix Table~\ref{A-tab:grid_convergence}).
+The annuitization fraction $\alpha$ is optimized over a \pNAlpha-point grid at age 65. Grid convergence is verified at the \pNQuad-node production quadrature rule: predicted ownership ranges from 25.6\% at the medium grid ($60 \times 20$) to 23.6\% at the fine grid ($100 \times 40$), bracketing the production-grid value (\ownTenChannelFull{}); the 2 pp variation across the production-and-finer range is small relative to the calibration-anchor uncertainty in $\psi_{\text{purchase}}$. The coarse grid ($40 \times 15$) deviates more substantially and is reported only as a diagnostic. See Appendix Table~\ref{A-tab:full_robustness_continued}.
 
 
 %% ================================================================

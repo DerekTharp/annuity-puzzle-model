@@ -26,10 +26,11 @@ frictionless population benchmark of 41.4%. Adding the two preference
 channels brings the prediction to 34.3%; adding Force A (source-dependent
 utility, lambda_W = 0.625) raises it to 79.3%. The Force B parameter
 psi_purchase is anchored to UK post-reform evidence (2015 pension freedoms),
-combining the conservative ABI aggregate (60 pp behavioral residual after
-stripping the rational tax-removal response, psi=0.0163) and a descriptive
-ELSA microdata sensitivity bound (88 pp total drop, psi=0.0335). The
-corresponding bracket of predicted US voluntary ownership is [2.3%, 24.5%].
+combining the conservative ABI aggregate sales-volume decline mapped through
+the model after stripping the rational tax-removal response (psi=0.0163)
+and a descriptive ELSA microdata total drop in observed disposition
+(psi=0.0335). The corresponding bracket of predicted US voluntary ownership
+is [2.3%, 24.5%].
 Two HRS measures of US lifetime annuity ownership are reported in parallel
 as out-of-sample empirical targets: 2.02% (95% CI [1.68%, 2.43%], the
 cleaner fat-file q286 lifetime annuity contract indicator) and 3.34% (95% CI
@@ -40,9 +41,8 @@ cleaner lifetime-contract indicator overlaps only the bracket's lower edge.
 An exact Shapley decomposition over all 1,024 channel subsets attributes the
 demand reduction without order dependence. The narrow-framing purchase
 penalty has the largest single Shapley value; Force A enters with the
-opposite sign, confirming that the two behavioral channels are empirically
-distinct mechanisms rather than redundant parameterizations of the same
-wedge.
+opposite sign, a pattern consistent with operation on distinct decision
+margins rather than redundant parameterizations of the same wedge.
 
 **All headline numbers in the manuscript are auto-generated from analysis CSV
 outputs by `scripts/export_manuscript_numbers.jl` and locked by
@@ -88,7 +88,7 @@ weights [1.0, 0.90, 0.75] (FLN 2013 raw central), **lambda_W=0.625** (Force A,
 Blanchett-Finke 2024/2025 spending differential), **psi_purchase=0.0163**
 (Force B, UK 2015 pension-freedoms midpoint anchor; bracket [0.0142, 0.0281]
 across alternative SMM specifications), 9-node Gauss-Hermite quadrature,
-60x20x51 production grid.
+80x30x101 production grid (W x A x alpha).
 
 ## Data
 

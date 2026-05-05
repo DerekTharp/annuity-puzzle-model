@@ -81,27 +81,72 @@ run_stage "12. Robustness and Sensitivity Analysis" scripts/run_robustness.jl pa
 # Stage 16 — post-run validation
 [ "$OVERALL_RC" = "0" ] && { run_stage "16. Post-run Validation" test/test_manuscript_numbers.jl || OVERALL_RC=$?; }
 
-# Bundle whatever results exist (always — even on partial failure).
+# Bundle whatever results exist (always — even on partial failure, having
+# the partial bundle aids diagnosis). Mirrors the bundle gate in
+# run_pipeline_remote.sh: required-file check, captured tar exit code,
+# and BUNDLE_RC ANDed with OVERALL_RC for the .pipeline-complete touch.
 echo "" | tee -a "$LOG"
 echo "Bundling results..." | tee -a "$LOG"
 RESULTS_TARBALL="$PROJECT_DIR/results_$(date +%Y%m%d_%H%M%S).tar.gz"
+LOG_REL="logs/$(basename "$LOG")"
+
+# Required-file gate: refuse to mark complete with an incomplete provenance
+# bundle. Generated artifacts (tables/figures) are checked at directory
+# level since their precise contents depend on which stages reran.
+BUNDLE_RC=0
+REQUIRED_FILES=(
+    "Project.toml"
+    "Manifest.toml"
+    ".aws-launch-provenance.txt"
+    "paper/numbers.tex"
+)
+for f in "${REQUIRED_FILES[@]}"; do
+    if [ ! -f "$PROJECT_DIR/$f" ]; then
+        echo "BUNDLE GATE: missing required file: $f" | tee -a "$LOG"
+        BUNDLE_RC=1
+    fi
+done
+if [ ! -d "$PROJECT_DIR/tables/csv" ] || [ -z "$(ls -A "$PROJECT_DIR/tables/csv" 2>/dev/null)" ]; then
+    echo "BUNDLE GATE: tables/csv missing or empty" | tee -a "$LOG"
+    BUNDLE_RC=1
+fi
+if [ ! -d "$PROJECT_DIR/tables/tex" ] || [ -z "$(ls -A "$PROJECT_DIR/tables/tex" 2>/dev/null)" ]; then
+    echo "BUNDLE GATE: tables/tex missing or empty" | tee -a "$LOG"
+    BUNDLE_RC=1
+fi
+
 tar -czf "$RESULTS_TARBALL" \
     tables/csv/*.csv \
     tables/tex/*.tex \
     figures/pdf/*.pdf \
     figures/png/*.png \
     paper/numbers.tex \
-    "$LOG" 2>/dev/null || echo "  (tar warning: some expected paths missing)" | tee -a "$LOG"
+    Project.toml \
+    Manifest.toml \
+    .aws-launch-provenance.txt \
+    "$LOG_REL" \
+    $(find results -type f 2>/dev/null) \
+    2>&1 | tee -a "$LOG"
+TAR_RC=${PIPESTATUS[0]}
+if [ "$TAR_RC" != "0" ]; then
+    echo "BUNDLE GATE: tar exited with rc=$TAR_RC" | tee -a "$LOG"
+    BUNDLE_RC=1
+fi
 
 ln -sf "$RESULTS_TARBALL" "$PROJECT_DIR/results-latest.tar.gz"
 
-if [ "$OVERALL_RC" = "0" ] || [ "${ANNUITY_FORCE_COMPLETE:-0}" = "1" ]; then
+if { [ "$OVERALL_RC" = "0" ] && [ "$BUNDLE_RC" = "0" ]; } || [ "${ANNUITY_FORCE_COMPLETE:-0}" = "1" ]; then
     touch "$PROJECT_DIR/.pipeline-complete"
     echo "=== Resume complete: $(date) ===" | tee -a "$LOG"
 else
     touch "$PROJECT_DIR/.pipeline-partial"
-    echo "=== Resume FAILED with rc=$OVERALL_RC at $(date) ===" | tee -a "$LOG"
+    echo "=== Resume FAILED: stages_rc=$OVERALL_RC bundle_rc=$BUNDLE_RC at $(date) ===" | tee -a "$LOG"
     echo "Partial results in: $RESULTS_TARBALL" | tee -a "$LOG"
 fi
 echo "Results: $RESULTS_TARBALL" | tee -a "$LOG"
-exit "$OVERALL_RC"
+# Exit code is nonzero if EITHER the resumed stages or the bundle gate failed.
+if [ "$OVERALL_RC" != "0" ]; then
+    exit "$OVERALL_RC"
+else
+    exit "$BUNDLE_RC"
+fi
