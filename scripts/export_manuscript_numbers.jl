@@ -906,7 +906,7 @@ function write_extension_path_table()
         println(f, raw"\toprule")
         println(f, "Specification & Ownership (\\%) & \$\\Delta\$ (pp) \\\\")
         println(f, raw"\midrule")
-        @printf(f, "Seven rational channels (Layer~1)            & %.1f & --- \\\\\n", own[bm7])
+        @printf(f, "Six rational channels (Layer~1)              & %.1f & --- \\\\\n", own[bm7])
         @printf(f, "+ Age-varying consumption needs              & %.1f & %+.1f \\\\\n",
                 own[bm8], own[bm8] - own[bm7])
         @printf(f, "+ State-dependent utility (Layer~2 complete) & %.1f & %+.1f \\\\\n",

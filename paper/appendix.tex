@@ -295,7 +295,7 @@ Table~\ref{tab:bequest_recal} reports a forward simulation test at $\gamma = 2.0
 
 \citet{pashchenko2013} conducted a sequential decomposition with four channels: pre-existing annuitization (Social Security and DB pensions), bequest motives, minimum purchase requirements, and pricing loads. Her full model predicted approximately 20\% participation, roughly four times the observed rate of 5\%.
 
-Table~\ref{tab:pashchenko} evaluates her channel set within the present framework. This comparison differs from a replication in three respects: the present model uses DFJ luxury-good bequests rather than the homothetic specification she employed; a continuous annuitization fraction rather than a binary purchase decision; and no housing illiquidity. The six-channel rational model under the present 10-channel reformulation predicts \ownSixChannel, in the neighborhood of her approximately 20\% finding, confirming that standard rational channels explain substantial but not all of the Yaari-to-observed gap. Adding the channels Pashchenko omitted (the combined Med+R-S health-mortality correlation, survival pessimism, age-varying needs, and inflation erosion) reduces predicted ownership further to \ownEightChannelExt{}, but a substantial residual remains: the eight rational + preference channels still substantially overshoot both empirical targets. Closing the residual to the empirical bracket requires the two behavioral additions documented in the body (Force A: source-dependent utility; Force B: UK-disciplined narrow-framing purchase-event disutility); see Section~\ref{M-sec:behavioral_results}.
+Table~\ref{tab:pashchenko} evaluates her channel set within the present framework. This comparison differs from a replication in three respects: the present model uses DFJ luxury-good bequests rather than the homothetic specification she employed; a continuous annuitization fraction rather than a binary purchase decision; and no housing illiquidity. The six-channel rational model under the present 10-channel reformulation predicts \ownSixChannel{}, materially above Pashchenko's approximately 20\% prediction. The two are not directly comparable in level---her model omits the combined Med+R-S correlation, survival pessimism, age-varying needs, and inflation erosion; the present model omits her housing illiquidity and minimum purchase channels---but the qualitative finding is preserved: standard rational channels alone substantially overshoot observed US ownership. Adding the channels Pashchenko omitted reduces the present prediction to \ownEightChannelExt{}, still substantially above both empirical targets. Closing the residual to the empirical bracket requires the two behavioral additions documented in the body (Force A: source-dependent utility; Force B: UK-disciplined narrow-framing purchase-event disutility); see Section~\ref{M-sec:behavioral_results}.
 
 \input{../tables/tex/pashchenko_comparison.tex}
 
@@ -307,7 +307,7 @@ The model implementation is checked against three prior papers in the annuity-pu
 
 \textbf{\citet{lockwood2012}.} The repository's automated test suite (\texttt{test/test\_lockwood.jl}) exercises eight checks against Lockwood's published moments: (i) the SSA cumulative death probability life table reproduces Lockwood's Table-A1 conditional survival at age 65 to 1e-8 tolerance; (ii) the fair payout rate at $\gamma = 2$, $r = 0.03$ matches Lockwood's reported 7.16\% annual payout per dollar of premium; (iii) the willingness-to-pay (WTP) for a fair annuity without bequest motives reproduces Lockwood's $\approx$25\% of non-annuitized wealth; (iv) WTP declines monotonically with the pre-annuitized wealth fraction as Lockwood reports; (v) WTP collapses with bequest motives at the magnitudes Lockwood documents; (vi) loaded annuities reduce WTP consistent with Lockwood's loaded-pricing exhibits; (vii) the bequest-parameter calibration reproduces Lockwood's Table-1 estimates; (viii) the value function exhibits Lockwood's monotonicity and concavity properties. All checks pass under the present production grid.
 
-\textbf{\citet{pashchenko2013}.} The Pashchenko comparison is reported as Table~\ref{tab:pashchenko}. The six-channel rational model predicts \ownSixChannel{} ownership, close to her reported $\approx$20\%, confirming that standard rational channels alone leave a substantial residual gap relative to observed ownership. The channels Pashchenko omits (the combined Med+R-S correlation, survival pessimism, age-varying needs, and inflation erosion) reduce the residual but do not close it on their own; the residual is closed only after the two behavioral additions documented in the body (Section~\ref{M-sec:behavioral_results}).
+\textbf{\citet{pashchenko2013}.} The Pashchenko comparison is reported as Table~\ref{tab:pashchenko}. Levels are not directly comparable (channel sets and preference specifications differ), but the qualitative finding is preserved: standard rational channels alone substantially overshoot observed US ownership. The channels Pashchenko omits (the combined Med+R-S correlation, survival pessimism, age-varying needs, and inflation erosion) reduce the residual but do not close it on their own; the residual is closed only after the two behavioral additions documented in the body (Section~\ref{M-sec:behavioral_results}).
 
 \textbf{\citet{reichlingsmetters2015}.} Their core mechanism---the health-mortality correlation that makes annuities ``valuation-risky'' precisely when liquid wealth is most valuable---is operationalized in this paper as the combined Med+R-S channel (Section~\ref{M-sec:results}). The bundling reflects a structural fact noted by the present paper: R-S has no economic content without stochastic medical costs to correlate against. Activating the combined channel reduces predicted ownership by \magDeltaMedRS{}~pp in the sequential decomposition, contributing \shapMedRS{}~pp in the order-independent Shapley attribution. The qualitative R-S sign-flip pattern (annuity demand falls when health-correlated medical risk is added on top of pure stochastic mortality) is reproduced by the present model under their parameter choices, verified in \texttt{test/test\_health.jl}.
 
@@ -365,7 +365,7 @@ Category & Specification & Ownership (\%) \\
  & MWR = 0.95               & \ownMWRNinetyFiveNum \\[4pt]
 \multicolumn{3}{l}{\textit{Hazard multipliers $[\mu_G, \mu_F, \mu_P]$}} \\
  & R--S functional $[0.45, 1.0, 3.5]$ & \ownHazardRSNum \\
- & Baseline $[\pHazardGood, \pHazardFair, \pHazardPoor]$ & \ownSevenChannelNum \\
+ & Baseline $[\pHazardGood, \pHazardFair, \pHazardPoor]$ & \ownTenChannelFullNum \\
  & HRS SRH $[0.57, 1.0, 2.7]$ & \ownHazardHRSNum \\
  & Conservative $[0.60, 1.0, 2.0]$ & \ownHazardConservativeNum \\[4pt]
 \multicolumn{3}{l}{\textit{Inflation ($\pi$)}} \\
@@ -381,7 +381,7 @@ Category & Specification & Ownership (\%) \\
 \end{tabular}
 \begin{tablenotes}
 \small
-\item Unless otherwise noted, all specifications use baseline parameters: $\gamma = \pGamma$, $\beta = \pBeta$, DFJ bequests ($\theta = \pThetaDFJ$, $\kappa = \pKappaDFJ$), survival pessimism $\psi = \pPessimism$, MWR $= \pMwrBaseline$, $F = \pFixedCost$, $\pi = \pInflation$, hazard multipliers $[\pHazardGood, \pHazardFair, \pHazardPoor]$, \pNQuad-node Gauss--Hermite quadrature, production grid ($\pNWealth \times \pNAnnuity \times \pNAlpha$). Seven-channel model (without age-varying needs and state-dependent utility).
+\item Unless otherwise noted, all specifications use baseline parameters: $\gamma = \pGamma$, $\beta = \pBeta$, DFJ bequests ($\theta = \pThetaDFJ$, $\kappa = \pKappaDFJ$), survival pessimism $\psi = \pPessimism$, MWR $= \pMwrBaseline$, $F = \pFixedCost$, $\pi = \pInflation$, hazard multipliers $[\pHazardGood, \pHazardFair, \pHazardPoor]$, \pNQuad-node Gauss--Hermite quadrature, production grid ($\pNWealth \times \pNAnnuity \times \pNAlpha$). Production ten-channel model at the conservative (ABI-anchored) bracket end ($\psi_{\text{purchase}} = \pPsiBracketLow$).
 \end{tablenotes}
 \end{threeparttable}
 \end{table}
@@ -398,21 +398,21 @@ Category & Specification & Ownership (\%) \\
 \midrule
 \multicolumn{3}{l}{\textit{Bequest specification}} \\
  & No bequest ($\theta = 0$) & \ownBequestNoneNum \\
- & DFJ luxury (baseline) & \ownSevenChannelNum \\[4pt]
+ & DFJ luxury (baseline) & \ownTenChannelFullNum \\[4pt]
 \multicolumn{3}{l}{\textit{Minimum purchase}} \\
  & \$0 & 14.9 \\
  & \pFixedCost{} (baseline) & 14.9 \\
  & \$5,000 & 14.9 \\
  & \$25,000 & 14.9 \\[4pt]
 \multicolumn{3}{l}{\textit{Grid convergence}} \\
- & Coarse ($40 \times 15$) & 29.3 \\
- & Medium ($60 \times 20$) & 20.8 \\
- & Production ($\pNWealth \times \pNAnnuity$) & \ownSevenChannelNum \\
- & Fine ($100 \times 40$) & 17.2 \\[4pt]
+ & Coarse ($40 \times 15$) & 29.6 \\
+ & Medium ($60 \times 20$) & 25.6 \\
+ & Production ($\pNWealth \times \pNAnnuity$) & \ownTenChannelFullNum \\
+ & Fine ($100 \times 40$) & 23.6 \\[4pt]
 \multicolumn{3}{l}{\textit{Quadrature}} \\
- & 5-node GH & 21.1 \\
- & 7-node GH & 17.6 \\
- & \pNQuad-node GH (production) & \ownSevenChannelNum \\
+ & 5-node GH & 24.1 \\
+ & 7-node GH & 22.8 \\
+ & \pNQuad-node GH (production) & \ownTenChannelFullNum \\
 \bottomrule
 \end{tabular}
 \begin{tablenotes}

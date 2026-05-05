@@ -358,7 +358,11 @@ function main()
         "extension_path.tex",
         "implied_gamma.tex",
         "moment_validation.tex",
-        "multigamma_decomposition.tex",
+        # multigamma_decomposition.tex is no longer required in the
+        # manuscript (the prose now reports a brief diagnostic summary
+        # instead of inputting the table). The Stage 3 generator still
+        # writes it to tables/tex/ for diagnostic use, but missing or
+        # stale versions do not block the package as submission-grade.
         "pairwise_interactions.tex",
         "pashchenko_comparison.tex",
         "retention_rates.tex",
@@ -375,13 +379,35 @@ function main()
             push!(missing_files, f)
         end
     end
-    if isempty(missing_files)
-        @printf("  All %d expected manuscript tables verified.\n\n", length(expected_tex))
-    else
+    if !isempty(missing_files)
         # Fail closed: a pipeline that completed every stage but did not
         # produce every expected manuscript table is not submission-grade.
         error("Missing manuscript tables: " * join(missing_files, ", "))
     end
+
+    # Reject any shipped table that still contains stale-artifact marker
+    # phrases. These typically appear in tablenotes when a generator or
+    # input has been corrected but the output hasn't been regenerated yet.
+    # If any of these phrases appear, the pipeline must be rerun.
+    stale_markers = ["pre-date", "next AWS rerun", "TBD"]
+    stale_files = Tuple{String,String}[]
+    for f in expected_tex
+        path = joinpath(tex_dir, f)
+        content = read(path, String)
+        for marker in stale_markers
+            if occursin(marker, content)
+                push!(stale_files, (f, marker))
+                break
+            end
+        end
+    end
+    if !isempty(stale_files)
+        msg = "Stale-artifact marker(s) found in shipped tables:\n" *
+              join(["  $f contains \"$marker\"" for (f, marker) in stale_files], "\n")
+        error(msg)
+    end
+
+    @printf("  All %d expected manuscript tables verified (no stale markers).\n\n", length(expected_tex))
 end
 
 main()
