@@ -160,7 +160,7 @@ Under the raw FLN mapping the full eight-channel rational+preference model predi
 \subsection{Calibration anchor sensitivity for \texorpdfstring{$\psi_{\text{purchase}}$}{psi}}
 \label{app:psi_anchors}
 
-The headline calibration bracket sets $\psi_{\text{purchase}} \in [\pPsiBracketLow, \pPsiBracketHigh]$, with the conservative bracket end ($\pPsiBracketLow$) anchored on the rational-corrected ABI behavioral residual (60 pp midpoint of the 55--65 pp range; \citealp{abi2020}) and the aggressive bracket end ($\pPsiBracketHigh$) anchored on the descriptive ELSA microdata total drop (88 pp, n=\nELSAPostLumpSum). The corresponding bracket of predicted US voluntary ownership is $[\ownBracketLow, \ownBracketHigh]$. This appendix reports the full sensitivity table across alternative single-moment SMM specifications. Two HRS measures of US lifetime annuity ownership are reported in parallel as out-of-sample empirical targets: $\pctHRSLifetime$ (95\% CI $[\pctHRSLifetimeCILow, \pctHRSLifetimeCIHigh]$, lifetime contract indicator) and $\pctHRSIannPooled$ (95\% CI $[\pctHRSIannCILow, \pctHRSIannCIHigh]$, conventional any-annuity income proxy). The income-proxy measure sits inside the bracket; the cleaner lifetime indicator's CI overlaps the bracket's lower edge.
+The headline calibration bracket sets $\psi_{\text{purchase}} \in [\pPsiBracketLow, \pPsiBracketHigh]$, with the conservative bracket end ($\pPsiBracketLow$) anchored on the rational-corrected ABI sensitivity target---an aggregate sales-volume decline mapped through the model into an ownership-rate change, with about a quarter of that change attributable to the simultaneous removal of a 55\% lump-sum tax penalty already represented in the model's rational pricing channels (\citealp{abi2020}). The aggressive bracket end ($\pPsiBracketHigh$) is anchored on the descriptive ELSA microdata total drop in observed disposition (n=\nELSAPostLumpSum). The corresponding bracket of predicted US voluntary ownership is $[\ownBracketLow, \ownBracketHigh]$. This appendix reports the full sensitivity table across alternative single-moment SMM specifications. Two HRS measures of US lifetime annuity ownership are reported in parallel as out-of-sample empirical comparisons: $\pctHRSLifetime$ (95\% CI $[\pctHRSLifetimeCILow, \pctHRSLifetimeCIHigh]$, lifetime contract indicator) and $\pctHRSIannPooled$ (95\% CI $[\pctHRSIannCILow, \pctHRSIannCIHigh]$, conventional any-annuity income proxy). The income-proxy measure sits inside the bracket; the cleaner lifetime indicator's CI overlaps the bracket's lower edge.
 
 \begin{table}[htbp]
 \centering
@@ -171,9 +171,9 @@ The headline calibration bracket sets $\psi_{\text{purchase}} \in [\pPsiBracketL
 \toprule
 Anchor & Identifying moment & $\hat{\psi}_{\text{purchase}}$ & Predicted US ownership & Notes \\
 \midrule
-\textbf{C}$_{\text{low}}$  & ABI behavioral residual low (55 pp)  & \pPsiUKLow  & \ownPsiUKLow  & Tax-stripped (ABI aggregate) \\
-\textbf{C}$_{\text{mid}}$  & ABI behavioral residual mid (60 pp)  & \textbf{\pPsiUKMid}  & \textbf{\ownPsiUKMid}  & \textbf{Conservative bracket end (ABI)} \\
-\textbf{C}$_{\text{high}}$ & ABI behavioral residual high (65 pp) & \pPsiUKHigh & \ownPsiUKHigh & Tax-stripped (ABI aggregate) \\
+\textbf{C}$_{\text{low}}$  & ABI rational-corrected target (low)  & \pPsiUKLow  & \ownPsiUKLow  & Tax-stripped (ABI aggregate) \\
+\textbf{C}$_{\text{mid}}$  & ABI rational-corrected target (mid)  & \textbf{\pPsiUKMid}  & \textbf{\ownPsiUKMid}  & \textbf{Conservative bracket end (ABI)} \\
+\textbf{C}$_{\text{high}}$ & ABI rational-corrected target (high) & \pPsiUKHigh & \ownPsiUKHigh & Tax-stripped (ABI aggregate) \\
 ELSA$_{\text{strip-low}}$  & ELSA strip-low (70 pp)               & \pPsiUKELSALow  & \ownPsiUKELSALow  & ELSA microdata, low strip \\
 ELSA$_{\text{strip-high}}$ & ELSA strip-high (74 pp)              & \pPsiUKELSAHigh & \ownPsiUKELSAHigh & ELSA microdata, high strip \\
 B$_{\text{low}}$           & UK total drop (75 pp, ABI aggregate) & \pPsiUKBLow & \ownPsiUKBLow  & No tax stripping \\
@@ -186,7 +186,7 @@ B$_{\text{low}}$           & UK total drop (75 pp, ABI aggregate) & \pPsiUKBLow 
 \end{tabular}
 \begin{tablenotes}
 \small
-\item The headline calibration bracket is $\psi_{\text{purchase}} \in [\pPsiBracketLow, \pPsiBracketHigh]$, with the conservative bracket end (C-mid, ABI aggregate after stripping the rational tax-removal response) and the aggressive bracket end (ELSA microdata, raw 88 pp pre/post drop with no tax stripping). The corresponding bracket of predicted US voluntary ownership is $[\ownBracketLow, \ownBracketHigh]$. Values shown for additional anchors are computed from the same single-moment SMM under alternative identifying targets and reported as a sensitivity range.
+\item The headline calibration bracket is $\psi_{\text{purchase}} \in [\pPsiBracketLow, \pPsiBracketHigh]$, with the conservative bracket end (C-mid, ABI aggregate sales-volume decline mapped through the model after stripping the rational tax-removal response) and the aggressive bracket end (ELSA microdata, descriptive total drop in observed disposition with no rational stripping). The corresponding bracket of predicted US voluntary ownership is $[\ownBracketLow, \ownBracketHigh]$. Values shown for additional anchors are computed from the same single-moment SMM under alternative identifying targets and reported as a sensitivity range.
 \item The ABI aggregate-data anchors (rows C-low, C-mid, C-high) treat 15--25 pp of the raw 75 pp UK ownership drop as the rational tax-removal response (lump-sum 55\% tax penalty removal). The ELSA-microdata-strip anchors (ELSA-strip-low/high) instead use the household-level disposition-record drop after the same correction. The ELSA-total anchor adopts the raw 88 pp drop without any tax correction; this is the most aggressive specification and corresponds to the bracket's lower-ownership end.
 \item All US ownership predictions are out-of-sample: the calibration anchors use only UK data; observed US ownership is not used to discipline $\psi_{\text{purchase}}$.
 \end{tablenotes}
