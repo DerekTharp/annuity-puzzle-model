@@ -493,7 +493,7 @@ open(tex_path, "w") do f
     println(f, raw"\small")
     println(f, raw"\item Baseline: ", ds, raw"\gamma = 2.5", ds, ", ",
             ds, raw"\pi = 2\%", ds, ", DFJ bequests,")
-    println(f, "MWR = 0.82, hazard multipliers [0.50, 1.0, 3.0].")
+    @printf(f, "MWR = %.2f, hazard multipliers [0.50, 1.0, 3.0].\n", MWR_LOADED)
     println(f, raw"\end{tablenotes}")
     println(f, raw"\end{table}")
 end

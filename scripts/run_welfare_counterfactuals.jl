@@ -113,7 +113,7 @@ end
 configs = [
     CounterfactualConfig(
         "Baseline", MWR_LOADED, INFLATION, SURVIVAL_PESSIMISM, C_FLOOR, 1.0, PSI_PURCHASE,
-        "Full eleven-channel model, production calibration"),
+        "Full ten-channel model, conservative (ABI-anchored) bracket end"),
     CounterfactualConfig(
         "Group pricing (MWR=0.90)", 0.90, INFLATION, SURVIVAL_PESSIMISM, C_FLOOR, 1.0, PSI_PURCHASE,
         "TSP/employer plan annuity pricing (James et al. 2006)"),

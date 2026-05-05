@@ -372,8 +372,8 @@ function compute_cev_grid(
 
     # Common keyword args: include preference + behavioral channels so the
     # CEV computation uses the same model the production solve uses. Without
-    # these the CEV table would silently report seven-channel values while
-    # the rest of the pipeline is eleven-channel.
+    # these the CEV table would silently report six-channel values while
+    # the rest of the pipeline is ten-channel.
     common_kw = (gamma=gamma, beta=beta, r=r,
                  stochastic_health=true, n_health_states=3, n_quad=n_quad,
                  c_floor=c_floor, hazard_mult=hazard_mult,
