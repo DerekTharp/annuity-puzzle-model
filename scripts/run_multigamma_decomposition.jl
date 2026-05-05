@@ -53,6 +53,14 @@ for g in gammas
         fixed_cost_val=FIXED_COST,
         min_purchase_val=MIN_PURCHASE,
         lambda_w_val=LAMBDA_W,
+        # Preference + behavioral channels: passing the production values
+        # so this multi-gamma table reflects the full ten-channel model
+        # rather than the SDU-only legacy specification. Default kwargs
+        # would silently leave consumption_decline, health_utility, and
+        # psi_purchase off.
+        consumption_decline_val=CONSUMPTION_DECLINE,
+        health_utility_vals=HEALTH_UTILITY,
+        psi_purchase_val=PSI_PURCHASE,
         inflation_val=INFLATION,
         n_wealth=N_WEALTH, n_annuity=N_ANNUITY, n_alpha=N_ALPHA,
         W_max=W_MAX, n_quad=N_QUAD,
@@ -185,7 +193,8 @@ open(tex_path, "w") do f
     println(f, raw"\begin{tablenotes}")
     println(f, raw"\small")
     println(f, raw"\item Own.\ = predicted ownership rate (\%). Ret.\ = retention rate relative to previous step (\%).")
-    println(f, raw"\item All other parameters at baseline values (DFJ bequests, MWR $= 0.82$, $\pi = 2\%$, $\psi = 0.981$).")
+    @printf(f, "\\item All other parameters at production values (DFJ bequests, MWR \$= %.2f\$, \$\\pi = 2\\%%\$, \$\\psi = %.3f\$, \$\\lambda_W = %.3f\$, \$\\psi_{\\text{purchase}} = %.4f\$).\n",
+            MWR_LOADED, SURVIVAL_PESSIMISM, LAMBDA_W, PSI_PURCHASE)
     println(f, raw"\end{tablenotes}")
     println(f, raw"\end{threeparttable}")
     println(f, raw"\end{table}")

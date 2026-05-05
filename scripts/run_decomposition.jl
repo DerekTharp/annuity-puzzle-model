@@ -367,7 +367,7 @@ n_ch = length(pw.channel_names)
 open(pw_tex_path, "w") do f
     println(f, raw"\begin{table}[htbp]")
     println(f, raw"\centering")
-    println(f, raw"\caption{Pairwise Channel Interaction Strengths (pp)}")
+    println(f, raw"\caption{Pairwise Interaction Strengths, Rational and Preference Channels (pp)}")
     println(f, raw"\label{tab:pairwise}")
     println(f, raw"\begin{tabular}{l" * "c" ^ n_ch * "}")
     println(f, raw"\toprule")
