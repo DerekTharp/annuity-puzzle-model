@@ -358,10 +358,11 @@ Category & Specification & Ownership (\%) \\
  & $\gamma = 4.00$ & 31.0 \\
  & $\gamma = 5.00$ & 27.4 \\[4pt]
 \multicolumn{3}{l}{\textit{Money's worth ratio}} \\
- & MWR = \pMwrBaseline{} (baseline) & \ownMWREightyTwoNum \\
- & MWR = 0.85 & \ownMWREightyFiveNum \\
- & MWR = 0.90 & \ownMWRNinetyNum \\
- & MWR = 0.95 & \ownMWRNinetyFiveNum \\[4pt]
+ & MWR = 0.82               & \ownMWREightyTwoNum \\
+ & MWR = 0.85               & \ownMWREightyFiveNum \\
+ & MWR = \pMwrBaseline{} (baseline) & \ownTenChannelFullNum \\
+ & MWR = 0.90               & \ownMWRNinetyNum \\
+ & MWR = 0.95               & \ownMWRNinetyFiveNum \\[4pt]
 \multicolumn{3}{l}{\textit{Hazard multipliers $[\mu_G, \mu_F, \mu_P]$}} \\
  & R--S functional $[0.45, 1.0, 3.5]$ & \ownHazardRSNum \\
  & Baseline $[\pHazardGood, \pHazardFair, \pHazardPoor]$ & \ownSevenChannelNum \\
@@ -464,7 +465,7 @@ The decomposition results depend on calibrated parameters, and the sensitivity t
 
 \item \textbf{Inflation rate:} $\pi \sim U(0.01, 0.03)$. This spans near-term CPI uncertainty around the baseline calibration of 2\%.
 
-\item \textbf{Money's worth ratio:} $\text{MWR} \sim U(0.75, 0.89)$. This reflects measurement uncertainty in current annuity pricing estimates from \citet{mitchell1999} and \citet{wettstein2021}, centered near the baseline of 0.82.
+\item \textbf{Money's worth ratio:} $\text{MWR} \sim U(0.75, 0.89)$. This reflects measurement uncertainty in current annuity pricing estimates from \citet{mitchell1999} and \citet{wettstein2021}; the production baseline is $\pMwrBaseline$.
 \end{itemize}
 
 For each draw, the model is solved repeatedly via bisection over $\gamma$ until predicted ownership equals 3.6\% $\pm$ 0.5 pp. Table~\ref{tab:implied_gamma} reports the distribution of implied $\gamma$ values.
@@ -560,7 +561,7 @@ $100 \times 40$ & 0.014 & 0.000 & 9.9 & 5.9 \\
 \end{threeparttable}
 \end{table}
 
-The use of piecewise-linear interpolation means derivatives are discontinuous at grid points, which introduces a floor on residual accuracy. The 6\% of points with residuals above 5\% are concentrated at low wealth levels where the value function has high curvature and the linear approximation is poorest. Switching to cubic spline interpolation would reduce these residuals at the cost of potential Runge-type oscillations at low wealth. The grid convergence results in Section~\ref{app:grid_convergence} provide a complementary accuracy check: stable ownership predictions across grid resolutions confirm that the policy function is resolved by the production grid. The exact Shapley decomposition, which evaluates all $2{,}048$ channel subsets on the same production grid, implicitly provides a further robustness check: if the solver were unreliable, the 2{,}048 ownership evaluations would not produce the internally consistent attribution hierarchy reported in Section~\ref{M-sec:shapley}.
+The use of piecewise-linear interpolation means derivatives are discontinuous at grid points, which introduces a floor on residual accuracy. The 6\% of points with residuals above 5\% are concentrated at low wealth levels where the value function has high curvature and the linear approximation is poorest. Switching to cubic spline interpolation would reduce these residuals at the cost of potential Runge-type oscillations at low wealth. The grid convergence results in Section~\ref{app:grid_convergence} provide a complementary accuracy check: stable ownership predictions across grid resolutions confirm that the policy function is resolved by the production grid. The exact Shapley decomposition, which evaluates all $1{,}024$ channel subsets on the same production grid, implicitly provides a further robustness check: if the solver were unreliable, the $1{,}024$ ownership evaluations would not produce the internally consistent attribution hierarchy reported in Section~\ref{M-sec:shapley}.
 
 
 \bibliographystyle{aer}
