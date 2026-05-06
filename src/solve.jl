@@ -155,10 +155,18 @@ function solve_lifecycle_health(
                         inc_after  = max(0.0, inc_gross - m)
                         port_drain = max(0.0, m - inc_gross)
                         W_after    = max(W_val - port_drain, 0.0)
-                        if inc_after + W_after < p.c_floor
+                        medicaid_binding = (inc_after + W_after < p.c_floor)
+                        if medicaid_binding
                             inc_after = p.c_floor - W_after
                         end
                         V_k, c_k = terminal_value(W_after, 0.0, inc_after, p, T, ih)
+                        # Public-care aversion at terminal period (mirrors the
+                        # backward-induction block). Apply chi_ltc to flow
+                        # utility only; bequest component of V_k is unaffected.
+                        if p.chi_ltc < 1.0 && medicaid_binding && ih == 3
+                            flow_u = flow_utility_sdu(c_k, inc_after, p.gamma, T, ih, p)
+                            V_k = V_k + (p.chi_ltc - 1.0) * flow_u
+                        end
                         V_total += gh_weights[iq] * V_k
                         c_total += gh_weights[iq] * c_k
                     end
@@ -210,13 +218,28 @@ function solve_lifecycle_health(
                 if p.medical_enabled
                     # Integrate over medical expense shocks.
                     #
-                    # Source-aware accounting for SDU: medical absorbs income
-                    # first, then portfolio. This matches behavioral evidence
-                    # that households fund medical from current income before
-                    # tapping retirement savings, and matches the FPR companion
-                    # paper's source-tracking convention. When lambda_w = 1
-                    # (SDU off), only the total cash matters; with lambda_w<1,
-                    # the income/portfolio split changes the effective utility.
+                    # Source-aware accounting for SDU (income-first waterfall):
+                    # medical absorbs income first, then portfolio. This matches
+                    # the modal retiree pattern where routine OOP (Medicare
+                    # premiums, supplements, copays) is paid from SS direct
+                    # deposit / autopay; portfolio is drawn only when income
+                    # is exhausted by catastrophic expenses. The behavioral
+                    # economics literature is split on this convention —
+                    # Hurd-Rohwedder (2013), Sussman & Shafir (2012), and
+                    # Ameriks et al. (2011) suggest households mentally protect
+                    # liquid wealth, which would imply portfolio-first
+                    # ordering for non-routine medical. We adopt income-first
+                    # as the production default because: (i) it matches the
+                    # observed direct-deposit/autopay pattern for routine OOP,
+                    # which is the modal medical event; (ii) the catastrophic
+                    # case (m > inc_gross) still triggers forced portfolio
+                    # drawdown via the (m - inc_gross) branch below, capturing
+                    # the involuntary nature of the LTC liquidation. The
+                    # income-first convention mechanically inflates Force A's
+                    # contribution (it shrinks the high-utility income envelope
+                    # in high-medical states); a portfolio-first robustness
+                    # specification is reported in the manuscript appendix.
+                    # When lambda_w = 1 (SDU off), the ordering is irrelevant.
                     mu_m, sigma_m = medical_expense_params(age, ih, p)
                     inc_gross = ss_val + A_real
                     V_total = 0.0
@@ -230,13 +253,28 @@ function solve_lifecycle_health(
                         # Apply Medicaid floor on total resources. The Medicaid
                         # top-up is treated as income for SDU purposes (it's a
                         # transfer payment, not portfolio drawdown).
-                        if inc_after + W_after < p.c_floor
+                        medicaid_binding = (inc_after + W_after < p.c_floor)
+                        if medicaid_binding
                             inc_after = p.c_floor - W_after
                         end
                         V_k, c_k = solve_consumption(
                             W_after, 0.0, inc_after,
                             V_hw_interp, s_t_h, p, t, ih,
                         )
+                        # Public-care aversion (Ameriks 2011 QJE; 2020 ECMA):
+                        # when the agent must rely on Medicaid AND is in Poor
+                        # health (proxy for LTC need), the realized consumption
+                        # is Medicaid-financed and yields utility multiplied by
+                        # chi_ltc < 1. The multiplier applies to FLOW utility
+                        # only — continuation V already incorporates chi_ltc at
+                        # future binding states via the backward induction.
+                        # Multiplying V_k directly would compound the penalty
+                        # geometrically across periods, which is stronger than
+                        # the Ameriks specification.
+                        if p.chi_ltc < 1.0 && medicaid_binding && ih == 3
+                            flow_u = flow_utility_sdu(c_k, inc_after, p.gamma, t, ih, p)
+                            V_k = V_k + (p.chi_ltc - 1.0) * flow_u
+                        end
                         V_total += gh_weights[iq] * V_k
                         c_total += gh_weights[iq] * c_k
                     end

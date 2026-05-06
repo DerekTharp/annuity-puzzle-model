@@ -12,7 +12,7 @@ Fair annuity value of \$1 = sum_{t=1}^{T} s(t) / (1+r)^t
 Payout rate = MWR / fair_annuity_value
 
 If MWR = 1.0, the annuity is actuarially fair.
-If MWR = 0.82, the expected present value of payouts is 82 cents per dollar.
+If MWR = 0.82, the expected present value of payouts is 82 cents per dollar.  # ALLOWLIST: example value in docstring, not a production calibration
 """
 function compute_payout_rate(p::ModelParams, surv::Vector{Float64})
     # Present value of \$1/year life annuity, including payment at purchase age.

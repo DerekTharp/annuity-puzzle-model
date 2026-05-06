@@ -1,4 +1,4 @@
-# Figure generation for "Dissolving the Annuity Puzzle"
+# Figure generation for "Quantifying the Annuity Puzzle"
 #
 # Produces 5 publication-quality figures:
 #   1. Sequential decomposition bar chart
@@ -56,6 +56,29 @@ function savefig_both(p, name)
     println("  Saved: $name.pdf, $name.png")
 end
 
+# Read a numeric macro value from paper/numbers.tex. Used by figures that
+# need to display the same observed-rate / headline value the manuscript
+# cites. Returns `nothing` if the macro isn't present (caller should provide
+# a sensible fallback or skip the annotation).
+const NUMBERS_TEX_PATH = joinpath(@__DIR__, "..", "paper", "numbers.tex")
+function read_numbers_macro(name::String; default=nothing)
+    isfile(NUMBERS_TEX_PATH) || return default
+    pattern = Regex("\\\\newcommand\\{\\\\$name\\}\\{([^\\}]+)\\}")
+    for line in eachline(NUMBERS_TEX_PATH)
+        m = match(pattern, line)
+        if m !== nothing
+            # Macro values are often "X.X\%" — strip "\%" and parse as Float64
+            raw = replace(m.captures[1], "\\%" => "", "\\\$" => "")
+            try
+                return parse(Float64, strip(raw))
+            catch
+                return default
+            end
+        end
+    end
+    return default
+end
+
 # =====================================================================
 # Figure 1: Sequential Decomposition Bar Chart
 # =====================================================================
@@ -109,9 +132,17 @@ function figure_1_decomposition()
         bar_width = 0.6,
     )
 
-    # Observed benchmark line
-    vline!([3.6], color = CB_BLACK, linestyle = :dash, linewidth = 1.2, label = "")
-    annotate!(8.0, n + 0.45, Plots.text("Observed: 3.6%", 8, :left))
+    # Observed benchmark line — pulled from numbers.tex so the figure stays
+    # in sync with the manuscript's reported HRS measures. Two HRS targets
+    # are shaded: the cleaner lifetime-contract indicator (q286) and the
+    # conventional any-annuity income proxy (r{w}iann).
+    obs_lifetime = read_numbers_macro("pctHRSLifetime";    default=2.02)
+    obs_income   = read_numbers_macro("pctHRSIannPooled";  default=3.34)
+    vline!([obs_lifetime], color = CB_BLACK, linestyle = :dash,  linewidth = 1.0, label = "")
+    vline!([obs_income],   color = CB_BLACK, linestyle = :dot,   linewidth = 1.0, label = "")
+    annotate!(obs_income + 0.5, n + 0.45,
+              Plots.text(@sprintf("HRS lifetime: %.2f%%, income proxy: %.2f%%",
+                                  obs_lifetime, obs_income), 7, :left))
 
     # Value labels on bars
     for (i, val) in enumerate(disp_vals)

@@ -15,6 +15,7 @@ p_base = ModelParams(age_start=AGE_START, age_end=AGE_END)
 base_surv = build_lockwood_survival(p_base)
 
 hrs_raw = readdlm(HRS_PATH, ',', Any; skipstart=1)
+assert_hrs_schema(hrs_raw, HRS_PATH)
 n_pop = size(hrs_raw, 1)
 population = zeros(n_pop, 4)
 population[:, 1] = Float64.(hrs_raw[:, 1])

@@ -384,6 +384,7 @@ function compute_cev_grid(
     psi_purchase::Float64=0.0,
     psi_purchase_c_ref::Float64=18_000.0,
     lambda_w::Float64=1.0,
+    chi_ltc::Float64=1.0,
     verbose::Bool=true,
 )
     # Default bequest specs using Lockwood's original DFJ theta (no recalibration)
@@ -459,6 +460,7 @@ function compute_cev_grid(
             theta=bspec.theta, kappa=bspec.kappa,
             mwr=mwr_loaded, fixed_cost=fixed_cost_val, min_purchase=min_purchase_val,
             lambda_w=lambda_w,
+            chi_ltc=chi_ltc,
             inflation_rate=inflation_val,
             medical_enabled=true, health_mortality_corr=true,
             grid_kw...)

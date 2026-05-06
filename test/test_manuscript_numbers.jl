@@ -23,16 +23,17 @@ const HRS_CSV = joinpath(REPO_ROOT, "data", "processed", "lockwood_hrs_sample.cs
 # Ten channels: Medical and R-S correlation are combined into a single
 # channel because the R-S mechanism's quantitative bite in this framework
 # operates through the interaction with medical risk.
-const B_SS         = 1 << 0
-const B_BEQUESTS   = 1 << 1
-const B_MED_RS     = 1 << 2   # Combined: medical + R-S correlation
-const B_PESSIMISM  = 1 << 3
-const B_AGE_NEEDS  = 1 << 4
-const B_STATE_UTIL = 1 << 5
-const B_LOADS      = 1 << 6
-const B_INFLATION  = 1 << 7
+const B_SS           = 1 << 0
+const B_BEQUESTS     = 1 << 1
+const B_MED_RS       = 1 << 2   # Combined: medical + R-S correlation
+const B_PESSIMISM    = 1 << 3
+const B_AGE_NEEDS    = 1 << 4
+const B_STATE_UTIL   = 1 << 5
+const B_LOADS        = 1 << 6
+const B_INFLATION    = 1 << 7
 const B_SDU          = 1 << 8   # Force A: source-dependent utility
 const B_PSI_PURCHASE = 1 << 9   # Force B: narrow-framing purchase penalty
+const B_LTC          = 1 << 10  # Public-care aversion (Ameriks 2011, 2020 ECMA)
 
 # Backward-compat aliases (prose macros may still reference these names).
 const B_MEDICAL = B_MED_RS
@@ -142,6 +143,10 @@ macros = load_macros()
                 "ownSixChannel"       => B_SS | B_BEQUESTS | B_MED_RS | B_PESSIMISM | B_LOADS | B_INFLATION,
                 "ownSevenChannelExt"  => B_SS | B_BEQUESTS | B_MED_RS | B_PESSIMISM | B_AGE_NEEDS | B_LOADS | B_INFLATION,
                 "ownEightChannelExt"  => B_SS | B_BEQUESTS | B_MED_RS | B_PESSIMISM | B_AGE_NEEDS | B_STATE_UTIL | B_LOADS | B_INFLATION,
+                "ownNineChannelLTC"   => B_SS | B_BEQUESTS | B_MED_RS | B_PESSIMISM | B_AGE_NEEDS | B_STATE_UTIL | B_LOADS | B_INFLATION | B_LTC,
+                "ownTenChannelSDU"    => B_SS | B_BEQUESTS | B_MED_RS | B_PESSIMISM | B_AGE_NEEDS | B_STATE_UTIL | B_LOADS | B_INFLATION | B_LTC | B_SDU,
+                "ownElevenChannelFull"=> B_SS | B_BEQUESTS | B_MED_RS | B_PESSIMISM | B_AGE_NEEDS | B_STATE_UTIL | B_LOADS | B_INFLATION | B_LTC | B_SDU | B_PSI_PURCHASE,
+                # Legacy 10-channel cascade (without LTC) — kept for sensitivity reporting.
                 "ownNineChannelSDU"   => B_SS | B_BEQUESTS | B_MED_RS | B_PESSIMISM | B_AGE_NEEDS | B_STATE_UTIL | B_LOADS | B_INFLATION | B_SDU,
                 "ownTenChannelFull"   => B_SS | B_BEQUESTS | B_MED_RS | B_PESSIMISM | B_AGE_NEEDS | B_STATE_UTIL | B_LOADS | B_INFLATION | B_SDU | B_PSI_PURCHASE,
             ]
@@ -312,6 +317,53 @@ macros = load_macros()
             md = parse_pct(macros["mcMedianOwnership"])
             hi = parse_pct(macros["mcHighCIOwnership"])
             @test lo <= md <= hi
+        end
+    end
+
+    # Bracket-hostage assertion (forensic-review recommendation): the headline
+    # ownership prediction under the disciplined recalibration is expected to
+    # land in the ~[5%, 12%] range. If a future recalibration silently moves
+    # the headline outside this range, this assertion fires loudly so the
+    # manuscript prose can be updated to match (rather than the prose drifting
+    # while the headline silently re-anchors).
+    #
+    # The bracket below is intentionally GENEROUS (3% to 15%) — wide enough to
+    # accommodate the panel's projected [6%, 11%] central tendency PLUS a
+    # safety margin for the actual AWS rerun result. If the AWS rerun lands
+    # outside this generous range, that's a signal the calibration has
+    # drifted and someone should think carefully about why.
+    #
+    # Update the bracket here when the manuscript narrative changes (e.g.,
+    # a planned recalibration shifts the headline target intentionally), but
+    # NOT silently after the AWS rerun without explicit consideration.
+    @testset "headline bracket-hostage assertion" begin
+        # Try the production headline macro first; fall back to the legacy
+        # ten-channel macro if the eleven-channel pipeline hasn't run yet.
+        headline_keys = ("ownElevenChannelFull", "ownTenChannelFull")
+        headline_pct = nothing
+        which_key = nothing
+        for k in headline_keys
+            if haskey(macros, k)
+                parse_pct = s -> parse(Float64, replace(s, "\\%" => ""))
+                headline_pct = parse_pct(macros[k])
+                which_key = k
+                break
+            end
+        end
+
+        if headline_pct === nothing
+            @test_skip "no headline macro found (pipeline incomplete)"
+        else
+            # Generous expected range. Tighten after AWS results land.
+            BRACKET_LOW  = 3.0
+            BRACKET_HIGH = 15.0
+            if !(BRACKET_LOW <= headline_pct <= BRACKET_HIGH)
+                @warn "Headline ownership ($(which_key) = $(headline_pct)%) is outside " *
+                      "the expected bracket [$(BRACKET_LOW)%, $(BRACKET_HIGH)%]. " *
+                      "If this drift is intentional, update the bracket in " *
+                      "test/test_manuscript_numbers.jl. Otherwise investigate."
+            end
+            @test BRACKET_LOW <= headline_pct <= BRACKET_HIGH
         end
     end
 end

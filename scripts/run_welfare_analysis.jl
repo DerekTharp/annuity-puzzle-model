@@ -34,6 +34,7 @@ println("=" ^ 70)
 println("\nLoading HRS population sample...")
 hrs_path = HRS_PATH
 hrs_raw = readdlm(hrs_path, ',', Any; skipstart=1)
+assert_hrs_schema(hrs_raw, hrs_path)
 n_pop = size(hrs_raw, 1)
 population = zeros(n_pop, 4)
 population[:, 1] = Float64.(hrs_raw[:, 1])
@@ -99,6 +100,7 @@ cev_output = compute_cev_grid(
     health_utility=Float64.(HEALTH_UTILITY),
     psi_purchase=PSI_PURCHASE,
     lambda_w=LAMBDA_W,
+    chi_ltc=CHI_LTC,
     verbose=true,
 )
 
@@ -342,6 +344,7 @@ p_sim = ModelParams(;
     theta=0.0, kappa=0.0,
     mwr=MWR_LOADED, fixed_cost=FIXED_COST, min_purchase=MIN_PURCHASE,
     lambda_w=LAMBDA_W,
+    chi_ltc=CHI_LTC,
     inflation_rate=INFLATION,
     medical_enabled=true, health_mortality_corr=true,
     stochastic_health=true, n_health_states=3, n_quad=N_QUAD,
