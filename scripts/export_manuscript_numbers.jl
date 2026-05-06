@@ -34,16 +34,17 @@ const HRS_PATH  = joinpath(REPO_ROOT, "data", "processed", "lockwood_hrs_sample.
 # correlation are combined into a single channel because the R-S mechanism's
 # quantitative bite in this framework operates through the interaction with
 # stochastic medical costs (see review_reports/ for panel discussion).
-const B_SS         = 1 << 0
-const B_BEQUESTS   = 1 << 1
-const B_MED_RS     = 1 << 2   # Combined: medical risk + R-S correlation
-const B_PESSIMISM  = 1 << 3
-const B_AGE_NEEDS  = 1 << 4
-const B_STATE_UTIL = 1 << 5
-const B_LOADS      = 1 << 6
-const B_INFLATION  = 1 << 7
+const B_SS           = 1 << 0
+const B_BEQUESTS     = 1 << 1
+const B_MED_RS       = 1 << 2   # Combined: medical risk + R-S correlation
+const B_PESSIMISM    = 1 << 3
+const B_AGE_NEEDS    = 1 << 4
+const B_STATE_UTIL   = 1 << 5
+const B_LOADS        = 1 << 6
+const B_INFLATION    = 1 << 7
 const B_SDU          = 1 << 8   # Force A: source-dependent utility
 const B_PSI_PURCHASE = 1 << 9   # Force B: narrow-framing purchase penalty
+const B_LTC          = 1 << 10  # Public-care aversion (Ameriks 2011, 2020 ECMA)
 
 # Backward compatibility aliases for prose macros that used the old names.
 # B_MEDICAL alone is no longer meaningful (always implies the R-S correlation).
@@ -497,12 +498,11 @@ function build_macros!()
     def!("ownAddPessimism",     fmt_pct(subset_ownership(B_SS | B_BEQUESTS | B_MED_RS | B_PESSIMISM); digits=1))
     # + Loads (skip age needs / state utility — these come in the extension table)
     def!("ownAddLoads",         fmt_pct(subset_ownership(B_SS | B_BEQUESTS | B_MED_RS | B_PESSIMISM | B_LOADS); digits=1))
-    # Sequential decomposition macros under the 10-channel structure. Names use
-    # descriptive suffixes (Ext, SDU, Full) so the channel count in the macro
-    # name matches the bitmask popcount. Old ordinal aliases (ownSevenChannel,
-    # ownEightChannel, ownNineChannel, ownTenChannel, ownElevenChannel) were
-    # removed because they were off-by-one after the Med+R-S bundling and
-    # masked two substantive prose-vs-number errors.
+    # Sequential decomposition macros under the 11-channel structure
+    # (= 6 rational + 3 preference + 2 behavioral, where the 3rd preference
+    # channel is public-care aversion / LTC; Ameriks 2011 QJE; 2020 ECMA).
+    # Names use descriptive suffixes (Ext, LTC, SDU, Full) so the channel
+    # count in the macro name matches the bitmask popcount.
     #
     # 6-channel rational (SS+Bequests+MedRS+Pessimism+Loads+Inflation; bitmask 207)
     def!("ownSixChannel",       fmt_pct(subset_ownership(B_SS | B_BEQUESTS | B_MED_RS | B_PESSIMISM | B_LOADS | B_INFLATION); digits=1))
@@ -510,17 +510,38 @@ function build_macros!()
     def!("ownSevenChannelExt",  fmt_pct(subset_ownership(B_SS | B_BEQUESTS | B_MED_RS | B_PESSIMISM | B_AGE_NEEDS | B_LOADS | B_INFLATION); digits=1))
     # 8-channel: + state-dependent utility (bitmask 255)
     def!("ownEightChannelExt",  fmt_pct(subset_ownership(B_SS | B_BEQUESTS | B_MED_RS | B_PESSIMISM | B_AGE_NEEDS | B_STATE_UTIL | B_LOADS | B_INFLATION); digits=1))
-    # 9-channel: + SDU / Force A (bitmask 511)
+    # 9-channel: + LTC / public-care aversion (bitmask 1279). Full
+    # rational + preference layer under the 11-channel structure.
+    try
+        def!("ownNineChannelLTC", fmt_pct(subset_ownership(B_SS | B_BEQUESTS | B_MED_RS | B_PESSIMISM | B_AGE_NEEDS | B_STATE_UTIL | B_LOADS | B_INFLATION | B_LTC); digits=1))
+    catch e
+        @warn "Skipping ownNineChannelLTC macro (11-channel pipeline not yet run)" exception=e
+    end
+    # 10-channel: + SDU / Force A (bitmask 1535). Rational + preference + Force A.
+    try
+        def!("ownTenChannelSDU", fmt_pct(subset_ownership(B_SS | B_BEQUESTS | B_MED_RS | B_PESSIMISM | B_AGE_NEEDS | B_STATE_UTIL | B_LOADS | B_INFLATION | B_LTC | B_SDU); digits=1))
+    catch e
+        @warn "Skipping ownTenChannelSDU macro (11-channel pipeline not yet run)" exception=e
+    end
+    # 11-channel full: + narrow-framing PED / Force B (bitmask 2047).
+    # Headline production specification for the recalibrated model.
+    try
+        def!("ownElevenChannelFull", fmt_pct(subset_ownership(B_SS | B_BEQUESTS | B_MED_RS | B_PESSIMISM | B_AGE_NEEDS | B_STATE_UTIL | B_LOADS | B_INFLATION | B_LTC | B_SDU | B_PSI_PURCHASE); digits=1))
+    catch e
+        @warn "Skipping ownElevenChannelFull macro (11-channel pipeline not yet run)" exception=e
+    end
+
+    # Legacy 10-channel sub-cascade (without LTC). Kept for sensitivity/comparison
+    # rows; the 11-channel cascade above is the production path.
     try
         def!("ownNineChannelSDU", fmt_pct(subset_ownership(B_SS | B_BEQUESTS | B_MED_RS | B_PESSIMISM | B_AGE_NEEDS | B_STATE_UTIL | B_LOADS | B_INFLATION | B_SDU); digits=1))
     catch e
-        @warn "Skipping ownNineChannelSDU macro (10-channel pipeline not yet run)" exception=e
+        @warn "Skipping ownNineChannelSDU macro (pipeline not yet run)" exception=e
     end
-    # 10-channel full: + narrow-framing PED / Force B (bitmask 1023). Headline production.
     try
         def!("ownTenChannelFull", fmt_pct(subset_ownership(B_SS | B_BEQUESTS | B_MED_RS | B_PESSIMISM | B_AGE_NEEDS | B_STATE_UTIL | B_LOADS | B_INFLATION | B_SDU | B_PSI_PURCHASE); digits=1))
     catch e
-        @warn "Skipping ownTenChannelFull macro (10-channel pipeline not yet run)" exception=e
+        @warn "Skipping ownTenChannelFull macro (pipeline not yet run)" exception=e
     end
 
     # Retention rate for SS step (complement as percent)
@@ -707,9 +728,11 @@ function build_macros!()
         def!("ownPsi" * key, fmt_pct(robustness_ownership("Survival pessimism", spec); digits=1))
     end
 
-    # MWR sweep (appears in MWR sensitivity table in main.tex)
+    # MWR sweep (appears in MWR sensitivity table in main.tex). The MWR-0.82
+    # row below is a sensitivity-table entry (predicted ownership at a 0.82
+    # load), not a stale production reference. ALLOWLIST: see next line.
     for (key, spec) in [
-        ("EightyTwo",    "MWR=0.82"),
+        ("EightyTwo",    "MWR=0.82"),  # ALLOWLIST: sensitivity-table entry
         ("EightyFive",   "MWR=0.85"),
         ("Ninety",       "MWR=0.90"),
         ("NinetyFive",   "MWR=0.95"),

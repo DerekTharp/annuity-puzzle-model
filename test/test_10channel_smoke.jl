@@ -9,7 +9,7 @@ include(joinpath(@__DIR__, "..", "src", "AnnuityPuzzle.jl"))
 using .AnnuityPuzzle
 include(joinpath(@__DIR__, "..", "scripts", "config.jl"))
 
-@testset "10-channel build smoke test" begin
+@testset "11-channel build smoke test" begin
     # Coarse grid for speed
     nw, na, nalpha = 30, 12, 51
 
@@ -32,7 +32,7 @@ include(joinpath(@__DIR__, "..", "scripts", "config.jl"))
     p_grid = ModelParams(; common_kw..., mwr=1.0, grid_kw...)
     grids = build_grids(p_grid, fair_pr_nom)
 
-    # Full 10-channel model
+    # Full 11-channel model
     p_model = ModelParams(; common_kw...,
         theta=THETA_DFJ, kappa=KAPPA_DFJ,
         mwr=MWR_LOADED, fixed_cost=FIXED_COST,
@@ -42,6 +42,7 @@ include(joinpath(@__DIR__, "..", "scripts", "config.jl"))
         consumption_decline=CONSUMPTION_DECLINE,
         health_utility=Float64.(HEALTH_UTILITY),
         lambda_w=LAMBDA_W,
+        chi_ltc=CHI_LTC,
         psi_purchase=PSI_PURCHASE,
         grid_kw...)
 
@@ -60,7 +61,7 @@ include(joinpath(@__DIR__, "..", "scripts", "config.jl"))
     @test isfinite(res.mean_alpha)
     println("  Smoke test: ownership=$(round(res.ownership * 100, digits=2))%, mean_alpha=$(round(res.mean_alpha, digits=4))")
 
-    # Sanity check vs psi_purchase=0 (rational + SDU benchmark; Force A still on)
+    # Sanity check vs psi_purchase=0 (rational + SDU + LTC benchmark; Force B off)
     p_rational = ModelParams(; common_kw...,
         theta=THETA_DFJ, kappa=KAPPA_DFJ,
         mwr=MWR_LOADED, fixed_cost=FIXED_COST,
@@ -70,6 +71,7 @@ include(joinpath(@__DIR__, "..", "scripts", "config.jl"))
         consumption_decline=CONSUMPTION_DECLINE,
         health_utility=Float64.(HEALTH_UTILITY),
         lambda_w=LAMBDA_W,
+        chi_ltc=CHI_LTC,
         psi_purchase=0.0,
         grid_kw...)
 

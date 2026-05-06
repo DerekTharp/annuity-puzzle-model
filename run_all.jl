@@ -223,10 +223,33 @@ function main()
         joinpath(CALIB_DIR, "recalibrate_bequests.jl"))
     push!(timings, "Bequests" => t)
 
-    # --- Stage 10: Exact Shapley decomposition (1024 subsets, 10 channels) ---
-    # Produces: shapley_exact.tex/.csv
+    # --- Stage 9b: UK-anchored psi estimation (single-moment SMM) ---
+    # Produces: results/psi_estimation.json, tables/csv/psi_estimation.csv.
+    # Bisects psi to match UK 2015 pension-freedoms retention moment (mid-range
+    # 17%, sensitivity over 13-25%). Single-moment SMM, just-identified.
+    #
+    # SEQUENCING NOTE: This stage is intentionally placed BEFORE the Shapley
+    # subset enumeration (Stage 10), the SS cut robustness (Stage 11), and the
+    # gamma/inflation robustness sweep (Stage 12), so the SMM-derived psi is
+    # available on disk when downstream stages run. Currently those downstream
+    # stages still read PSI_PURCHASE from scripts/config.jl (the placeholder
+    # value); a follow-up refactor should have them read the SMM result from
+    # tables/csv/psi_estimation.csv. Until that refactor lands, the SMM
+    # estimate is reported separately and the downstream-stage headline
+    # reflects the placeholder; the UK-anchored ownership BRACKET (Stage 13b
+    # sensitivity sweep) is the empirical headline regardless of the
+    # placeholder choice.
     t = run_stage(
-        "10. Exact Shapley Decomposition (1024 subsets)",
+        "9b. UK-anchored psi Estimation (single-moment SMM)",
+        joinpath(SCRIPTS_DIR, "estimate_psi.jl"); parallel=true)
+    push!(timings, "Psi estimation" => t)
+
+    # --- Stage 10: Exact Shapley decomposition (2048 subsets, 11 channels) ---
+    # Produces: shapley_exact.tex/.csv
+    # NOTE: uses PSI_PURCHASE from scripts/config.jl (placeholder); see
+    # Stage 9b sequencing note above.
+    t = run_stage(
+        "10. Exact Shapley Decomposition (2048 subsets)",
         joinpath(SCRIPTS_DIR, "run_subset_enumeration.jl"); parallel=true)
     push!(timings, "Shapley" => t)
 
@@ -269,18 +292,8 @@ function main()
         joinpath(SCRIPTS_DIR, "run_monte_carlo_uncertainty.jl"); parallel=true)
     push!(timings, "Monte Carlo uncertainty" => t)
 
-    # --- Stage 13d: UK-anchored psi estimation (single-moment SMM) ---
-    # Produces: results/psi_estimation.json, tables/csv/psi_estimation.csv.
-    # Bisects psi to match UK 2015 pension-freedoms retention moment (mid-range
-    # 17%, sensitivity over 13-25%). Single-moment SMM, just-identified.
-    # Replaces the buried-estimation TK->psi mapping with an external natural-
-    # experiment calibration. US ownership becomes an out-of-sample prediction.
-    # Parallelized: the three retention targets are independent bisections
-    # that can dispatch evaluations across workers.
-    t = run_stage(
-        "13d. UK-anchored psi Estimation (single-moment SMM)",
-        joinpath(SCRIPTS_DIR, "estimate_psi.jl"); parallel=true)
-    push!(timings, "Psi estimation" => t)
+    # (Stage 13d / UK-anchored psi estimation has been moved to Stage 9b
+    #  so its output is available before the subset enumeration runs.)
 
     # --- Stage 14: Figure generation (reads CSVs) ---
     # Produces: figures/pdf/fig1-fig5.pdf, figures/png/fig1-fig5.png (5 figures).
@@ -299,6 +312,16 @@ function main()
         "14b. State-dependent Utility Sensitivity (FLN vs R-S)",
         joinpath(SCRIPTS_DIR, "run_state_utility_sensitivity.jl"); parallel=true)
     push!(timings, "State-util sensitivity" => t)
+
+    # --- Stage 14c: Force A (lambda_W) sensitivity ---
+    # Produces: lambda_w_sensitivity.csv. Five full 11-channel solves at
+    # lambda_w in {0.625, 0.70, 0.85, 0.95, 1.00}, bracketing the SDU
+    # calibration uncertainty (raw Blanchett-Finke 0.625 vs production 0.85
+    # vs SDU-off 1.00).
+    t = run_stage(
+        "14c. Force A (lambda_W) Sensitivity",
+        joinpath(SCRIPTS_DIR, "run_lambda_w_sensitivity.jl"); parallel=true)
+    push!(timings, "Lambda_W sensitivity" => t)
 
     # --- Stage 15: Export manuscript numbers (must run AFTER all CSVs exist) ---
     # Produces: paper/numbers.tex — single source of truth for every numeric
@@ -320,6 +343,23 @@ function main()
         "16. Post-run Validation (numbers.tex vs fresh CSVs)",
         joinpath(TEST_DIR, "test_manuscript_numbers.jl"))
     push!(timings, "Post-run validation" => t)
+
+    # --- Stage 17: Pipeline validation gates ---
+    # Three gates implementing the forensic-review recommendation to harden
+    # against "stale artifact drift":
+    #   (1) Manifest gate: every \input{tables/tex/X.tex} in the manuscript
+    #       must appear in expected_tex.
+    #   (2) Freshness gate: every consumed .tex must be at least as new as
+    #       paper/numbers.tex (catches stale tables that survived a partial
+    #       rerun).
+    #   (3) Hardcode-stale-numbers gate: greps the manuscript and code surface
+    #       for known stale literals (old observed-rate placeholder, stale
+    #       MWR labels, old title strings, arithmetic errors, etc.). Lines
+    #       can opt out of the scan with a `# ALLOWLIST: <reason>` comment.
+    t = run_stage(
+        "17. Pipeline Validation Gates",
+        joinpath(SCRIPTS_DIR, "validate_pipeline.jl"))
+    push!(timings, "Pipeline validation" => t)
 
     # --- Summary ---
     total = time() - t_total
@@ -358,6 +398,7 @@ function main()
         "extension_path.tex",
         "implied_gamma.tex",
         "moment_validation.tex",
+        "monte_carlo_summary.tex",  # Stage 13c output; appendix \input
         # multigamma_decomposition.tex is no longer required in the
         # manuscript (the prose now reports a brief diagnostic summary
         # instead of inputting the table). The Stage 3 generator still

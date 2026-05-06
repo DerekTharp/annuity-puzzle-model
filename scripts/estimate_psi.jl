@@ -78,6 +78,7 @@ const OUT_CSV  = joinpath(@__DIR__, "..", "tables", "csv", "psi_estimation.csv")
 
 println("Loading HRS sample...")
 hrs_raw = readdlm(HRS_PATH, ',', Any; skipstart=1)
+assert_hrs_schema(hrs_raw, HRS_PATH)
 n_pop = size(hrs_raw, 1)
 population = zeros(n_pop, 4)
 population[:, 1] = Float64.(hrs_raw[:, 1])
@@ -131,6 +132,7 @@ function solve_at_psi(psi::Float64; verbose::Bool=false)
         consumption_decline=CONSUMPTION_DECLINE_ACTIVE,
         health_utility=HEALTH_UTILITY_ACTIVE,
         lambda_w=LAMBDA_W,
+        chi_ltc=CHI_LTC,
         psi_purchase=psi,
         grid_kw...)
     res = solve_and_evaluate(p_model, grids, base_surv,
@@ -227,6 +229,7 @@ function grid_search_psi(grid::Vector{Float64})
     _consumption_decline = CONSUMPTION_DECLINE_ACTIVE
     _health_utility = HEALTH_UTILITY_ACTIVE
     _lambda_w = LAMBDA_W
+    _chi_ltc = CHI_LTC
 
     t0 = time()
     grid_pairs = parallel_solve(grid) do psi
@@ -243,6 +246,7 @@ function grid_search_psi(grid::Vector{Float64})
             consumption_decline=_consumption_decline,
             health_utility=_health_utility,
             lambda_w=_lambda_w,
+            chi_ltc=_chi_ltc,
             psi_purchase=psi,
             _grid_kw...)
         res = solve_and_evaluate(p_model, _grids, _base_surv,

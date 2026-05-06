@@ -22,6 +22,7 @@ println("  MULTI-GAMMA DECOMPOSITION"); flush(stdout)
 println("=" ^ 70); flush(stdout)
 
 hrs_raw = readdlm(HRS_PATH,
+assert_hrs_schema(hrs_raw, HRS_PATH)
                    ',', Any; skipstart=1)
 n_pop = size(hrs_raw, 1)
 population = zeros(n_pop, 4)

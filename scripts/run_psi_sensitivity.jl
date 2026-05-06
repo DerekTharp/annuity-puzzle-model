@@ -80,6 +80,7 @@ const OUT_CSV = joinpath(@__DIR__, "..", "tables", "csv", "psi_sensitivity.csv")
 
 println("Loading HRS sample...")
 hrs_raw = readdlm(HRS_PATH, ',', Any; skipstart=1)
+assert_hrs_schema(hrs_raw, HRS_PATH)
 n_pop = size(hrs_raw, 1)
 population = zeros(n_pop, 4)
 population[:, 1] = Float64.(hrs_raw[:, 1])
@@ -154,6 +155,7 @@ results_raw = parallel_solve(PSI_VALUES) do (label, psi_val)
         consumption_decline=CONSUMPTION_DECLINE_ACTIVE,
         health_utility=HEALTH_UTILITY_ACTIVE,
         lambda_w=LAMBDA_W,
+        chi_ltc=CHI_LTC,
         psi_purchase=psi_val,
         _grid_kw...)
     t0 = time()

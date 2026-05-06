@@ -38,20 +38,28 @@ end
 include(joinpath(@__DIR__, "config.jl"))
 
 # Channel-specific calibration values (kept in this file because they apply only
-# when the corresponding channel is active in a subset).
+# when the corresponding channel is active in a subset). Source the values from
+# config.jl so the production calibration stays consistent across the pipeline.
 #
 # HEALTH_UTILITY: two defensible mappings from Finkelstein-Luttmer (2013) exist.
-#   [1.0, 0.90, 0.75]  — raw FLN central estimates (production)
-#   [1.0, 0.95, 0.85]  — Reichling-Smetters (2015) softer translation
-# scripts/export_manuscript_numbers.jl must mirror whichever value is active here.
-const CONSUMPTION_DECLINE = 0.02
-const HEALTH_UTILITY = [1.0, 0.90, 0.75]
+#   [1.0, 0.90, 0.75]  — raw FLN central estimates
+#   [1.0, 0.92, 0.82]  — FLN central within 95% CI (production)
+#   [1.0, 0.95, 0.90]  — Reichling-Smetters (2015) softer translation
+# Production value is mirrored from config.jl HEALTH_UTILITY.
+# scripts/export_manuscript_numbers.jl must use the same source.
+# (CONSUMPTION_DECLINE and HEALTH_UTILITY reach this script via config.jl;
+#  they are not redefined locally.)
 
 # PSI_PURCHASE_VAL: narrow-framing purchase-event disutility, applied only when
-# Channel 11 (Force B) is active. Production value sourced from config.jl
-# (calibrated by single-moment SMM to UK 2015 behavioral elasticity, Anchor C-mid).
-# Sensitivity interval across alternative anchors: [0.014, 0.028]; see appendix.
+# the Force B channel is active. Production value sourced from config.jl
+# (calibrated by single-moment SMM to UK 2015 reform identifying moment).
+# Sensitivity interval across alternative anchors: [0.014, 0.034]; see appendix.
 const PSI_PURCHASE_VAL = PSI_PURCHASE
+
+# CHI_LTC_VAL: public-care aversion utility multiplier, applied only when the
+# LTC channel is active AND the agent is in Poor health AND the consumption
+# floor binds (Medicaid-LTC binding state). Sourced from config.jl.
+const CHI_LTC_VAL = CHI_LTC
 
 # ===================================================================
 # Channel index definitions
@@ -76,13 +84,15 @@ const PSI_PURCHASE_VAL = PSI_PURCHASE
 @everywhere const CH_INFLATION     = 8
 @everywhere const CH_SDU           = 9   # Source-dependent utility (Force A)
 @everywhere const CH_PSI_PURCHASE  = 10  # Narrow-framing penalty (Force B)
+@everywhere const CH_LTC           = 11  # Public-care aversion (Ameriks 2011, 2020)
 
-const N_CHANNELS = 10
-const N_SUBSETS = 2^N_CHANNELS  # 1024
+const N_CHANNELS = 11
+const N_SUBSETS = 2^N_CHANNELS  # 2048
 const CHANNEL_NAMES = [
     "SS", "Bequests", "Medical+R-S", "Pessimism", "Age needs",
     "State utility", "Loads", "Inflation",
     "SDU (Force A)", "Narrow framing (Force B)",
+    "Public-care aversion (LTC)",
 ]
 
 println("=" ^ 70)
@@ -96,6 +106,7 @@ flush(stdout)
 println("\nLoading HRS population sample...")
 flush(stdout)
 hrs_raw = readdlm(HRS_PATH, ',', Any; skipstart=1)
+assert_hrs_schema(hrs_raw, HRS_PATH)
 n_pop = size(hrs_raw, 1)
 population = zeros(n_pop, 4)
 population[:, 1] = Float64.(hrs_raw[:, 1])  # wealth
@@ -133,11 +144,11 @@ flush(stdout)
 # ===================================================================
 # Build channel config from bitmask
 # ===================================================================
-# Convert an integer bitmask (0 to 1023) to the set of active channel indices.
-# Bit i (0-indexed) corresponds to channel i+1. Ten channels: bits 0-9.
+# Convert an integer bitmask (0 to 2047) to the set of active channel indices.
+# Bit i (0-indexed) corresponds to channel i+1. Eleven channels: bits 0-10.
 @everywhere function bitmask_to_channels(mask::Int)
     active = Set{Int}()
-    for i in 0:9  # 10 channels: bits 0-9
+    for i in 0:10  # 11 channels: bits 0-10
         if (mask >> i) & 1 == 1
             push!(active, i + 1)
         end
@@ -150,7 +161,8 @@ end
 @everywhere function build_subset_config(active::Set{Int};
         theta_dfj, kappa_dfj, mwr_loaded, fixed_cost, min_purchase, inflation_val,
         survival_pessimism, ss_quartile_levels,
-        consumption_decline, health_utility, lambda_w_val, psi_purchase_val)
+        consumption_decline, health_utility, lambda_w_val, psi_purchase_val,
+        chi_ltc_val)
 
     ss_levels = [0.0, 0.0, 0.0, 0.0]
     theta = 0.0
@@ -166,6 +178,7 @@ end
     hu = [1.0, 1.0, 1.0]
     lam_w = 1.0
     psi_p = 0.0
+    chi_l = 1.0
 
     if CH_SS in active
         ss_levels = copy(ss_quartile_levels)
@@ -178,7 +191,7 @@ end
     # medical-expense risk AND the health-mortality correlation. R-S's
     # quantitative bite in this framework operates through the interaction
     # with medical risk, so the two are not separately switchable in our
-    # 10-channel structure.
+    # 11-channel structure.
     if CH_MED_RS in active
         medical_enabled = true
         health_mortality_corr = true
@@ -206,6 +219,14 @@ end
     if CH_PSI_PURCHASE in active
         psi_p = psi_purchase_val
     end
+    # Public-care aversion (Ameriks 2011 QJE; 2020 ECMA): activates the
+    # chi_ltc utility multiplier when the consumption floor binds AND health
+    # is Poor (Medicaid-LTC binding). Operationally meaningful only when
+    # medical risk is also active; if CH_MED_RS is off, the consumption floor
+    # is rarely hit and the channel contributes ~0.
+    if CH_LTC in active
+        chi_l = chi_ltc_val
+    end
 
     return (ss_levels=ss_levels,
             theta=theta, kappa=kappa,
@@ -217,7 +238,8 @@ end
             mwr=mwr, fixed_cost=fc, min_purchase=min_p,
             inflation_rate=infl,
             lambda_w=lam_w,
-            psi_purchase=psi_p)
+            psi_purchase=psi_p,
+            chi_ltc=chi_l)
 end
 
 # ===================================================================
@@ -257,6 +279,7 @@ _consumption_decline = CONSUMPTION_DECLINE
 _health_utility = Float64.(HEALTH_UTILITY)
 _lambda_w = LAMBDA_W
 _psi_purchase_val = PSI_PURCHASE_VAL
+_chi_ltc_val = CHI_LTC_VAL
 
 subset_specs = [(bitmask=i,) for i in 0:(N_SUBSETS - 1)]
 
@@ -275,7 +298,8 @@ results = parallel_solve(subset_specs) do spec
         consumption_decline=_consumption_decline,
         health_utility=_health_utility,
         lambda_w_val=_lambda_w,
-        psi_purchase_val=_psi_purchase_val)
+        psi_purchase_val=_psi_purchase_val,
+        chi_ltc_val=_chi_ltc_val)
 
     gkw = (n_wealth=_n_wealth, n_annuity=_n_annuity, n_alpha=_n_alpha,
            W_max=_w_max, age_start=_age_start, age_end=_age_end,
@@ -314,6 +338,7 @@ results = parallel_solve(subset_specs) do spec
         health_utility=cfg.health_utility,
         lambda_w=cfg.lambda_w,
         psi_purchase=cfg.psi_purchase,
+        chi_ltc=cfg.chi_ltc,
         gkw...)
 
     # Filter population
@@ -352,7 +377,7 @@ for r in results
 end
 
 yaari_own = ownership_lookup[0]
-full_mask = (1 << N_CHANNELS) - 1  # 1023 with 10 channels
+full_mask = (1 << N_CHANNELS) - 1  # 2047 with 11 channels
 full_own = ownership_lookup[full_mask]
 total_drop = yaari_own - full_own
 
@@ -404,10 +429,14 @@ println("  SEQUENTIAL DECOMPOSITION (from lookup table)")
 println("=" ^ 70)
 
 # Default ordering matches the manuscript decomposition (3-layer structure):
-#   Layer 1 (rational): SS, Bequests, MED+R-S (combined), Pessimism, Loads, Inflation
+#   Layer 1 (rational): SS, Bequests, MED+R-S (combined), Pessimism, LTC,
+#                       Loads, Inflation
 #   Layer 2 (preferences): Age needs, State utility
 #   Layer 3 (behavioral): Force A (SDU), Force B (narrow framing)
-default_order = [CH_SS, CH_BEQUESTS, CH_MED_RS, CH_PESSIMISM,
+# Public-care aversion (LTC) is grouped with the rational channels because the
+# Ameriks et al. (2011, 2020) identification is via strategic-survey wealth
+# equivalents — a structural preference parameter, not a behavioral primitive.
+default_order = [CH_SS, CH_BEQUESTS, CH_MED_RS, CH_PESSIMISM, CH_LTC,
                  CH_LOADS, CH_INFLATION,
                  CH_AGE_NEEDS, CH_STATE_UTIL,
                  CH_SDU, CH_PSI_PURCHASE]

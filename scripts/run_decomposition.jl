@@ -32,6 +32,7 @@ println("=" ^ 70)
 println("\nLoading HRS population sample...")
 hrs_path = HRS_PATH
 hrs_raw = readdlm(hrs_path, ',', Any; skipstart=1)
+assert_hrs_schema(hrs_raw, hrs_path)
 n_pop = size(hrs_raw, 1)
 # Columns: wealth, purchased annuity income (zero at entry; SS enters via ss_func), age.
 # SS income enters through ss_func in the Bellman equation (COLA-protected),

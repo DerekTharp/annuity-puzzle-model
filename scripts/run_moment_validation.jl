@@ -61,6 +61,7 @@ p = ModelParams(; common_kw...,
     consumption_decline=CONSUMPTION_DECLINE,
     health_utility=Float64.(HEALTH_UTILITY),
     lambda_w=LAMBDA_W,
+    chi_ltc=CHI_LTC,
     psi_purchase=PSI_PURCHASE,
     grid_kw...)
 

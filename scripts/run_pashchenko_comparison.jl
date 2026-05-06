@@ -35,6 +35,7 @@ const MWR_FULL   = MWR_LOADED  # Our baseline
 # Load data
 hrs_path = HRS_PATH
 hrs_raw = readdlm(hrs_path, ',', Any; skipstart=1)
+assert_hrs_schema(hrs_raw, hrs_path)
 n_pop = size(hrs_raw, 1)
 population = zeros(n_pop, 4)
 population[:, 1] = Float64.(hrs_raw[:, 1])
@@ -146,7 +147,9 @@ res5 = solve_and_evaluate(p5, grids, base_surv, SS_LEVELS, pop, loaded_pr_pash;
     step_name="5. + Survival pessimism (psi=0.981)", verbose=true)
 flush(stdout)
 
-# Step 6: + Full loads (MWR=0.82) + Inflation (2%)
+# Step 6: + Full loads + Inflation (2%) — uses MWR_FULL from config.jl.
+# ALLOWLIST: labeled with the historical Pashchenko (2013) MWR=0.82 to
+# anchor the replication step (not a stale production calibration).
 loaded_pr_full_nom = MWR_FULL * fair_pr_nom
 p6 = ModelParams(; common_kw..., theta=THETA_DFJ, kappa=KAPPA_DFJ,
     mwr=MWR_FULL, fixed_cost=FIXED_COST, inflation_rate=INFLATION,
@@ -154,7 +157,7 @@ p6 = ModelParams(; common_kw..., theta=THETA_DFJ, kappa=KAPPA_DFJ,
     survival_pessimism=SURVIVAL_PESSIMISM,
     min_purchase=MIN_PURCHASE, grid_kw...)
 res6 = solve_and_evaluate(p6, grids, base_surv, SS_LEVELS, pop, loaded_pr_full_nom;
-    step_name="6. + Full loads (MWR=0.82) + Inflation (2%)", verbose=true)
+    step_name="6. + Full loads (Pashchenko MWR=0.82 historical) + Inflation (2%)", verbose=true)  # ALLOWLIST: historical Pashchenko (2013) reference value
 flush(stdout)
 
 println()

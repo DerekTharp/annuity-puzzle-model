@@ -48,7 +48,7 @@
 \subsection{Health transition matrices}
 \label{app:health_transitions}
 
-Health transitions are calibrated to the RAND HRS longitudinal file (waves 4--16), with the five self-reported health categories mapped to three states: Good (Excellent/Very Good), Fair (Good), and Poor (Fair/Poor). Transition probabilities are age-dependent: two reference matrices are specified at ages 65 and 100, and intermediate ages are obtained by linear interpolation. The reference matrices are calibrated to match HRS transition rates following \citet{denardi2010}.
+Health transitions are calibrated to the RAND HRS longitudinal file (waves 4--16), with the five self-reported health categories mapped to three states: Good (Excellent/Very Good), Fair (Good), and Poor (Fair/Poor). Transition probabilities are age-band dependent: distinct $3 \times 3$ transition matrices are estimated for six age bands (65--69, 70--74, 75--79, 80--84, 85--89, 90+) and applied piecewise within each band. The age-band specification captures the empirical acceleration in poor-health entry around ages 75--85 (Hurd-Michaud-Rohwedder 2017) more accurately than a two-anchor linear interpolation. Each band's transition matrix is row-normalized after estimation to ensure exact stochasticity. Reference values follow \citet{denardi2010}.
 
 The transition matrices exhibit two standard features. First, health deterioration is more likely than improvement: transition rates from Good to Fair exceed those from Fair to Good at all ages. Second, deterioration accelerates with age: the probability of remaining in Good health falls from approximately 0.80 at ages 65--69 to 0.55 at ages 90+.
 
@@ -358,7 +358,7 @@ Category & Specification & Ownership (\%) \\
  & $\gamma = 4.00$ & 23.4 \\
  & $\gamma = 5.00$ & 32.7 \\[4pt]
 \multicolumn{3}{l}{\textit{Money's worth ratio}} \\
- & MWR = 0.82               & \ownMWREightyTwoNum \\
+ & MWR = 0.82               & \ownMWREightyTwoNum \\  % ALLOWLIST: sensitivity-table row showing prediction at a 0.82 load
  & MWR = 0.85               & \ownMWREightyFiveNum \\
  & MWR = \pMwrBaseline{} (baseline) & \ownTenChannelFullNum \\
  & MWR = 0.90               & \ownMWRNinetyNum \\
@@ -500,7 +500,7 @@ The expectation over next-period health and medical expenditures involves:
 \item A sum over three health states weighted by transition probabilities $\pi(H_t, H', t)$.
 \item A sum over nine Gauss--Hermite quadrature nodes for the medical expenditure shock $\varepsilon$.
 \end{enumerate}
-Each grid point requires $3 \times 9 = 27$ evaluations of the continuation value, yielding a total of $80 \times 30 \times 3 \times 46 \times 27 \approx 89.4$ million value function evaluations per model solve.
+Each grid point requires $3 \times 9 = 27$ evaluations of the continuation value, yielding a total of $80 \times 30 \times 3 \times 46 \times 27 \approx 8.94$ million value function evaluations per model solve.
 
 The optimal consumption policy is computed by integrating over the joint distribution of next-period health and medical expenditure shocks. The stored policy is therefore a certainty-equivalent policy conditional on the current state, not a shock-contingent function. Forward simulations apply this averaged policy to realized shock draws, which is the standard approximation in discretized lifecycle models where medical expenditure is not a persistent state variable.
 

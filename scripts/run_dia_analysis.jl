@@ -37,6 +37,7 @@ const MWR_DIA85   = 0.45   # even lower for DIA-85
 println("\nLoading data...")
 hrs_path = HRS_PATH
 hrs_raw = readdlm(hrs_path, ',', Any; skipstart=1)
+assert_hrs_schema(hrs_raw, hrs_path)
 n_pop = size(hrs_raw, 1)
 population = zeros(n_pop, 4)
 population[:, 1] = Float64.(hrs_raw[:, 1])  # wealth
@@ -151,6 +152,7 @@ for (ib, bspec) in enumerate(bequest_specs)
             deferral_start_period=prod.deferral_period,
             fixed_cost=FIXED_COST, min_purchase=MIN_PURCHASE,
             lambda_w=LAMBDA_W,
+            chi_ltc=CHI_LTC,
             inflation_rate=INFLATION,
             medical_enabled=true, health_mortality_corr=true,
             grid_kw...)

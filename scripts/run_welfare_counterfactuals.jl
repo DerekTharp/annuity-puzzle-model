@@ -43,6 +43,7 @@ println("\nLoading HRS population sample...")
 flush(stdout)
 hrs_path = HRS_PATH
 hrs_raw = readdlm(hrs_path, ',', Any; skipstart=1)
+assert_hrs_schema(hrs_raw, hrs_path)
 n_pop = size(hrs_raw, 1)
 population = zeros(n_pop, 4)
 population[:, 1] = Float64.(hrs_raw[:, 1])  # wealth
@@ -210,6 +211,7 @@ for (i, cfg) in enumerate(configs)
         consumption_decline=CONSUMPTION_DECLINE,
         health_utility=Float64.(HEALTH_UTILITY),
         lambda_w=LAMBDA_W,
+        chi_ltc=CHI_LTC,
         psi_purchase=cfg.psi_purchase,
         grid_kw...)
 
@@ -315,6 +317,7 @@ for (label, mwr, infl, surv_pess, psi_p) in cev_configs
         health_utility=Float64.(HEALTH_UTILITY),
         psi_purchase=psi_p,
         lambda_w=LAMBDA_W,
+        chi_ltc=CHI_LTC,
         verbose=true,
     )
 

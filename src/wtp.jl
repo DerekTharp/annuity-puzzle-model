@@ -325,15 +325,18 @@ function compute_ownership_rate(
         extrapolation_bc=Interpolations.Flat(),
     ))}()
 
-    n_above_grid = 0
+    # Cap wealth at the grid maximum rather than dropping agents above it.
+    # See compute_ownership_rate_health for the full rationale; same fix
+    # applied here for the no-health Phase 1/2 code path.
+    n_capped = 0
     for i in 1:n_individuals
         raw_W = population[i, 1]
-        # Skip agents above grid max (extrapolation unreliable)
         if raw_W > g.W[end]
-            n_above_grid += 1
-            continue
+            n_capped += 1
+            W_0 = g.W[end]
+        else
+            W_0 = max(raw_W, 0.0)
         end
-        W_0 = max(raw_W, 0.0)
         y_0 = clamp(population[i, 2], g.A[1], g.A[end])
         age = has_age ? Int(population[i, 3]) : p.age_start
 
@@ -573,15 +576,28 @@ function compute_ownership_rate_health(
         extrapolation_bc=Interpolations.Flat(),
     ))}()
 
-    n_above_grid = 0
+    # Track agents whose wealth exceeds the grid maximum. Earlier code dropped
+    # them from BOTH numerator and denominator, which biased the headline
+    # ownership rate because the top wealth quartile is precisely where
+    # bequest motives, LTC self-insurance, and full-annuitization arguments
+    # operate. Current behavior: cap wealth at W_max and evaluate the
+    # value function at the cap rather than excluding the agent.
+    # The cap is a known approximation (those agents are treated as if they
+    # had W_max instead of their true wealth, slightly understating their
+    # optimal alpha if the high-wealth corner solution depends on the
+    # specific level above W_max). Magnitude is small: at the production
+    # W_max = $3M (covering p99.5 of HRS wealth), only ~0.5% of agents are
+    # affected. A future tightening would expand W_max and re-solve at higher
+    # grid resolution; for now, capping is preferred over the prior drop.
+    n_capped = 0
     for i in 1:n_individuals
         raw_W = population[i, 1]
-        # Skip agents above grid max (extrapolation unreliable)
         if raw_W > g.W[end]
-            n_above_grid += 1
-            continue
+            n_capped += 1
+            W_0 = g.W[end]
+        else
+            W_0 = max(raw_W, 0.0)
         end
-        W_0 = max(raw_W, 0.0)
         y_0 = clamp(population[i, 2], g.A[1], g.A[end])
         age = has_age ? Int(population[i, 3]) : p.age_start
         ih = has_health ? Int(population[i, 4]) : 2  # default Fair
@@ -673,11 +689,11 @@ function compute_ownership_rate_health(
     if n_evaluated > 0.0
         return (ownership_rate = n_owners / n_evaluated,
                 mean_alpha = sum_alpha / n_evaluated,
-                n_above_grid = n_above_grid,
+                n_capped = n_capped,
                 n_evaluated = Int(round(n_evaluated)))
     else
         return (ownership_rate = 0.0, mean_alpha = 0.0,
-                n_above_grid = n_above_grid,
+                n_capped = n_capped,
                 n_evaluated = 0)
     end
 end

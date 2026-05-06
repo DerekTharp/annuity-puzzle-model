@@ -57,6 +57,7 @@ const N_DRAWS     = 300
 # ===================================================================
 hrs_path = HRS_PATH
 hrs_raw = readdlm(hrs_path, ',', Any; skipstart=1)
+assert_hrs_schema(hrs_raw, hrs_path)
 n_pop = size(hrs_raw, 1)
 population = zeros(n_pop, 4)
 population[:, 1] = Float64.(hrs_raw[:, 1])
