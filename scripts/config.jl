@@ -62,19 +62,21 @@ const HEALTH_UTILITY = [1.0, 0.92, 0.82]  # state-dep utility — FLN (2013) cen
                                            # empirically defensible range and
                                            # avoiding interaction with steeper
                                            # hazards / public-care aversion.
-const PSI_PURCHASE = 0.0163       # narrow-framing purchase penalty (Barberis-Huang 2009;
+const PSI_PURCHASE = 0.000893     # narrow-framing purchase penalty (Barberis-Huang 2009;
                                    # Tversky-Kahneman 1992 loss aversion). Decays with
                                    # cumulative payouts; vanishes at breakeven.
                                    # CALIBRATION: single-moment SMM on the UK 2015
                                    # pension-freedoms reform identifying moment.
-                                   # NOTE: This value is the placeholder from prior
-                                   # calibration; with the disciplined recalibration
-                                   # (lambda_w=0.85, public-care aversion active,
-                                   # softer state-dep utility, etc.) the SMM-implied
-                                   # psi will shift and must be recomputed via
-                                   # estimate_psi.jl on the AWS rerun. Until then
-                                   # this serves as a starting point.
-                                   # NOT calibrated to observed US ownership.
+                                   # The 11-channel disciplined-calibration AWS run
+                                   # (HEAD 7fd346f, Phase 24) bisected psi to match
+                                   # UK voluntary retention (post-reform DC pot
+                                   # holders): 0.001154 at low retention 13%, 0.000893
+                                   # at mid 17%, 0.000370 at high 25%. Production
+                                   # value adopts the mid retention anchor; the
+                                   # full bracket is reported as the calibration
+                                   # uncertainty range. NOT calibrated to observed
+                                   # US ownership — US ownership is the out-of-sample
+                                   # prediction that emerges from the model.
 const LAMBDA_W = 0.85             # source-dependent utility (Blanchett-Finke 2024-25
                                    # spending differential, partialled). The raw 80/50
                                    # spending differential between income and portfolio
