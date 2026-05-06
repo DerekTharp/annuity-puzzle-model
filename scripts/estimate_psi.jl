@@ -1,18 +1,35 @@
 # Estimate the narrow-framing purchase penalty psi via single-moment SMM
-# on the UK 2015 pension-freedoms reform retention moment.
+# on the UK 2015 pension-freedoms reform.
 #
 # Identification:
-#   The UK April 2015 pension-freedoms reform flipped the choice architecture
-#   from compulsory annuitization to opt-in. Annuity sales fell 75-87% (ABI/FCA).
-#   Post-reform retention rate is 13-25% across estimates with mid-range ~17%.
+#   The UK April 2015 reform flipped the choice architecture from compulsory
+#   annuitization to opt-in. Pre-reform, near-universal annuitization of DC
+#   pots (~95-100%) was the regulated default. Post-reform voluntary retention
+#   is 13-25% across ABI/FCA estimates with mid-range ~17%. The UK reform
+#   therefore generates a 70-87 percentage-point drop in OWNERSHIP RATE between
+#   the regulated-default and voluntary-choice regimes. ABI quarterly sales
+#   volumes also fell ~75% (74,092 → 18,243) in the same window; this
+#   sales-volume series corroborates the ownership-rate drop without itself
+#   being the identification target.
 #
-# Estimator: bisection on psi to match the model's voluntary opt-in ownership
-# rate to the UK retention target. Just-identified single-moment SMM. Sensitivity
-# is computed over the UK retention range [0.13, 0.25].
+# Two estimation paths share the bisection:
+#   Anchor A — match the UK post-reform retention LEVEL directly (13/17/25%).
+#              Bisect psi so the model's voluntary opt-in ownership equals the
+#              target. This is identified independent of the model's baseline.
+#   Anchor B — match the UK pre/post pp DROP in ownership (75/81/87 pp).
+#              Apply the same magnitude pp shift to the model's no-PED baseline
+#              of ~79% (rational + SDU only). This identification interprets
+#              the UK reform as a reduced-form treatment effect that any
+#              voluntary-choice friction must reproduce.
+#   Anchor C — Anchor B with the rational tax-removal component stripped out
+#              (lump-sum 55% tax penalty removal accounts for an estimated
+#              15-25 pp of the raw UK drop and is already represented in the
+#              model's rational pricing channels). Targets the residual
+#              behavioral pp drop (60/65 pp).
 #
-# Honest framing: this is calibration to a non-target external moment from a
-# distinct natural experiment, not curve-fitting to US observed ownership. The
-# resulting US prediction is an out-of-sample test of the model.
+# Honest framing: this is calibration to non-target external moments from a
+# distinct market-design natural experiment, not curve-fitting to US observed
+# ownership. The resulting US prediction is an out-of-sample test.
 #
 # Output: results/psi_estimation.json with point estimate, sensitivity bounds,
 # and metadata. Also tables/csv/psi_estimation.csv for easier downstream parsing.
@@ -38,9 +55,11 @@ include(joinpath(@__DIR__, "config.jl"))
 const CONSUMPTION_DECLINE_ACTIVE = 0.02
 const HEALTH_UTILITY_ACTIVE = [1.0, 0.90, 0.75]
 
-# UK retention range. Mid-range from FCA Retirement Outcomes Review;
-# bracket from ABI annual reports 2015-2024. Subtract a 15-25% rational
-# tax-effect component if isolating the pure behavioral residual.
+# UK retention range (post-reform voluntary annuity-purchase rate among DC pot
+# holders). Mid-range from FCA Retirement Outcomes Review; bracket from ABI
+# annual reports 2015-2024. Anchor C targets strip a 15-25 pp rational
+# tax-removal component (already in the model's rational pricing channels)
+# from the raw UK pre/post ownership-rate drop.
 const UK_RETENTION_LOW   = 0.13
 const UK_RETENTION_MID   = 0.17
 const UK_RETENTION_HIGH  = 0.25
@@ -327,13 +346,17 @@ end
 @printf("  %-30s  %10s  %10.2f%%\n", "Observed (HRS, 65-69)", "---", PCT_HRS_OBSERVED)
 
 # ---------------------------------------------------------------------------
-# ANCHOR B: psi calibrated to match UK TOTAL elasticity (75-87 pp drop)
-# This anchor includes the rational tax-effect component and produces a
-# larger psi_hat that drives the model to the corner.
+# ANCHOR B: psi calibrated to match the UK pre-reform → post-reform
+# ownership-rate drop. The 2015 reform shifted the regulated default from
+# compulsory annuitization (~95-100% pre-reform) to opt-in (~13-25%
+# voluntary retention post-reform), a 70-87 pp drop in ownership rate.
+# Anchor B applies the same pp drop magnitude to the model's no-PED baseline
+# (~79% under rational + SDU). The raw drop includes the rational
+# tax-removal component (15-25 pp); Anchor C strips that out.
 # ---------------------------------------------------------------------------
 println("\n" * "=" ^ 70)
-println("  ANCHOR B: psi calibrated to match UK TOTAL elasticity (drop)")
-println("  (baseline = no-PED ownership; target drop = 75 / 81 / 87 pp)")
+println("  ANCHOR B: psi calibrated to match UK pre/post OWNERSHIP-RATE drop")
+println("  (target drop = 75 / 81 / 87 pp; corroborated by ABI sales volume)")
 println("=" ^ 70)
 
 if @isdefined(grid_pairs)
@@ -363,14 +386,14 @@ if @isdefined(grid_pairs)
 
     @printf("  No-PED baseline ownership: %.2f%%\n", own_no_ped * 100)
     @printf("\n  %-30s  %10s  %12s  %10s\n",
-            "UK total drop target (pp)", "psi_hat", "model drop pp", "US ownership")
+            "UK pre/post pp drop", "psi_hat", "model drop pp", "US ownership")
     println("  " * "-" ^ 70)
     anchor_b_75 = find_psi_for_drop(75.0)
     anchor_b_81 = find_psi_for_drop(81.0)
     anchor_b_87 = find_psi_for_drop(87.0)
-    for (lab, r) in [("UK low (75 pp drop)", anchor_b_75),
-                     ("UK mid (81 pp drop)", anchor_b_81),
-                     ("UK high (87 pp drop)", anchor_b_87)]
+    for (lab, r) in [("UK low (75 pp ownership drop)",  anchor_b_75),
+                     ("UK mid (81 pp ownership drop)",  anchor_b_81),
+                     ("UK high (87 pp ownership drop)", anchor_b_87)]
         @printf("  %-30s  %10.4f  %12.2f  %10.2f%%\n",
                 lab, r.psi, r.target_drop, r.ownership * 100)
     end

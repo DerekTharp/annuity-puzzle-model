@@ -438,7 +438,11 @@ function compute_wtp_health(
     # V without additional annuity purchase
     V_no_ann = V_interp(N_c, y_c)
 
-    # V with optimal annuitization of N_ref
+    # V with optimal annuitization of N_ref. The narrow-framing purchase
+    # penalty must be subtracted whenever Force B is active so the agent's
+    # alpha search reflects the same friction the production solver uses
+    # (src/solve.jl:solve_annuitization_health). Omitting it overstates V
+    # at every positive alpha and inflates WTP under Force B.
     best_V = V_no_ann
     best_alpha = 0.0
     for alpha in g.alpha
@@ -456,6 +460,10 @@ function compute_wtp_health(
         W_c = clamp(W_rem, g.W[1], g.W[end])
         A_c = clamp(A_total, g.A[1], g.A[end])
         V_val = V_interp(W_c, A_c)
+        if p.psi_purchase > 0.0
+            V_val -= purchase_penalty(pi, payout_rate, p.gamma,
+                p.psi_purchase, p.psi_purchase_c_ref, p.beta, sol.base_surv)
+        end
         if V_val > best_V
             best_V = V_val
             best_alpha = alpha
@@ -494,6 +502,10 @@ function compute_wtp_health(
             W_c = clamp(W_rem, g.W[1], g.W[end])
             A_c = clamp(A_total, g.A[1], g.A[end])
             V_val = V_interp(W_c, A_c)
+            if p.psi_purchase > 0.0
+                V_val -= purchase_penalty(pi, payout_rate, p.gamma,
+                    p.psi_purchase, p.psi_purchase_c_ref, p.beta, sol.base_surv)
+            end
             if V_val > V_best_mid
                 V_best_mid = V_val
             end

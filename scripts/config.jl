@@ -41,13 +41,17 @@ const PSI_PURCHASE = 0.0163       # narrow-framing purchase penalty (Barberis-Hu
                                    # Tversky-Kahneman 1992 loss aversion). Decays with
                                    # cumulative payouts; vanishes at breakeven.
                                    # CALIBRATION: single-moment SMM on the ABI
-                                   # rational-corrected mid sensitivity target — UK 2015
-                                   # pension freedoms aggregate sales-volume decline
-                                   # mapped through the model after stripping the
-                                   # rational tax-removal response (lump-sum 55% tax
-                                   # penalty removal already represented in the model's
-                                   # rational pricing channels). Production point;
-                                   # bracket low end. Bracket high end ψ=0.0335
+                                   # rational-corrected mid sensitivity target. The UK
+                                   # 2015 pension-freedoms reform shifted the regulated
+                                   # default from compulsory annuitization (~95-100%
+                                   # of DC pots pre-reform) to opt-in (13-25%
+                                   # post-reform retention), a 70-87 pp drop in
+                                   # ownership rate. Anchor C-mid strips the rational
+                                   # tax-removal component (~15-25 pp from a lump-sum
+                                   # 55% tax penalty removal already in the model's
+                                   # rational pricing) from the raw drop and matches
+                                   # the residual 60 pp behavioral component. Production
+                                   # point; bracket low end. Bracket high end ψ=0.0335
                                    # corresponds to the ELSA microdata total drop with
                                    # no rational stripping. The full sensitivity range
                                    # across alternative single-anchor SMM specifications

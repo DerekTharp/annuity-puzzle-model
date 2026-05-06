@@ -34,11 +34,41 @@ function bequest_utility(b::Float64, gamma::Float64, theta::Float64, kappa::Floa
 end
 
 """
-Marginal utility: U'(c) = c^(-γ).
+Marginal utility: U'(c) = c^(-γ). Pure CRRA, no weights.
 """
 function marginal_utility(c::Float64, gamma::Float64)
     c <= 0.0 && return Inf
     return c^(-gamma)
+end
+
+"""
+Marginal of flow_utility_sdu with respect to total consumption c, evaluated
+at (c, inc, t, ih, p). Returns w_age * w_health * d/dc U(c_eff(c, inc)).
+
+For c <= inc: c_eff = c, so d/dc = w_age * w_health * c^(-γ).
+For c > inc:  c_eff = inc + λ_w * (c - inc), so d/dc = w_age * w_health
+              * λ_w * c_eff^(-γ).
+
+This is the LHS of the agent's Euler equation under the production utility
+specification (CRRA + age-varying needs + state-dependent utility + SDU).
+The bare `marginal_utility(c, γ)` omits all four weights and is therefore
+the wrong LHS whenever any of those channels is active.
+"""
+function marginal_flow_utility_sdu(c::Float64, inc::Float64,
+                                   gamma::Float64, t::Int,
+                                   ih::Int, p::ModelParams)
+    c <= 0.0 && return Inf
+    w_age = consumption_weight(t, p.consumption_decline)
+    w_health = health_utility_weight(ih, p)
+    if p.lambda_w >= 1.0 || c <= inc
+        # SDU off, or consumption is fully income-funded → c_eff = c, dC_eff/dc = 1
+        return w_age * w_health * c^(-gamma)
+    else
+        c_eff = inc + p.lambda_w * (c - inc)
+        c_eff <= 0.0 && return Inf
+        # dC_eff/dc = λ_w on the portfolio-funded margin
+        return w_age * w_health * p.lambda_w * c_eff^(-gamma)
+    end
 end
 
 """
