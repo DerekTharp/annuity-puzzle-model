@@ -977,7 +977,10 @@ write_extension_path_table()
 # ---------------------------------------------------------------------------
 
 const FALLBACKS = String[
-    "ownTenChannel", "ownElevenChannel",
+    # 11-channel headline macros (production names after the public-care
+    # aversion / LTC channel was added; ownTenChannelFull is the legacy
+    # 10-channel macro retained as a sensitivity comparison).
+    "ownElevenChannelFull", "ownTenChannelFull",
     "shapSDU", "shapShareSDU",
     "shapNarrowFraming", "shapShareNarrowFraming",
     "mcMedianOwnership", "mcMeanOwnership",
