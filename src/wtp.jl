@@ -174,6 +174,14 @@ function compute_wtp_lockwood(
         W_c = clamp(W_rem, g.W[1], g.W[end])
         A_c = clamp(A_total, g.A[1], g.A[end])
         V_val = V_interp(W_c, A_c)
+        # Lockwood (2012) replication runs psi_purchase=0, so the penalty is
+        # zero in production. Defensive subtraction here mirrors the health
+        # version (compute_wtp_health) and keeps the function correct under
+        # any future call site that activates Force B.
+        if p.psi_purchase > 0.0
+            V_val -= purchase_penalty(pi, payout_rate, p.gamma,
+                p.psi_purchase, p.psi_purchase_c_ref, p.beta, sol.base_surv)
+        end
         if V_val > best_V
             best_V = V_val
             best_alpha = alpha
@@ -215,6 +223,10 @@ function compute_wtp_lockwood(
             W_c = clamp(W_rem, g.W[1], g.W[end])
             A_c = clamp(A_total, g.A[1], g.A[end])
             V_val = V_interp(W_c, A_c)
+            if p.psi_purchase > 0.0
+                V_val -= purchase_penalty(pi, payout_rate, p.gamma,
+                    p.psi_purchase, p.psi_purchase_c_ref, p.beta, sol.base_surv)
+            end
             if V_val > V_best_mid
                 V_best_mid = V_val
             end
@@ -623,25 +635,25 @@ function compute_ownership_rate_health(
             end
             W_rem < 0.0 && continue
 
-            # Convert the real premium pi (in age-65 dollars) to a nominal
-            # premium at the purchase age. compute_payout_rate returns nominal
-            # payment per nominal premium, so we need a nominal-units bridge.
-            inflation_factor = (1.0 + p.inflation_rate)^(t - 1)
-            nominal_premium = pi * inflation_factor
-            # A_state stores the constant nominal annuity payment. The Bellman
-            # then converts to age-65 real dollars via A_real(t) = A * (1+π)^-(t-1).
-            A_new = nominal_premium * payout_rate
+            # Premium is real / age-65-nominal throughout. The model's A grid
+            # is also in age-65 nominal dollars (the Bellman deflates via
+            # A_real(s) = A * (1+π)^-(s-1) at each period s), so A_new = pi *
+            # payout_rate is on the same scale as y_0 and the V interpolant.
+            # Earlier code grossed pi up by (1+π)^(t-1) before computing A_new
+            # and the narrow-framing penalty, which inflated both the lookup
+            # coordinate and the loss-aversion utility cost (whose c_ref is
+            # real). Mirrors the welfare.jl fix.
+            premium = pi
+            A_new = premium * payout_rate
             A_total = y_0 + A_new
             W_c = clamp(W_rem, g.W[1], g.W[end])
             A_c = clamp(A_total, g.A[1], g.A[end])
             V_val = V_interp(W_c, A_c)
-            # Narrow-framing purchase penalty NPV: the agent's mental accounting
-            # tracks nominal cumulative receipts vs nominal premium, so pass
-            # the nominal premium (not the real one). purchase_period=t slices
+            # Narrow-framing purchase penalty NPV. purchase_period=t slices
             # the survival schedule conditional on being alive at the purchase
             # age (default purchase_period=1 was wrong for any age > 65).
             if p.psi_purchase > 0.0
-                V_val -= purchase_penalty(nominal_premium, payout_rate, p.gamma,
+                V_val -= purchase_penalty(premium, payout_rate, p.gamma,
                     p.psi_purchase, p.psi_purchase_c_ref, p.beta, sol.base_surv;
                     purchase_period=t)
             end
