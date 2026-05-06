@@ -58,11 +58,14 @@ const PSI_PURCHASE_VAL = PSI_PURCHASE
 # ===================================================================
 # 10-channel structure: medical-expense risk and the Reichling-Smetters
 # health-mortality correlation are combined into a single "R-S correlation
-# (incl. medical risk)" channel, because R-S has no economic content
-# without stochastic medical costs to correlate against. Following the
-# Owen (1977) coalition-structure value, this is the cleanest mathematical
-# treatment for two players that cannot be separated. See review_reports/
-# for the panel discussion that motivated this reformulation.
+# (incl. medical risk)" channel, because the R-S mechanism's quantitative
+# bite in this framework operates through the interaction with stochastic
+# medical costs: without competing demand for liquid wealth in sick states,
+# the lower expected annuity NPV does not translate into a precautionary
+# motive against annuitization. Following the Owen (1977) coalition-structure
+# value, this is the cleanest mathematical treatment for two channels with a
+# strong interaction. See review_reports/ for the panel discussion that
+# motivated this reformulation.
 @everywhere const CH_SS            = 1
 @everywhere const CH_BEQUESTS      = 2
 @everywhere const CH_MED_RS        = 3   # Combined: medical risk + R-S correlation
@@ -172,9 +175,10 @@ end
         kappa = kappa_dfj
     end
     # Combined R-S + Medical channel: setting it activates both stochastic
-    # medical-expense risk AND the health-mortality correlation. R-S has
-    # no economic content without medical costs, so the two are not
-    # separately switchable in our 10-channel structure.
+    # medical-expense risk AND the health-mortality correlation. R-S's
+    # quantitative bite in this framework operates through the interaction
+    # with medical risk, so the two are not separately switchable in our
+    # 10-channel structure.
     if CH_MED_RS in active
         medical_enabled = true
         health_mortality_corr = true

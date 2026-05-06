@@ -21,7 +21,8 @@ const HRS_CSV = joinpath(REPO_ROOT, "data", "processed", "lockwood_hrs_sample.cs
 
 # Channel bit mask constants (must match run_subset_enumeration.jl).
 # Ten channels: Medical and R-S correlation are combined into a single
-# channel (R-S has no economic content without medical risk).
+# channel because the R-S mechanism's quantitative bite in this framework
+# operates through the interaction with medical risk.
 const B_SS         = 1 << 0
 const B_BEQUESTS   = 1 << 1
 const B_MED_RS     = 1 << 2   # Combined: medical + R-S correlation
@@ -138,11 +139,11 @@ macros = load_macros()
                 "ownAddMedRS"         => B_SS | B_BEQUESTS | B_MED_RS,
                 "ownAddPessimism"     => B_SS | B_BEQUESTS | B_MED_RS | B_PESSIMISM,
                 "ownAddLoads"         => B_SS | B_BEQUESTS | B_MED_RS | B_PESSIMISM | B_LOADS,
-                "ownSevenChannel"     => B_SS | B_BEQUESTS | B_MED_RS | B_PESSIMISM | B_LOADS | B_INFLATION,
-                "ownEightChannel"     => B_SS | B_BEQUESTS | B_MED_RS | B_PESSIMISM | B_AGE_NEEDS | B_LOADS | B_INFLATION,
-                "ownNineChannel"      => B_SS | B_BEQUESTS | B_MED_RS | B_PESSIMISM | B_AGE_NEEDS | B_STATE_UTIL | B_LOADS | B_INFLATION,
-                "ownTenChannel"       => B_SS | B_BEQUESTS | B_MED_RS | B_PESSIMISM | B_AGE_NEEDS | B_STATE_UTIL | B_LOADS | B_INFLATION | B_SDU,
-                "ownElevenChannel"    => B_SS | B_BEQUESTS | B_MED_RS | B_PESSIMISM | B_AGE_NEEDS | B_STATE_UTIL | B_LOADS | B_INFLATION | B_SDU | B_PSI_PURCHASE,
+                "ownSixChannel"       => B_SS | B_BEQUESTS | B_MED_RS | B_PESSIMISM | B_LOADS | B_INFLATION,
+                "ownSevenChannelExt"  => B_SS | B_BEQUESTS | B_MED_RS | B_PESSIMISM | B_AGE_NEEDS | B_LOADS | B_INFLATION,
+                "ownEightChannelExt"  => B_SS | B_BEQUESTS | B_MED_RS | B_PESSIMISM | B_AGE_NEEDS | B_STATE_UTIL | B_LOADS | B_INFLATION,
+                "ownNineChannelSDU"   => B_SS | B_BEQUESTS | B_MED_RS | B_PESSIMISM | B_AGE_NEEDS | B_STATE_UTIL | B_LOADS | B_INFLATION | B_SDU,
+                "ownTenChannelFull"   => B_SS | B_BEQUESTS | B_MED_RS | B_PESSIMISM | B_AGE_NEEDS | B_STATE_UTIL | B_LOADS | B_INFLATION | B_SDU | B_PSI_PURCHASE,
             ]
             for (name, bm) in cases
                 @test haskey(macros, name)
@@ -259,9 +260,10 @@ macros = load_macros()
             @test_skip "psi_sensitivity.csv not yet generated"
         else
             # UK 2015 pension-freedoms anchors:
-            # - ABI rational-corrected (low/mid/high): aggregate sales-volume
-            #   decline mapped through the model after stripping the rational
-            #   tax-removal response.
+            # - ABI rational-corrected (low/mid/high): UK pre/post pp drop in
+            #   DC-pot annuity ownership (ABI/FCA), after stripping the
+            #   rational tax-removal response (lump-sum 55% tax penalty
+            #   removal already in the model's rational pricing).
             # - ELSA rational-corrected (low/high): UK ELSA wave 6 vs waves 8-11
             #   microdata after the same rational stripping (n=869 DC pot holders).
             # - Total-drop variants: ABI aggregate and ELSA microdata, raw

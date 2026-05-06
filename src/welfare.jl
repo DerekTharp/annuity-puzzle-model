@@ -5,10 +5,31 @@
 # For CRRA utility U(c) = c^(1-gamma)/(1-gamma):
 #   lambda = (V_with / V_without)^(1/(1-gamma)) - 1
 #
+# For log utility (gamma == 1), the multiplicative scaling enters additively:
+#   V(c*(1+lambda)) = V(c) + log(1+lambda) * D
+# where D = sum_t beta^(t-1) * S(t) is the discounted survival horizon. The
+# CEV is then lambda = exp((V_with - V_without)/D) - 1, NOT exp(V_with - V_without) - 1.
+#
 # Positive CEV means the individual benefits from annuity market access.
 
 using Interpolations
 using Printf
+
+"""
+Discounted survival horizon D = sum_{t=1}^T beta^(t-1) * S(t), where S(t) is
+cumulative survival to period t (S(1) = 1 by construction). Used as the
+divisor in the log-utility CEV conversion.
+"""
+function discounted_survival_horizon(beta::Float64, base_surv::Vector{Float64})
+    T = length(base_surv)
+    D = 1.0  # t=1: alive at start
+    cum = 1.0
+    for t in 2:T
+        cum *= base_surv[t - 1]
+        D += beta^(t - 1) * cum
+    end
+    return D
+end
 
 struct CEVResult
     cev::Float64          # consumption-equivalent variation (fraction)
@@ -124,8 +145,13 @@ function compute_cev(
     # scenarios (and signs) is preserved by the approximation.
     gamma = p.gamma
     if gamma == 1.0
-        # Log utility: V = log(c) + ..., CEV = exp(V_with - V_without) - 1
-        cev = exp(V_with_ann - V_no_ann) - 1.0
+        # Log utility: V(c*(1+lambda)) = V(c) + log(1+lambda) * D where
+        # D = sum_t beta^(t-1) * S(t). Solving V(c*(1+lambda)) = V_with for
+        # lambda: log(1+lambda) = (V_with - V_no)/D, so lambda = exp(.../D) - 1.
+        # The earlier formulation cev = exp(V_with - V_no) - 1 omitted the D
+        # divisor and overstated CEV by a factor of D in log-space.
+        D = discounted_survival_horizon(p.beta, sol.base_surv)
+        cev = exp((V_with_ann - V_no_ann) / D) - 1.0
     else
         # V = c^(1-gamma)/(1-gamma), V < 0 for gamma > 1
         ratio = V_with_ann / V_no_ann
@@ -236,12 +262,20 @@ function compute_cev_population(
             end
             W_rem < 0.0 && continue
 
-            # Convert real premium pi (age-65 dollars) to nominal at purchase
-            # age. A_state stores the constant nominal annual payment; the
-            # Bellman deflates via A_real(t) = A * (1+π)^-(t-1).
-            inflation_factor = (1.0 + p.inflation_rate)^(t - 1)
-            nominal_premium = pi * inflation_factor
-            A_new = nominal_premium * payout_rate
+            # Premium is in real (= age-65 nominal) dollars throughout. The
+            # model's A grid is also in age-65 nominal dollars (the Bellman
+            # deflates via A_real(s) = A * (1+π)^-(s-1) at each period s),
+            # so A_new = pi * payout_rate is on the same scale as y_0 and
+            # the V interpolant. Earlier code grossed pi up by (1+π)^(t-1)
+            # before multiplying by the payout rate, which silently inflated
+            # both A_new and the underwater amount fed to purchase_penalty
+            # by (1+π)^(t-1) for any agent observed at age > 65 (the bulk of
+            # the HRS sample). The c_ref reference consumption used by the
+            # penalty is real, so the inflated nominal premium produced an
+            # (1+π)^(t-1) bloat in the loss-aversion utility cost. The fix is
+            # to keep everything in real / age-65-nominal terms.
+            premium = pi
+            A_new = premium * payout_rate
             A_total = y_0 + A_new
             W_rc = clamp(W_rem, g.W[1], g.W[end])
             A_tc = clamp(A_total, g.A[1], g.A[end])
@@ -250,7 +284,7 @@ function compute_cev_population(
                 # purchase_period=t passes the survival clock starting at the
                 # actual purchase age (period t), not period 1. Default
                 # purchase_period=1 was wrong for any age-of-purchase > 65.
-                V_val -= purchase_penalty(nominal_premium, payout_rate, p.gamma,
+                V_val -= purchase_penalty(premium, payout_rate, p.gamma,
                     p.psi_purchase, p.psi_purchase_c_ref, p.beta, sol.base_surv;
                     purchase_period=t)
             end
@@ -268,7 +302,10 @@ function compute_cev_population(
         end
 
         if gamma == 1.0
-            cev = exp(best_V - V_no_ann) - 1.0
+            # See note in compute_cev: log-utility CEV requires the discounted
+            # survival horizon as divisor.
+            D = discounted_survival_horizon(p.beta, base_surv === nothing ? sol.base_surv : base_surv)
+            cev = exp((best_V - V_no_ann) / D) - 1.0
         else
             ratio = best_V / V_no_ann
             if ratio <= 0.0

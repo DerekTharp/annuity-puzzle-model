@@ -416,13 +416,18 @@ const TEST_NQUAD = 3
         # Should differ in most periods when R-S is active
         @test n_differ >= 10
 
-        # Without R-S (medical disabled): health states still differ because
-        # hazard_mult creates health-dependent survival. But the difference
-        # should be SMALLER than with R-S active (medical costs amplify it).
+        # Counterfactual: state-dependent utility ALONE (no R-S, no medical).
+        # With health_utility = [1.0, 0.90, 0.75], policies differ across
+        # health states purely through the utility weight. R-S + medical risk
+        # should AMPLIFY this baseline difference because health then also
+        # affects survival (shorter horizon when sick) and expected medical
+        # outflows (larger precautionary motive when sick), both of which
+        # the no-R-S case strips out.
         p_no_rs = ModelParams(; common_kw_rs...,
             theta=0.0, kappa=0.0, mwr=1.0, fixed_cost=0.0,
             inflation_rate=0.0,
             medical_enabled=false, health_mortality_corr=false,
+            health_utility=[1.0, 0.90, 0.75],
             grid_kw_rs...)
         sol_no_rs = solve_lifecycle_health(p_no_rs, grids_rs, base_surv_rs, ss_zero_rs)
 
@@ -439,7 +444,10 @@ const TEST_NQUAD = 3
             diff_without_rs += abs(c_good_no - c_poor_no)
             n_pts += 1
         end
-        # R-S should produce larger differences across health states
+        # The baseline (state-dependent utility only) MUST produce nonzero
+        # variation across health states, otherwise the comparison is vacuous.
+        @test diff_without_rs > 0
+        # R-S + medical risk should AMPLIFY that baseline variation.
         @test diff_with_rs > diff_without_rs
     end
 

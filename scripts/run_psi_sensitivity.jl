@@ -1,23 +1,32 @@
 # Behavioral channel sensitivity: solve the full 10-channel model under multiple
 # values of psi_purchase to bracket the empirical literature.
 #
-# Calibration anchors are derived from the UK 2015 pension freedoms reform.
-# Two evidence streams supply identifying targets:
-#   - ABI aggregate sales-volume decline (~75% proportional drop in annuity
-#     vs drawdown sales 2014-2016), mapped through the model into an
-#     ownership-rate change. About a quarter of that change is attributable
-#     to the simultaneous removal of a 55% lump-sum tax penalty already
-#     represented in the model's rational pricing channels; the residual is
-#     the "rational-corrected" target.
+# Calibration anchors are derived from the UK 2015 pension-freedoms reform,
+# which shifted the regulated default from compulsory annuitization
+# (pre-reform ownership ~95-100% of DC pot holders) to opt-in
+# (post-reform retention 13-25%). The reform therefore produced a 70-87 pp
+# OWNERSHIP-RATE drop between the two regimes. Two evidence streams supply
+# identifying targets:
+#   - ABI aggregate ownership-rate drop (~75 pp): pre-reform compulsory
+#     annuitization baseline minus post-reform voluntary retention. The ~75%
+#     contemporaneous decline in ABI quarterly sales volumes corroborates the
+#     ownership-rate drop without itself being the identification target.
+#     About a quarter of the ownership-rate drop is attributable to the
+#     simultaneous removal of a 55% lump-sum tax penalty already represented
+#     in the model's rational pricing channels; subtracting that yields the
+#     "rational-corrected" anchor.
 #   - ELSA microdata: wave 6 (2012-13) pre-freedoms baseline vs waves 8-11
-#     (2016-2024) post-freedoms disposition; n=869 DC pot holders,
-#     subgroup-robust across age, sex, education, health.
+#     (2016-2024) post-freedoms disposition. Pre/post denominators differ
+#     (DC recipients vs. lump-sum disposition records), so the implied 88 pp
+#     drop is treated as a descriptive sensitivity bound rather than a clean
+#     within-household estimate. n=869 DC pot holders, subgroup-robust across
+#     age, sex, education, health.
 #
 # The rational-corrected ABI sensitivity targets strip the tax-removal
-# component from the total drop; the ELSA rational-corrected targets do the
-# same against the microdata drop. The total-drop variants (no rational
-# stripping) are reported as the most aggressive sensitivity end and pin the
-# bracket's lower-ownership bound.
+# component from the raw ownership-rate drop; the ELSA rational-corrected
+# targets do the same against the microdata drop. The total-drop variants (no
+# rational stripping) are reported as the most aggressive sensitivity end and
+# pin the bracket's lower-ownership bound.
 #
 # Calibration anchors (psi via single-moment SMM mapping):
 #   psi = 0       : rational benchmark (no PED)

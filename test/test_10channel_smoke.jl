@@ -41,6 +41,7 @@ include(joinpath(@__DIR__, "..", "scripts", "config.jl"))
         survival_pessimism=SURVIVAL_PESSIMISM,
         consumption_decline=CONSUMPTION_DECLINE,
         health_utility=Float64.(HEALTH_UTILITY),
+        lambda_w=LAMBDA_W,
         psi_purchase=PSI_PURCHASE,
         grid_kw...)
 
@@ -59,7 +60,7 @@ include(joinpath(@__DIR__, "..", "scripts", "config.jl"))
     @test isfinite(res.mean_alpha)
     println("  Smoke test: ownership=$(round(res.ownership * 100, digits=2))%, mean_alpha=$(round(res.mean_alpha, digits=4))")
 
-    # Sanity check vs psi_purchase=0 (rational benchmark)
+    # Sanity check vs psi_purchase=0 (rational + SDU benchmark; Force A still on)
     p_rational = ModelParams(; common_kw...,
         theta=THETA_DFJ, kappa=KAPPA_DFJ,
         mwr=MWR_LOADED, fixed_cost=FIXED_COST,
@@ -68,6 +69,7 @@ include(joinpath(@__DIR__, "..", "scripts", "config.jl"))
         survival_pessimism=SURVIVAL_PESSIMISM,
         consumption_decline=CONSUMPTION_DECLINE,
         health_utility=Float64.(HEALTH_UTILITY),
+        lambda_w=LAMBDA_W,
         psi_purchase=0.0,
         grid_kw...)
 

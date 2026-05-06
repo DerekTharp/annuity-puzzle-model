@@ -6,8 +6,11 @@ US retirees, organized in three layers:
 
 - **Six rational channels:** pre-existing Social Security annuitization,
   bequest motives, combined medical expenditure risk and health-mortality
-  correlation (Reichling-Smetters bundled with medical risk because R-S has
-  no economic content without stochastic medical costs to correlate against),
+  correlation (Reichling-Smetters bundled with medical risk because the R-S
+  mechanism's quantitative bite operates through the interaction with
+  stochastic medical costs in this framework: without a competing use for
+  liquid wealth in sick states, a lower expected annuity NPV when sick does
+  not translate into a precautionary motive against annuitization),
   subjective survival pessimism, pricing loads, and inflation erosion.
 - **Two preference channels:** age-varying consumption needs
   (Aguiar-Hurst 2013) and state-dependent utility (Finkelstein-Luttmer-
@@ -26,10 +29,12 @@ frictionless population benchmark of 41.4%. Adding the two preference
 channels brings the prediction to 34.3%; adding Force A (source-dependent
 utility, lambda_W = 0.625) raises it to 79.3%. The Force B parameter
 psi_purchase is anchored to UK post-reform evidence (2015 pension freedoms),
-combining the conservative ABI aggregate sales-volume decline mapped through
-the model after stripping the rational tax-removal response (psi=0.0163)
-and a descriptive ELSA microdata total drop in observed disposition
-(psi=0.0335). The corresponding bracket of predicted US voluntary ownership
+combining the conservative ABI aggregate (the 75 pp pre/post drop in DC-pot
+annuity ownership when the regulated default flipped from compulsory to
+opt-in, after stripping the rational tax-removal response; psi=0.0163;
+ABI quarterly contract volumes fell by a similar proportional magnitude,
+corroborating the level shift) and a descriptive ELSA microdata total drop
+in observed disposition (psi=0.0335). The corresponding bracket of predicted US voluntary ownership
 is [2.3%, 24.5%].
 Two HRS measures of US lifetime annuity ownership are reported in parallel
 as out-of-sample empirical targets: 2.02% (95% CI [1.68%, 2.43%], the

@@ -135,8 +135,18 @@ function simulate_lifecycle(
                                  V_next_interp, s_t_h, p, t, H)
         consumption_path[t] = c
 
-        # Next-period wealth: cash net of consumption.
-        cash = inc_after + W_after
+        # Next-period wealth: cash net of consumption. The wealth used here
+        # MUST be the same value passed to solve_consumption above (W_after_c).
+        # Earlier code used W_after (unclamped) which created a hoarding
+        # feedback loop for agents whose wealth drifted above g.W[end]:
+        # solve_consumption picked c as if W = W_max, but W_next was then
+        # built from cash = inc + W_actual >> W_max, so the agent
+        # under-consumed and W grew further. Using the clamped value
+        # consistently makes the cap behave as a soft truncation: agents
+        # at or above the cap consume at the cap-state policy and W_next
+        # stays near the cap, matching the value-function convention used
+        # to solve the model.
+        cash = inc_after + W_after_c
         W_next = (1.0 + p.r) * (cash - c)
         W_next = max(W_next, 0.0)
 
