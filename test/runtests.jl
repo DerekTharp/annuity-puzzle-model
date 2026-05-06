@@ -21,7 +21,13 @@ const TEST_FILES = [
     "test_pashchenko_dia.jl",
     "test_10channel_smoke.jl",
     "test_age_invariance.jl",
-    "test_manuscript_numbers.jl",
+    # test_manuscript_numbers.jl is a POST-pipeline validator that reads
+    # paper/numbers.tex and asserts agreement against tables/csv/*.csv.
+    # When run as Stage 0 (pre-pipeline) on a fresh AWS instance, the
+    # tables/csv/ directory doesn't exist (excluded from launch.sh's rsync
+    # so the remote rebuilds cleanly), causing every CSV-dependent test to
+    # error. Stage 16 of run_all.jl runs this file directly after the
+    # pipeline produces fresh CSVs; it is intentionally NOT in this list.
     "test_grid_clamp_audit.jl",
 ]
 
