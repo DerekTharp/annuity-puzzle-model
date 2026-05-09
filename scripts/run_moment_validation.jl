@@ -60,9 +60,7 @@ p = ModelParams(; common_kw...,
     survival_pessimism=SURVIVAL_PESSIMISM,
     consumption_decline=CONSUMPTION_DECLINE,
     health_utility=Float64.(HEALTH_UTILITY),
-    lambda_w=LAMBDA_W,
     chi_ltc=CHI_LTC,
-    psi_purchase=PSI_PURCHASE,
     grid_kw...)
 
 p_fair_nom = ModelParams(; common_kw..., mwr=1.0, inflation_rate=INFLATION, grid_kw...)

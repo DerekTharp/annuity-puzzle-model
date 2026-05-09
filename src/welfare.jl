@@ -101,18 +101,12 @@ function compute_cev(
         W_rem < 0.0 && continue
 
         # Age-65 purchase: nominal_premium = pi (inflation_factor = 1).
-        # Convention matches wtp.jl/welfare.jl elsewhere: pass nominal_premium
-        # to purchase_penalty so the dollar amount is unambiguous.
         nominal_premium = pi
         A_new = nominal_premium * payout_rate
         A_total = y_existing + A_new
         W_rc = clamp(W_rem, g.W[1], g.W[end])
         A_tc = clamp(A_total, g.A[1], g.A[end])
         V_val = V_interp(W_rc, A_tc)
-        if p.psi_purchase > 0.0
-            V_val -= purchase_penalty(nominal_premium, payout_rate, p.gamma,
-                p.psi_purchase, p.psi_purchase_c_ref, p.beta, sol.base_surv)
-        end
         if V_val > best_V
             best_V = V_val
             best_alpha = alpha
@@ -262,32 +256,13 @@ function compute_cev_population(
             end
             W_rem < 0.0 && continue
 
-            # Premium is in real (= age-65 nominal) dollars throughout. The
-            # model's A grid is also in age-65 nominal dollars (the Bellman
-            # deflates via A_real(s) = A * (1+π)^-(s-1) at each period s),
-            # so A_new = pi * payout_rate is on the same scale as y_0 and
-            # the V interpolant. Earlier code grossed pi up by (1+π)^(t-1)
-            # before multiplying by the payout rate, which silently inflated
-            # both A_new and the underwater amount fed to purchase_penalty
-            # by (1+π)^(t-1) for any agent observed at age > 65 (the bulk of
-            # the HRS sample). The c_ref reference consumption used by the
-            # penalty is real, so the inflated nominal premium produced an
-            # (1+π)^(t-1) bloat in the loss-aversion utility cost. The fix is
-            # to keep everything in real / age-65-nominal terms.
+            # Premium is in real (= age-65 nominal) dollars throughout.
             premium = pi
             A_new = premium * payout_rate
             A_total = y_0 + A_new
             W_rc = clamp(W_rem, g.W[1], g.W[end])
             A_tc = clamp(A_total, g.A[1], g.A[end])
             V_val = V_interp(W_rc, A_tc)
-            if p.psi_purchase > 0.0
-                # purchase_period=t passes the survival clock starting at the
-                # actual purchase age (period t), not period 1. Default
-                # purchase_period=1 was wrong for any age-of-purchase > 65.
-                V_val -= purchase_penalty(premium, payout_rate, p.gamma,
-                    p.psi_purchase, p.psi_purchase_c_ref, p.beta, sol.base_surv;
-                    purchase_period=t)
-            end
             if V_val > best_V
                 best_V = V_val
                 best_alpha = alpha
@@ -381,9 +356,6 @@ function compute_cev_grid(
     survival_pessimism::Float64=1.0,
     consumption_decline::Float64=0.0,
     health_utility::Vector{Float64}=[1.0, 1.0, 1.0],
-    psi_purchase::Float64=0.0,
-    psi_purchase_c_ref::Float64=18_000.0,
-    lambda_w::Float64=1.0,
     chi_ltc::Float64=1.0,
     verbose::Bool=true,
 )
@@ -408,18 +380,16 @@ function compute_cev_grid(
                W_max=W_max, age_start=age_start, age_end=age_end,
                annuity_grid_power=annuity_grid_power)
 
-    # Common keyword args: include preference + behavioral channels so the
+    # Common keyword args: include preference + structural channels so the
     # CEV computation uses the same model the production solve uses. Without
     # these the CEV table would silently report six-channel values while
-    # the rest of the pipeline is ten-channel.
+    # the rest of the pipeline is full.
     common_kw = (gamma=gamma, beta=beta, r=r,
                  stochastic_health=true, n_health_states=3, n_quad=n_quad,
                  c_floor=c_floor, hazard_mult=hazard_mult,
                  survival_pessimism=survival_pessimism,
                  consumption_decline=consumption_decline,
-                 health_utility=health_utility,
-                 psi_purchase=psi_purchase,
-                 psi_purchase_c_ref=psi_purchase_c_ref)
+                 health_utility=health_utility)
 
     # Payout rates: real (for grid sizing) and nominal (for pricing when inflation active)
     p_fair = ModelParams(; gamma=gamma, beta=beta, r=r, mwr=1.0, grid_kw...)
@@ -459,7 +429,6 @@ function compute_cev_grid(
         p_model = ModelParams(; common_kw...,
             theta=bspec.theta, kappa=bspec.kappa,
             mwr=mwr_loaded, fixed_cost=fixed_cost_val, min_purchase=min_purchase_val,
-            lambda_w=lambda_w,
             chi_ltc=chi_ltc,
             inflation_rate=inflation_val,
             medical_enabled=true, health_mortality_corr=true,
@@ -560,10 +529,6 @@ function simulate_welfare_comparison(
         W_rc = clamp(W_rem, g.W[1], g.W[end])
         A_tc = clamp(A_total, g.A[1], g.A[end])
         V_val = V_interp(W_rc, A_tc)
-        if p.psi_purchase > 0.0
-            V_val -= purchase_penalty(nominal_premium, payout_rate, p.gamma,
-                p.psi_purchase, p.psi_purchase_c_ref, p.beta, sol.base_surv)
-        end
         if V_val > best_V
             best_V = V_val
             best_alpha = alpha

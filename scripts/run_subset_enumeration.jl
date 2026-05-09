@@ -50,11 +50,12 @@ include(joinpath(@__DIR__, "config.jl"))
 # (CONSUMPTION_DECLINE and HEALTH_UTILITY reach this script via config.jl;
 #  they are not redefined locally.)
 
-# PSI_PURCHASE_VAL: narrow-framing purchase-event disutility, applied only when
-# the Force B channel is active. Production value sourced from config.jl
-# (calibrated by single-moment SMM to UK 2015 reform identifying moment).
-# Sensitivity interval across alternative anchors: [0.014, 0.034]; see appendix.
-const PSI_PURCHASE_VAL = PSI_PURCHASE
+# Bundled behavioral wedge identification (Option 1):
+# The bundled wedge is identified externally and applied via multiplicative
+# transport in scripts/export_manuscript_numbers.jl. The model itself
+# parameterizes only rational + preference + structural channels (the latter
+# being chi_ltc / public-care aversion). The Shapley enumeration here
+# therefore covers 9 channels (was 11 before the SDU and PED removals).
 
 # CHI_LTC_VAL: public-care aversion utility multiplier, applied only when the
 # LTC channel is active AND the agent is in Poor health AND the consumption
@@ -82,27 +83,21 @@ const CHI_LTC_VAL = CHI_LTC
 @everywhere const CH_STATE_UTIL    = 6
 @everywhere const CH_LOADS         = 7
 @everywhere const CH_INFLATION     = 8
-@everywhere const CH_SDU           = 9   # Source-dependent utility (Force A)
-@everywhere const CH_PSI_PURCHASE  = 10  # Narrow-framing penalty (Force B)
-@everywhere const CH_LTC           = 11  # Public-care aversion (Ameriks 2011, 2020)
+@everywhere const CH_LTC           = 9   # Public-care aversion (Ameriks 2011, 2020)
 
-const N_CHANNELS = 11
-const N_SUBSETS = 2^N_CHANNELS  # 2048
+const N_CHANNELS = 9
+const N_SUBSETS = 2^N_CHANNELS  # 512
 const CHANNEL_NAMES = [
     "SS", "Bequests", "Medical+R-S", "Pessimism", "Age needs",
     "State utility", "Loads", "Inflation",
-    "SDU (Force A)", "Bundled behavioral wedge",
     "Public-care aversion (LTC)",
 ]
-# Channel naming under Option 1 a-strict bundling:
-#   - "SDU (Force A)" mechanism is preserved in the enumeration for sensitivity
-#     analysis, but its Shapley value will be near zero in production runs that
-#     use LAMBDA_W = 1.0 (the SDU mechanism is off as a normalization choice).
-#   - "Bundled behavioral wedge" replaces the prior "Narrow framing (Force B)"
-#     label. The PSI_PURCHASE mechanism still operates through the at-purchase
-#     penalty, but its calibrated value reflects the FULL bundled effect of
-#     SDU + narrow framing + choice-architecture salience under joint UK
-#     identification, not narrow framing alone.
+# Under Option 1 bundled identification, the SDU mechanism (Force A) and
+# the at-purchase penalty (PED / Force B) have been removed from the model.
+# The bundled behavioral wedge (SDU + PED + choice-architecture salience) is
+# applied via multiplicative transport in export_manuscript_numbers.jl as
+# (no-behavioral baseline) × (UK_post / UK_pre). Channel enumeration here
+# therefore covers only model-internal channels.
 
 println("=" ^ 70)
 println("  FULL SUBSET ENUMERATION: 2^$N_CHANNELS = $N_SUBSETS CHANNEL SUBSETS")
@@ -157,7 +152,7 @@ flush(stdout)
 # Bit i (0-indexed) corresponds to channel i+1. Eleven channels: bits 0-10.
 @everywhere function bitmask_to_channels(mask::Int)
     active = Set{Int}()
-    for i in 0:10  # 11 channels: bits 0-10
+    for i in 0:8  # 9 channels: bits 0-8
         if (mask >> i) & 1 == 1
             push!(active, i + 1)
         end
@@ -170,8 +165,7 @@ end
 @everywhere function build_subset_config(active::Set{Int};
         theta_dfj, kappa_dfj, mwr_loaded, fixed_cost, min_purchase, inflation_val,
         survival_pessimism, ss_quartile_levels,
-        consumption_decline, health_utility, lambda_w_val, psi_purchase_val,
-        chi_ltc_val)
+        consumption_decline, health_utility, chi_ltc_val)
 
     ss_levels = [0.0, 0.0, 0.0, 0.0]
     theta = 0.0
@@ -185,8 +179,6 @@ end
     infl = 0.0
     cd = 0.0
     hu = [1.0, 1.0, 1.0]
-    lam_w = 1.0
-    psi_p = 0.0
     chi_l = 1.0
 
     if CH_SS in active
@@ -199,8 +191,7 @@ end
     # Combined R-S + Medical channel: setting it activates both stochastic
     # medical-expense risk AND the health-mortality correlation. R-S's
     # quantitative bite in this framework operates through the interaction
-    # with medical risk, so the two are not separately switchable in our
-    # 11-channel structure.
+    # with medical risk, so the two are not separately switchable.
     if CH_MED_RS in active
         medical_enabled = true
         health_mortality_corr = true
@@ -222,12 +213,6 @@ end
     if CH_INFLATION in active
         infl = inflation_val
     end
-    if CH_SDU in active
-        lam_w = lambda_w_val
-    end
-    if CH_PSI_PURCHASE in active
-        psi_p = psi_purchase_val
-    end
     # Public-care aversion (Ameriks 2011 QJE; 2020 ECMA): activates the
     # chi_ltc utility multiplier when the consumption floor binds AND health
     # is Poor (Medicaid-LTC binding). Operationally meaningful only when
@@ -246,8 +231,6 @@ end
             health_utility=hu,
             mwr=mwr, fixed_cost=fc, min_purchase=min_p,
             inflation_rate=infl,
-            lambda_w=lam_w,
-            psi_purchase=psi_p,
             chi_ltc=chi_l)
 end
 
@@ -286,8 +269,6 @@ _fair_pr = fair_pr
 _fair_pr_nom = fair_pr_nom
 _consumption_decline = CONSUMPTION_DECLINE
 _health_utility = Float64.(HEALTH_UTILITY)
-_lambda_w = LAMBDA_W
-_psi_purchase_val = PSI_PURCHASE_VAL
 _chi_ltc_val = CHI_LTC_VAL
 
 subset_specs = [(bitmask=i,) for i in 0:(N_SUBSETS - 1)]
@@ -306,8 +287,6 @@ results = parallel_solve(subset_specs) do spec
         ss_quartile_levels=_ss_q_levels,
         consumption_decline=_consumption_decline,
         health_utility=_health_utility,
-        lambda_w_val=_lambda_w,
-        psi_purchase_val=_psi_purchase_val,
         chi_ltc_val=_chi_ltc_val)
 
     gkw = (n_wealth=_n_wealth, n_annuity=_n_annuity, n_alpha=_n_alpha,
@@ -345,8 +324,6 @@ results = parallel_solve(subset_specs) do spec
         survival_pessimism=cfg.survival_pessimism,
         consumption_decline=cfg.consumption_decline,
         health_utility=cfg.health_utility,
-        lambda_w=cfg.lambda_w,
-        psi_purchase=cfg.psi_purchase,
         chi_ltc=cfg.chi_ltc,
         gkw...)
 
@@ -441,14 +418,14 @@ println("=" ^ 70)
 #   Layer 1 (rational): SS, Bequests, MED+R-S (combined), Pessimism, LTC,
 #                       Loads, Inflation
 #   Layer 2 (preferences): Age needs, State utility
-#   Layer 3 (behavioral): Force A (SDU), Force B (narrow framing)
 # Public-care aversion (LTC) is grouped with the rational channels because the
 # Ameriks et al. (2011, 2020) identification is via strategic-survey wealth
-# equivalents — a structural preference parameter, not a behavioral primitive.
+# equivalents — a structural preference parameter. The bundled behavioral
+# wedge is applied as multiplicative transport in
+# scripts/export_manuscript_numbers.jl, not as a sequential channel here.
 default_order = [CH_SS, CH_BEQUESTS, CH_MED_RS, CH_PESSIMISM, CH_LTC,
                  CH_LOADS, CH_INFLATION,
-                 CH_AGE_NEEDS, CH_STATE_UTIL,
-                 CH_SDU, CH_PSI_PURCHASE]
+                 CH_AGE_NEEDS, CH_STATE_UTIL]
 
 """
 Reconstruct a sequential decomposition for any channel ordering

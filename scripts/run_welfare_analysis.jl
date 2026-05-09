@@ -98,8 +98,6 @@ cev_output = compute_cev_grid(
     survival_pessimism=SURVIVAL_PESSIMISM,
     consumption_decline=CONSUMPTION_DECLINE,
     health_utility=Float64.(HEALTH_UTILITY),
-    psi_purchase=PSI_PURCHASE,
-    lambda_w=LAMBDA_W,
     chi_ltc=CHI_LTC,
     verbose=true,
 )
@@ -343,7 +341,6 @@ p_sim = ModelParams(;
     gamma=GAMMA, beta=BETA, r=R_RATE,
     theta=0.0, kappa=0.0,
     mwr=MWR_LOADED, fixed_cost=FIXED_COST, min_purchase=MIN_PURCHASE,
-    lambda_w=LAMBDA_W,
     chi_ltc=CHI_LTC,
     inflation_rate=INFLATION,
     medical_enabled=true, health_mortality_corr=true,

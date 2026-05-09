@@ -31,9 +31,11 @@ const B_AGE_NEEDS    = 1 << 4
 const B_STATE_UTIL   = 1 << 5
 const B_LOADS        = 1 << 6
 const B_INFLATION    = 1 << 7
-const B_SDU          = 1 << 8   # Force A: source-dependent utility
-const B_PSI_PURCHASE = 1 << 9   # Force B: narrow-framing purchase penalty
-const B_LTC          = 1 << 10  # Public-care aversion (Ameriks 2011, 2020 ECMA)
+const B_LTC          = 1 << 8   # Public-care aversion (Ameriks 2011, 2020 ECMA)
+# Note: under Option 1 bundled identification, the SDU and at-purchase
+# penalty mechanisms have been removed from the model. The bundled wedge
+# is applied via multiplicative transport in
+# scripts/export_manuscript_numbers.jl (no bitmask channel).
 
 # Backward-compat aliases (prose macros may still reference these names).
 const B_MEDICAL = B_MED_RS
@@ -144,11 +146,7 @@ macros = load_macros()
                 "ownSevenChannelExt"  => B_SS | B_BEQUESTS | B_MED_RS | B_PESSIMISM | B_AGE_NEEDS | B_LOADS | B_INFLATION,
                 "ownEightChannelExt"  => B_SS | B_BEQUESTS | B_MED_RS | B_PESSIMISM | B_AGE_NEEDS | B_STATE_UTIL | B_LOADS | B_INFLATION,
                 "ownNineChannelLTC"   => B_SS | B_BEQUESTS | B_MED_RS | B_PESSIMISM | B_AGE_NEEDS | B_STATE_UTIL | B_LOADS | B_INFLATION | B_LTC,
-                "ownTenChannelSDU"    => B_SS | B_BEQUESTS | B_MED_RS | B_PESSIMISM | B_AGE_NEEDS | B_STATE_UTIL | B_LOADS | B_INFLATION | B_LTC | B_SDU,
-                "ownElevenChannelFull"=> B_SS | B_BEQUESTS | B_MED_RS | B_PESSIMISM | B_AGE_NEEDS | B_STATE_UTIL | B_LOADS | B_INFLATION | B_LTC | B_SDU | B_PSI_PURCHASE,
-                # Legacy 10-channel cascade (without LTC) — kept for sensitivity reporting.
-                "ownNineChannelSDU"   => B_SS | B_BEQUESTS | B_MED_RS | B_PESSIMISM | B_AGE_NEEDS | B_STATE_UTIL | B_LOADS | B_INFLATION | B_SDU,
-                "ownTenChannelFull"   => B_SS | B_BEQUESTS | B_MED_RS | B_PESSIMISM | B_AGE_NEEDS | B_STATE_UTIL | B_LOADS | B_INFLATION | B_SDU | B_PSI_PURCHASE,
+                "ownNoBehavioralBaseline" => B_SS | B_BEQUESTS | B_MED_RS | B_PESSIMISM | B_AGE_NEEDS | B_STATE_UTIL | B_LOADS | B_INFLATION | B_LTC,
             ]
             for (name, bm) in cases
                 if !haskey(macros, name)
@@ -163,13 +161,10 @@ macros = load_macros()
         end
     end
 
-    # Shapley values (pp) — signed, 1 decimal. Ten channels: eight
-    # rational/preference + Force A (SDU) + Force B (narrow-framing PED).
-    # The "Medical+R-S" channel only exists in the 10-channel reformulation
-    # CSV; legacy 11-channel CSVs have separate "Medical" and "R-S" rows
-    # that the export script aggregates.
+    # Shapley values (pp) — signed, 1 decimal. 9 channels: eight
+    # rational/preference + chi_LTC structural. Behavioral wedge is applied
+    # externally as multiplicative transport, not enumerated here.
     @testset "shapley values" begin
-        # Channels that exist in both schemas
         common_cases = [
             "shapLoads"      => "Loads",
             "shapPessimism"  => "Pessimism",
@@ -178,34 +173,23 @@ macros = load_macros()
             "shapBequests"   => "Bequests",
             "shapStateUtil"  => "State utility",
             "shapSS"         => "SS",
-            "shapSDU"        => "SDU (Force A)",
-            "shapNarrowFraming" => "Narrow framing (Force B)",
         ]
         for (name, ch) in common_cases
             haskey(macros, name) || continue
             @test macros[name] == fmt_num(shapley_value_pp(ch); digits=1)
         end
-        # Med+R-S: native lookup if 10-channel CSV, else sum of legacy rows.
         if haskey(macros, "shapMedRS")
             shap_path = joinpath(CSV_DIR, "shapley_exact.csv")
             csv_text = read(shap_path, String)
             expected = if occursin("Medical+R-S,", csv_text)
                 fmt_num(shapley_value_pp("Medical+R-S"); digits=1)
             else
-                # Legacy CSV: aggregate the two separate rows
                 fmt_num(shapley_value_pp("Medical") + shapley_value_pp("R-S"); digits=1)
             end
             @test macros["shapMedRS"] == expected
         end
-        # Critical channels MUST be present after AWS rerun
-        ten_ch = subset_csv_is_ten_channel()
         @test haskey(macros, "shapLoads")
         @test haskey(macros, "shapMedRS")
-        if ten_ch
-            for required in ("shapSDU", "shapNarrowFraming")
-                @test haskey(macros, required)
-            end
-        end
     end
 
     # Policy counterfactual ownership from welfare_counterfactuals.csv
@@ -261,50 +245,20 @@ macros = load_macros()
         end
     end
 
-    # Behavioral channel ψ_purchase sensitivity sweep — values come from
-    # tables/csv/psi_sensitivity.csv. If the CSV is missing (sensitivity not
-    # yet run), we skip rather than fail to keep the test useful during
-    # incremental development.
-    @testset "psi_purchase sensitivity" begin
-        path = joinpath(CSV_DIR, "psi_sensitivity.csv")
-        if !isfile(path)
-            @test_skip "psi_sensitivity.csv not yet generated"
+    # Bundled behavioral wedge: multiplicative transport check.
+    # The wedge factor is computed deterministically as UK_post / UK_pre and
+    # applied to the no-behavioral baseline. Test that ownWedgeMid =
+    # ownNoBehavioralBaseline * (17/95).
+    @testset "bundled behavioral wedge transport" begin
+        if haskey(macros, "ownNoBehavioralBaseline") && haskey(macros, "ownWedgeMid")
+            parse_pct = s -> parse(Float64, replace(s, "\\%" => ""))
+            base = parse_pct(macros["ownNoBehavioralBaseline"])
+            wedge = parse_pct(macros["ownWedgeMid"])
+            expected = base * (17.0 / 95.0)
+            # Allow 0.05 pp rounding tolerance
+            @test abs(wedge - expected) < 0.06
         else
-            # UK 2015 pension-freedoms anchors:
-            # - ABI rational-corrected (low/mid/high): UK pre/post pp drop in
-            #   DC-pot annuity ownership (ABI/FCA), after stripping the
-            #   rational tax-removal response (lump-sum 55% tax penalty
-            #   removal already in the model's rational pricing).
-            # - ELSA rational-corrected (low/high): UK ELSA wave 6 vs waves 8-11
-            #   microdata after the same rational stripping (n=869 DC pot holders).
-            # - Total-drop variants: ABI aggregate and ELSA microdata, raw
-            #   (no rational stripping).
-            cases = [
-                "ownPsiZero"          => "No PED (rational + SDU only)",
-                "ownPsiUKLow"         => "ABI rational-corrected low",
-                "ownPsiUKMid"         => "ABI rational-corrected mid",
-                "ownPsiUKHigh"        => "ABI rational-corrected high",
-                "ownPsiUKELSALow"     => "ELSA rational-corrected low",
-                "ownPsiUKELSAHigh"    => "ELSA rational-corrected high",
-                "ownPsiUKBLow"        => "ABI total drop (no rational stripping)",
-                "ownPsiUKELSATotal"   => "ELSA total drop (no rational stripping)",
-            ]
-            for (name, label) in cases
-                row = nothing
-                for (i, line) in enumerate(eachline(path))
-                    i == 1 && continue
-                    startswith(line, label * ",") || continue
-                    toks = split(chopprefix(line, label * ","), ',')
-                    row = parse(Float64, toks[2])  # ownership_pct
-                    break
-                end
-                if row === nothing
-                    @test_skip "label $(repr(label)) not in psi_sensitivity.csv"
-                else
-                    @test haskey(macros, name)
-                    @test macros[name] == fmt_pct(row; digits=1)
-                end
-            end
+            @test_skip "wedge transport macros not present"
         end
     end
 
@@ -343,9 +297,8 @@ macros = load_macros()
     # a planned recalibration shifts the headline target intentionally), but
     # NOT silently after the AWS rerun without explicit consideration.
     @testset "headline bracket-hostage assertion" begin
-        # Try the production headline macro first; fall back to the legacy
-        # ten-channel macro if the eleven-channel pipeline hasn't run yet.
-        headline_keys = ("ownElevenChannelFull", "ownTenChannelFull")
+        # Production headline under Option 1 bundled identification.
+        headline_keys = ("ownHeadline", "ownWedgeMid")
         headline_pct = nothing
         which_key = nothing
         for k in headline_keys

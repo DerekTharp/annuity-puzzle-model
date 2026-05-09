@@ -106,8 +106,6 @@ decomp = run_decomposition(
     ss_levels=SS_LEVELS,
     consumption_decline_val=CONSUMPTION_DECLINE,
     health_utility_vals=Float64.(HEALTH_UTILITY),
-    psi_purchase_val=PSI_PURCHASE,
-    lambda_w_val=LAMBDA_W,
     verbose=true,
 )
 

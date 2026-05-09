@@ -200,8 +200,6 @@ function run_decomposition(
     ss_levels::Vector{Float64}=Float64[],
     consumption_decline_val::Float64=0.0,
     health_utility_vals::Vector{Float64}=[1.0, 1.0, 1.0],
-    psi_purchase_val::Float64=0.0,
-    lambda_w_val::Float64=1.0,
     min_purchase_val::Float64=0.0,
     verbose::Bool=true,
 )
@@ -453,67 +451,13 @@ function run_decomposition(
     prev_rate = res_infl.ownership
     step_num += 1
 
-    # --- + Source-dependent utility (Force A; FPR companion, Blanchett-Finke 2024-25) ---
-    # Effective consumption c_eff = c_income + lambda_w * c_portfolio.
-    # When lambda_w < 1, portfolio drawdowns yield strictly less effective
-    # consumption per dollar; converting portfolio wealth into income flow via
-    # annuitization unlocks "license to spend." Mental accounting interpretation
-    # (Shefrin-Thaler 1988; Thaler 1999).
-    sdu_active = lambda_w_val < 1.0
-    cur_lambda_w = sdu_active ? lambda_w_val : 1.0
-    if sdu_active
-        p_sdu = ModelParams(; common_kw...,
-            theta=theta, kappa=kappa, mwr=mwr_loaded, fixed_cost=fixed_cost_val,
-            min_purchase=min_purchase_val,
-            inflation_rate=inflation_val,
-            medical_enabled=true, health_mortality_corr=true,
-            survival_pessimism=survival_pessimism,
-            health_utility=cur_health_utility,
-            consumption_decline=cur_consumption_decline,
-            lambda_w=lambda_w_val,
-            grid_kw...)
-        res_sdu = solve_and_evaluate(p_sdu, grids, base_surv, ss_arg,
-            pop, loaded_pr_nom;
-            step_name="$step_num. + Source-dependent utility (lambda_w=$(lambda_w_val))",
-            verbose=verbose)
-        push!(steps, DecompositionStep("+ Source-dependent utility",
-            res_sdu.ownership, res_sdu.mean_alpha, res_sdu.ownership - prev_rate, res_sdu.solve_time))
-        prev_rate = res_sdu.ownership
-        step_num += 1
-    end
-
-    # --- + Bundled behavioral wedge (Force A: SDU; Force B: narrow framing PED;
-    #     Force C: choice-architecture salience; jointly identified from UK 2015
-    #     pension-freedoms reform under proportional-wedge transport).
-    #     Operates mechanically through the at-purchase penalty mechanism
-    #     (Barberis-Huang 2009 narrow framing; Tversky-Kahneman 1992 loss
-    #     aversion). The penalty is proportional to the underwater amount
-    #     (premium minus cumulative payouts) at each period and vanishes at
-    #     breakeven. Under Option 1 bundling, LAMBDA_W is normalized to 1.0
-    #     (Force A mechanism off) and PSI_PURCHASE carries the entire bundled
-    #     behavioral effect; the parameter is therefore best interpreted as a
-    #     reduced-form bundled wedge, not narrow framing alone. ---
-    psi_purchase_active = psi_purchase_val > 0.0
-    if psi_purchase_active
-        p_psi = ModelParams(; common_kw...,
-            theta=theta, kappa=kappa, mwr=mwr_loaded, fixed_cost=fixed_cost_val,
-            min_purchase=min_purchase_val,
-            inflation_rate=inflation_val,
-            medical_enabled=true, health_mortality_corr=true,
-            survival_pessimism=survival_pessimism,
-            health_utility=cur_health_utility,
-            consumption_decline=cur_consumption_decline,
-            lambda_w=cur_lambda_w,
-            psi_purchase=psi_purchase_val,
-            grid_kw...)
-        res_psi = solve_and_evaluate(p_psi, grids, base_surv, ss_arg,
-            pop, loaded_pr_nom;
-            step_name="$step_num. + Bundled behavioral wedge (psi=$(psi_purchase_val))", verbose=verbose)
-        push!(steps, DecompositionStep("+ Bundled behavioral wedge",
-            res_psi.ownership, res_psi.mean_alpha, res_psi.ownership - prev_rate, res_psi.solve_time))
-        prev_rate = res_psi.ownership
-        step_num += 1
-    end
+    # NOTE: The bundled behavioral wedge (SDU + narrow-framing PED +
+    # choice-architecture salience) is NOT a step in the sequential
+    # decomposition. It is identified externally from the UK 2015 pension-
+    # freedoms reform as a proportional retention factor and applied to the
+    # final pre-behavioral baseline of this decomposition as a deterministic
+    # multiplicative transformation. See scripts/export_manuscript_numbers.jl
+    # for the wedge calculation.
 
     if verbose
         println("\n  " * "-" ^ 78)

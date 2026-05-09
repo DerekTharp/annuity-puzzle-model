@@ -42,9 +42,10 @@ const B_AGE_NEEDS    = 1 << 4
 const B_STATE_UTIL   = 1 << 5
 const B_LOADS        = 1 << 6
 const B_INFLATION    = 1 << 7
-const B_SDU          = 1 << 8   # Force A: source-dependent utility
-const B_PSI_PURCHASE = 1 << 9   # Force B: narrow-framing purchase penalty
-const B_LTC          = 1 << 10  # Public-care aversion (Ameriks 2011, 2020 ECMA)
+const B_LTC          = 1 << 8  # Public-care aversion (Ameriks 2011, 2020 ECMA)
+# Note: under Option 1 bundled identification, the SDU and at-purchase
+# penalty mechanisms have been removed from the model. The bundled wedge is
+# applied as multiplicative transport below (no bitmask channel).
 
 # Backward compatibility aliases for prose macros that used the old names.
 # B_MEDICAL alone is no longer meaningful (always implies the R-S correlation).
@@ -167,18 +168,15 @@ function welfare_counterfactual(scenario::AbstractString)
         tail = chopprefix(line, prefix)
         toks = split(tail, ',')
         length(toks) >= 7 || error("malformed row for $(repr(scenario)): $line")
-        # Schema: mwr, inflation, psi, c_floor, ss_scale, ownership_pct, mean_alpha,
-        # [psi_purchase, description] (psi_purchase added in 10-channel update;
-        # parsing falls back to NaN if older 7-channel CSV has only 7+description fields)
-        psi_p = length(toks) >= 8 ? tryparse(Float64, toks[8]) : nothing
+        # Schema: mwr, inflation, psi, c_floor, ss_scale, ownership_pct,
+        # mean_alpha, apply_wedge, description.
         return (mwr=parse(Float64, toks[1]),
                 inflation=parse(Float64, toks[2]),
                 psi=parse(Float64, toks[3]),
                 c_floor=parse(Float64, toks[4]),
                 ss_scale=parse(Float64, toks[5]),
                 ownership_pct=parse(Float64, toks[6]),
-                mean_alpha=parse(Float64, toks[7]),
-                psi_purchase=psi_p === nothing ? NaN : psi_p)
+                mean_alpha=parse(Float64, toks[7]))
     end
     error("scenario $(repr(scenario)) not found in welfare_counterfactuals.csv")
 end
@@ -273,23 +271,6 @@ function state_utility_sensitivity(label::AbstractString)
         end
     end
     error("label $(repr(label)) not in state_utility_sensitivity.csv")
-end
-
-function psi_sensitivity(label::AbstractString)
-    path = joinpath(CSV_DIR, "psi_sensitivity.csv")
-    isfile(path) || return nothing
-    prefix = label * ","
-    for (i, line) in enumerate(eachline(path))
-        i == 1 && continue
-        startswith(line, prefix) || continue
-        toks = split(chopprefix(line, prefix), ',')
-        return (psi=parse(Float64, toks[1]),
-                ownership_pct=parse(Float64, toks[2]),
-                mean_alpha=parse(Float64, toks[3]),
-                solve_time=parse(Float64, toks[4]),
-                default_gap_pp=parse(Float64, toks[5]))
-    end
-    return nothing
 end
 
 function monte_carlo_summary()
@@ -511,37 +492,70 @@ function build_macros!()
     # 8-channel: + state-dependent utility (bitmask 255)
     def!("ownEightChannelExt",  fmt_pct(subset_ownership(B_SS | B_BEQUESTS | B_MED_RS | B_PESSIMISM | B_AGE_NEEDS | B_STATE_UTIL | B_LOADS | B_INFLATION); digits=1))
     # 9-channel: + LTC / public-care aversion (bitmask 1279). Full
-    # rational + preference layer under the 11-channel structure.
+    # 9-channel full (production no-behavioral baseline):
+    # All rational + preference + structural channels active. This is the
+    # baseline to which the bundled behavioral wedge is applied via
+    # multiplicative transport.
+    own_no_behavioral_pct = NaN
     try
-        def!("ownNineChannelLTC", fmt_pct(subset_ownership(B_SS | B_BEQUESTS | B_MED_RS | B_PESSIMISM | B_AGE_NEEDS | B_STATE_UTIL | B_LOADS | B_INFLATION | B_LTC); digits=1))
+        own_no_behavioral_pct = subset_ownership(B_SS | B_BEQUESTS | B_MED_RS | B_PESSIMISM | B_AGE_NEEDS | B_STATE_UTIL | B_LOADS | B_INFLATION | B_LTC)
+        def!("ownNineChannelLTC", fmt_pct(own_no_behavioral_pct; digits=1))
+        def!("ownNoBehavioralBaseline", fmt_pct(own_no_behavioral_pct; digits=1))
     catch e
-        @warn "Skipping ownNineChannelLTC macro (11-channel pipeline not yet run)" exception=e
-    end
-    # 10-channel: + SDU / Force A (bitmask 1535). Rational + preference + Force A.
-    try
-        def!("ownTenChannelSDU", fmt_pct(subset_ownership(B_SS | B_BEQUESTS | B_MED_RS | B_PESSIMISM | B_AGE_NEEDS | B_STATE_UTIL | B_LOADS | B_INFLATION | B_LTC | B_SDU); digits=1))
-    catch e
-        @warn "Skipping ownTenChannelSDU macro (11-channel pipeline not yet run)" exception=e
-    end
-    # 11-channel full: + narrow-framing PED / Force B (bitmask 2047).
-    # Headline production specification for the recalibrated model.
-    try
-        def!("ownElevenChannelFull", fmt_pct(subset_ownership(B_SS | B_BEQUESTS | B_MED_RS | B_PESSIMISM | B_AGE_NEEDS | B_STATE_UTIL | B_LOADS | B_INFLATION | B_LTC | B_SDU | B_PSI_PURCHASE); digits=1))
-    catch e
-        @warn "Skipping ownElevenChannelFull macro (11-channel pipeline not yet run)" exception=e
+        @warn "Skipping ownNineChannelLTC / ownNoBehavioralBaseline (pipeline not yet run)" exception=e
     end
 
-    # Legacy 10-channel sub-cascade (without LTC). Kept for sensitivity/comparison
-    # rows; the 11-channel cascade above is the production path.
-    try
-        def!("ownNineChannelSDU", fmt_pct(subset_ownership(B_SS | B_BEQUESTS | B_MED_RS | B_PESSIMISM | B_AGE_NEEDS | B_STATE_UTIL | B_LOADS | B_INFLATION | B_SDU); digits=1))
-    catch e
-        @warn "Skipping ownNineChannelSDU macro (pipeline not yet run)" exception=e
-    end
-    try
-        def!("ownTenChannelFull", fmt_pct(subset_ownership(B_SS | B_BEQUESTS | B_MED_RS | B_PESSIMISM | B_AGE_NEEDS | B_STATE_UTIL | B_LOADS | B_INFLATION | B_SDU | B_PSI_PURCHASE); digits=1))
-    catch e
-        @warn "Skipping ownTenChannelFull macro (pipeline not yet run)" exception=e
+    # ===================================================================
+    # BUNDLED BEHAVIORAL WEDGE: multiplicative transport from UK 2015
+    # ===================================================================
+    # Under Option 1 bundled identification (Tharp 2026), the bundled
+    # behavioral wedge (SDU + narrow-framing PED + choice-architecture
+    # salience) is identified externally as a proportional retention factor
+    # from the UK 2015 pension-freedoms reform and applied to the model's
+    # no-behavioral baseline as a deterministic multiplicative transformation:
+    #
+    #   predicted US ownership = no-behavioral baseline × (UK_post / UK_pre)
+    #
+    # The wedge is NOT a model parameter. The mechanisms (SDU consumption
+    # transformation and at-purchase penalty) have been removed from the model.
+    # Force A / Force B / Force C are named in the manuscript as conceptually
+    # distinct components of the bundle, but the model parameterizes none of
+    # them; they are observed jointly in UK 2015 and transported jointly.
+    #
+    # Production midpoint: UK_post = 17%, UK_pre = 95%, factor = 17/95 = 0.179
+    # Sensitivity range: UK_post in {13%, 17%, 25%}; factor in [0.137, 0.263].
+    # ===================================================================
+    if !isnan(own_no_behavioral_pct)
+        # Source UK retention constants from config.jl (single source of truth)
+        wedge_pre  = UK_RETENTION_PRE
+        wedge_low  = UK_RETENTION_LOW  / wedge_pre   # 13/95 = 0.137
+        wedge_mid  = UK_RETENTION_MID  / wedge_pre   # 17/95 = 0.179
+        wedge_high = UK_RETENTION_HIGH / wedge_pre   # 25/95 = 0.263
+
+        ownNum_low  = own_no_behavioral_pct * wedge_low
+        ownNum_mid  = own_no_behavioral_pct * wedge_mid
+        ownNum_high = own_no_behavioral_pct * wedge_high
+
+        # Wedge factor macros (for display in the manuscript)
+        def!("pWedgeFactorLow",  fmt_num(wedge_low;  digits=3))
+        def!("pWedgeFactorMid",  fmt_num(wedge_mid;  digits=3))
+        def!("pWedgeFactorHigh", fmt_num(wedge_high; digits=3))
+        def!("pUKRetentionPre",  fmt_pct(UK_RETENTION_PRE  * 100; digits=0))
+        def!("pUKRetentionLow",  fmt_pct(UK_RETENTION_LOW  * 100; digits=0))
+        def!("pUKRetentionMid",  fmt_pct(UK_RETENTION_MID  * 100; digits=0))
+        def!("pUKRetentionHigh", fmt_pct(UK_RETENTION_HIGH * 100; digits=0))
+
+        # Wedge-multiplied US ownership predictions (the headline numbers)
+        def!("ownWedgeLow",  fmt_pct(ownNum_low;  digits=1))
+        def!("ownWedgeMid",  fmt_pct(ownNum_mid;  digits=1))
+        def!("ownWedgeHigh", fmt_pct(ownNum_high; digits=1))
+
+        # Headline = mid-anchor production prediction
+        def!("ownHeadline",  fmt_pct(ownNum_mid;  digits=1))
+
+        # Bracket macros for prose convenience
+        def!("ownBracketLow",  fmt_pct(ownNum_low;  digits=1))
+        def!("ownBracketHigh", fmt_pct(ownNum_high; digits=1))
     end
 
     # Retention rate for SS step (complement as percent)
@@ -610,21 +624,10 @@ function build_macros!()
     def!("shapStateUtil",       fmt_num(sh["State utility"].value_pp; digits=1))
     def!("shapLoads",           fmt_num(sh["Loads"].value_pp; digits=1))
     def!("shapInflation",       fmt_num(sh["Inflation"].value_pp; digits=1))
-    if haskey(sh, "SDU (Force A)")
-        def!("shapSDU",         fmt_num(sh["SDU (Force A)"].value_pp; digits=1))
-    end
-    # Under Option 1 a-strict bundling, the prior "Narrow framing (Force B)"
-    # channel is renamed "Bundled behavioral wedge" to reflect that PSI_PURCHASE
-    # carries the full bundled wedge effect (SDU + narrow framing + Force C).
-    # We define both shapBundledWedge (preferred) and shapNarrowFraming
-    # (legacy alias) for compatibility; manuscript prose uses the bundled-
-    # wedge framing.
-    bundled_key = haskey(sh, "Bundled behavioral wedge") ? "Bundled behavioral wedge" :
-                  (haskey(sh, "Narrow framing (Force B)") ? "Narrow framing (Force B)" : nothing)
-    if bundled_key !== nothing
-        def!("shapBundledWedge", fmt_num(sh[bundled_key].value_pp; digits=1))
-        def!("shapNarrowFraming", fmt_num(sh[bundled_key].value_pp; digits=1))
-    end
+    # Under Option 1 bundled identification, the SDU and narrow-framing
+    # mechanisms have been removed from the model. The bundled behavioral
+    # wedge is applied as multiplicative transport (see ownWedge* macros
+    # above) and does not appear in the Shapley enumeration.
 
     def!("shapShareSS",         fmt_pct(sh["SS"].share_pct; digits=0))
     def!("shapShareBequests",   fmt_pct(sh["Bequests"].share_pct; digits=0))
@@ -636,9 +639,6 @@ function build_macros!()
     def!("shapShareStateUtil",  fmt_pct(sh["State utility"].share_pct; digits=0))
     def!("shapShareLoads",      fmt_pct(sh["Loads"].share_pct; digits=0))
     def!("shapShareInflation",  fmt_pct(sh["Inflation"].share_pct; digits=0))
-    if haskey(sh, "SDU (Force A)")
-        def!("shapShareSDU",    fmt_pct(sh["SDU (Force A)"].share_pct; digits=0))
-    end
     bundled_key2 = haskey(sh, "Bundled behavioral wedge") ? "Bundled behavioral wedge" :
                    (haskey(sh, "Narrow framing (Force B)") ? "Narrow framing (Force B)" : nothing)
     if bundled_key2 !== nothing
@@ -795,78 +795,15 @@ function build_macros!()
     def!("deltaNineChannelRSmFLN", fmt_num(rs.ownership_pct - fln.ownership_pct; digits=1))
 
     # ======================================================================
-    # Section L — Behavioral channel: psi_purchase sensitivity
-    # Source: tables/csv/psi_sensitivity.csv (skipped if missing)
+    # Section L — Bundled behavioral wedge (multiplicative transport)
     # ======================================================================
-    # Anchors from the UK 2015 pension freedoms calibration:
-    # - ABI rational-corrected (low/mid/high): UK pre/post pp drop in DC-pot
-    #   annuity ownership (ABI/FCA), after stripping the rational tax-removal
-    #   response. Mid is the production / bracket-low end.
-    # - ELSA rational-corrected (low/high): UK ELSA wave 6 vs waves 8-11
-    #   microdata after the same rational stripping.
-    # - ABI total drop: raw UK ownership-rate drop, no rational stripping.
-    # - ELSA total drop: ELSA microdata, no rational stripping; bracket-high end.
-    # Above-range values reported as a corner-bound diagnostic.
-    # Macro suffixes (UKLow/UKMid/UKHigh/UKELSALow/UKELSAHigh/UKBLow/UKELSATotal)
-    # are stable internal keys referenced from the appendix anchor table.
-    psi_macros = [
-        ("Zero",        "No PED (rational + SDU only)"),
-        ("UKLow",       "ABI rational-corrected low"),                # tax-stripped ABI aggregate
-        ("UKMid",       "ABI rational-corrected mid"),                # production / bracket low end
-        ("UKHigh",      "ABI rational-corrected high"),               # tax-stripped ABI aggregate
-        ("UKELSALow",   "ELSA rational-corrected low"),               # ELSA microdata, low strip
-        ("UKELSAHigh",  "ELSA rational-corrected high"),              # ELSA microdata, high strip
-        ("UKBLow",      "ABI total drop (no rational stripping)"),    # ABI aggregate, raw
-        ("UKELSATotal", "ELSA total drop (no rational stripping)"),   # ELSA microdata, raw; bracket high end
-        ("AboveRange",  "Above sensitivity range"),
-        ("Corner",      "Corner-bound region"),
-    ]
-    for (suffix, label) in psi_macros
-        s = psi_sensitivity(label)
-        s === nothing && continue
-        def!("ownPsi" * suffix,        fmt_pct(s.ownership_pct; digits=1))
-        def!("pPsi" * suffix,          fmt_num(s.psi;           digits=4))
-        def!("defaultGapPsi" * suffix, fmt_num(s.default_gap_pp;digits=1))
-    end
-
-    # Production psi value (from config.jl PSI_PURCHASE; UK 2015 Anchor C-mid)
-    def!("pPsiPurchase", fmt_num(0.0163; digits=4))
-    # Force A — source-dependent utility weight (config.jl LAMBDA_W = 50/80)
-    def!("pLambdaW", fmt_num(0.625; digits=3))
-    # Reference consumption for narrow-framing penalty (config.jl PSI_PURCHASE_C_REF)
-    def!("pPsiPurchaseCRef", "18{,}000")
-
-    # ----------------------------------------------------------------------
-    # Section L2 — Headline bracket (UK ELSA microdata + ABI aggregate)
-    # The "headline bracket" reflects the empirically defensible UK calibration
-    # anchor range. Lower ψ corresponds to higher predicted ownership.
-    #   Bracket low  (ψ=0.0163): conservative; ABI rational-corrected mid
-    #                            (UK pre/post pp drop in DC-pot annuity
-    #                            ownership, after stripping the rational
-    #                            tax-removal response).
-    #   Bracket high (ψ=0.0335): aggressive; ELSA microdata total drop
-    #                            (no rational stripping).
-    # The wider sensitivity range adds the corner-bound and below-anchor values.
-    # ----------------------------------------------------------------------
-    let
-        s_low  = psi_sensitivity("ABI rational-corrected mid")             # ψ=0.0163
-        s_high = psi_sensitivity("ELSA total drop (no rational stripping)") # ψ=0.0335
-        if s_low !== nothing && s_high !== nothing
-            # ownBracketHigh = upper end of ownership range (lower ψ, conservative)
-            # ownBracketLow  = lower end of ownership range (higher ψ, aggressive)
-            def!("ownBracketHigh", fmt_pct(s_low.ownership_pct;  digits=1))
-            def!("ownBracketLow",  fmt_pct(s_high.ownership_pct; digits=1))
-            def!("pPsiBracketLow",  fmt_num(s_low.psi;  digits=4))
-            def!("pPsiBracketHigh", fmt_num(s_high.psi; digits=4))
-        end
-        # Wider sensitivity range (UKLow → corner-bound)
-        s_widel = psi_sensitivity("ABI rational-corrected low")
-        s_wideh = psi_sensitivity("Above sensitivity range")
-        if s_widel !== nothing && s_wideh !== nothing
-            def!("ownBracketWideHigh", fmt_pct(s_widel.ownership_pct; digits=1))
-            def!("ownBracketWideLow",  fmt_pct(s_wideh.ownership_pct; digits=1))
-        end
-    end
+    # The bundled behavioral wedge is computed in Section F above as
+    # ownNoBehavioralBaseline × (UK_post / UK_pre). See ownWedge* and
+    # ownBracket* macros there. Under Option 1 bundled identification, the
+    # SDU and at-purchase penalty mechanisms have been removed from the
+    # model; the wedge is applied as a deterministic multiplicative
+    # transformation in this script rather than via SMM bisection of a
+    # model parameter.
 
     # ======================================================================
     # Section M — Monte Carlo parameter uncertainty
@@ -916,21 +853,19 @@ backfill_num_variants!()
 # ---------------------------------------------------------------------------
 
 function write_extension_path_table()
-    # 6-channel rational baseline (under 10-channel reformulation Med+R-S is one channel).
-    # Variable names retain "bm7..bm11" for layout backward compat with the table prose,
-    # but the count of distinct channels under the reformulation is 6/7/8/9/10.
+    # Three-layer decomposition: rational + preference + structural (chi_LTC).
+    # The bundled behavioral wedge is applied as multiplicative transport in
+    # this script (ownWedge* macros above) and shown as the final row.
     bm7 = B_SS | B_BEQUESTS | B_MED_RS | B_PESSIMISM | B_LOADS | B_INFLATION
     # + age needs
     bm8 = bm7 | B_AGE_NEEDS
-    # + state utility (= 8-channel rational+preferences under reformulation)
+    # + state utility (= 8-channel rational+preferences)
     bm9 = bm8 | B_STATE_UTIL
-    # + SDU (Force A; = 9-channel under reformulation)
-    bm10 = bm9 | B_SDU
-    # + narrow-framing PED (Force B; = full 10-channel under reformulation)
-    bm11 = bm10 | B_PSI_PURCHASE
+    # + chi_LTC public-care aversion (= 9-channel no-behavioral baseline)
+    bm9_ltc = bm9 | B_LTC
 
     own = Dict{Int,Float64}()
-    for bm in (bm7, bm8, bm9, bm10, bm11)
+    for bm in (bm7, bm8, bm9, bm9_ltc)
         try
             own[bm] = subset_ownership(bm)
         catch
@@ -938,11 +873,19 @@ function write_extension_path_table()
         end
     end
 
+    # Bundled wedge midpoint applied to the no-behavioral baseline
+    wedge_factor_mid = 0.17 / 0.95
+    wedge_factor_low = 0.13 / 0.95
+    wedge_factor_high = 0.25 / 0.95
+    own_wedge_mid = own[bm9_ltc] * wedge_factor_mid
+    own_wedge_low = own[bm9_ltc] * wedge_factor_low
+    own_wedge_high = own[bm9_ltc] * wedge_factor_high
+
     out = joinpath(REPO_ROOT, "tables", "tex", "extension_path.tex")
     open(out, "w") do f
         println(f, raw"\begin{table}[htbp]")
         println(f, raw"\centering")
-        println(f, raw"\caption{Four-Layer Decomposition: Rational, Preference, and Two Behavioral Channels}")
+        println(f, raw"\caption{Three-Layer Decomposition with Bundled Behavioral Wedge}")
         println(f, raw"\label{tab:extension_path}")
         println(f, raw"\begin{threeparttable}")
         println(f, raw"\begin{tabular}{lcc}")
@@ -954,22 +897,19 @@ function write_extension_path_table()
                 own[bm8], own[bm8] - own[bm7])
         @printf(f, "+ State-dependent utility (Layer~2 complete) & %.1f & %+.1f \\\\\n",
                 own[bm9], own[bm9] - own[bm8])
-        @printf(f, "+ Source-dependent utility (Force A)         & %.1f & %+.1f \\\\\n",
-                own[bm10], own[bm10] - own[bm9])
-        @printf(f, "+ Narrow-framing penalty (Force B)           & %.1f & %+.1f \\\\\n",
-                own[bm11], own[bm11] - own[bm10])
+        @printf(f, "+ Public-care aversion \$\\chi_{\\text{LTC}}\$ (Layer~3)         & %.1f & %+.1f \\\\\n",
+                own[bm9_ltc], own[bm9_ltc] - own[bm9])
+        @printf(f, "\$\\times\$ Bundled behavioral wedge (UK 17/95) & %.1f & --- \\\\\n",
+                own_wedge_mid)
         println(f, raw"\bottomrule")
         println(f, raw"\end{tabular}")
         println(f, raw"\begin{tablenotes}")
         println(f, raw"\small")
-        println(f, raw"\item Layer 1 is the standard rational decomposition. Layer 2 adds the two")
-        println(f, raw"preference channels (age-varying needs from \citealp{aguiarhurst2013}; state-")
-        println(f, raw"dependent utility from \citealp{finkelsteinluttmer2013}). Force A introduces")
-        println(f, raw"source-dependent utility \citep{blanchett2024,blanchett2025}: portfolio-financed")
-        println(f, raw"consumption is discounted relative to income-financed consumption, mirroring the")
-        println(f, raw"specification in the FPR companion paper. Force B introduces a narrow-framing")
-        println(f, raw"purchase penalty \citep{barberishuang2009,tverskykahneman1992}: a per-period")
-        println(f, raw"loss-aversion flow over the unrecouped premium, decaying to zero at breakeven.")
+        println(f, raw"\item Layers 1-3 are model-internal channels. The final row applies the bundled")
+        println(f, raw"behavioral wedge identified from the UK 2015 pension-freedoms reform")
+        @printf(f, "\\item as a multiplicative retention factor (UK post / UK pre = %.2f at the production midpoint).\n", wedge_factor_mid)
+        @printf(f, "\\item The UK retention sensitivity range [13\\%%, 25\\%%] maps to a US prediction bracket of [%.1f\\%%, %.1f\\%%].\n",
+                own_wedge_low, own_wedge_high)
         println(f, raw"\end{tablenotes}")
         println(f, raw"\end{threeparttable}")
         println(f, raw"\end{table}")
@@ -989,12 +929,15 @@ write_extension_path_table()
 # ---------------------------------------------------------------------------
 
 const FALLBACKS = String[
-    # 11-channel headline macros (production names after the public-care
-    # aversion / LTC channel was added; ownTenChannelFull is the legacy
-    # 10-channel macro retained as a sensitivity comparison).
-    "ownElevenChannelFull", "ownTenChannelFull",
-    "shapSDU", "shapShareSDU",
-    "shapNarrowFraming", "shapShareNarrowFraming",
+    # Production headline macros under Option 1 bundled identification.
+    # The headline ownership is computed as multiplicative transport from
+    # the 9-channel no-behavioral baseline.
+    "ownNoBehavioralBaseline",
+    "ownWedgeLow", "ownWedgeMid", "ownWedgeHigh",
+    "ownHeadline",
+    "ownBracketLow", "ownBracketHigh",
+    "pWedgeFactorLow", "pWedgeFactorMid", "pWedgeFactorHigh",
+    "pUKRetentionPre", "pUKRetentionLow", "pUKRetentionMid", "pUKRetentionHigh",
     "mcMedianOwnership", "mcMeanOwnership",
     "mcLowCIOwnership", "mcHighCIOwnership",
     "mcLowIQROwnership", "mcHighIQROwnership",

@@ -151,7 +151,6 @@ for (ib, bspec) in enumerate(bequest_specs)
             dia_mwr=prod.mwr,
             deferral_start_period=prod.deferral_period,
             fixed_cost=FIXED_COST, min_purchase=MIN_PURCHASE,
-            lambda_w=LAMBDA_W,
             chi_ltc=CHI_LTC,
             inflation_rate=INFLATION,
             medical_enabled=true, health_mortality_corr=true,

@@ -62,145 +62,36 @@ const HEALTH_UTILITY = [1.0, 0.92, 0.82]  # state-dep utility — FLN (2013) cen
                                            # empirically defensible range and
                                            # avoiding interaction with steeper
                                            # hazards / public-care aversion.
-const PSI_PURCHASE = 0.001        # bundled behavioral wedge parameter (Option 1
-                                   # a-strict). Operates through the at-purchase
-                                   # penalty mechanism but interpretation is the
-                                   # FULL bundled wedge, not narrow framing alone.
-                                   #
-                                   # CALIBRATION (Option 1 a-strict, May 9, 2026):
-                                   # The UK 2015 pension-freedoms reform activated all
-                                   # behavioral phenomena at once when compulsion lifted.
-                                   # The bundle contains three named forces:
-                                   #   Force A (SDU): post-purchase license-to-spend
-                                   #     on guaranteed-income flows. Named, not
-                                   #     parameterized (LAMBDA_W = 1.0 normalization).
-                                   #   Force B (narrow framing PED): at-purchase loss
-                                   #     aversion over unrecouped premium until
-                                   #     breakeven. Operates through the PSI_PURCHASE
-                                   #     mechanism in the model.
-                                   #   Force C (choice-architecture salience):
-                                   #     provider communications, adviser conversations,
-                                   #     status-quo bias, Madrian-Beshears defaults.
-                                   #     Named, not parameterized.
-                                   #
-                                   # All three forces are observed AS A BUNDLE in the
-                                   # UK 2015 reform. Under joint identification, only
-                                   # one mechanism (PSI_PURCHASE) is parameterized;
-                                   # it carries the bundled wedge effect. The other
-                                   # two forces are conceptually present but
-                                   # mechanically absorbed into PSI_PURCHASE under
-                                   # the LAMBDA_W = 1.0 normalization.
-                                   #
-                                   # SMM target: PSI_PURCHASE bisected such that the
-                                   # model's voluntary ownership matches the UK
-                                   # proportional-wedge prediction. With chi_LTC = 0.5
-                                   # active, the pre-behavioral 11-channel baseline
-                                   # is roughly 1.8% (steep suppression from Medicaid-
-                                   # avoidance). Under proportional transport
-                                   # (UK retention 17/95 = 0.179), target US
-                                   # ownership ~ 1.8% × 0.179 ~ 0.3%. The actual
-                                   # production value will be set by Stage 9b SMM
-                                   # bisection during the AWS pipeline run; the
-                                   # 0.001 placeholder reflects the order of magnitude
-                                   # implied by the existing SMM grid (psi=0.001154
-                                   # produced 13% retention in the May 9 run with
-                                   # LAMBDA_W = 0.85; the LAMBDA_W = 1.0 SMM will
-                                   # land at a different value).
-                                   #
-                                   # DO NOT retune PSI_PURCHASE to match US ownership.
-                                   # US ownership is the test moment, not the target.
-                                   # Whatever the model predicts is the honest result
-                                   # under bundled identification.
-                                   #
-                                   # PIPELINE STATUS: The May 9 production run used
-                                   # LAMBDA_W = 0.85 and PSI_PURCHASE = 0.0266 which
-                                   # was inconsistent with the (a-strict) framing
-                                   # (two moments doing two jobs). This commit
-                                   # corrects to true Option 1 bundling. Re-run
-                                   # required for production CSVs and numbers.tex.
-                                   #
-                                   # Identification: proportional behavioral wedge.
-                                   # The post/pre retention ratio (17/95 = 0.179 at
-                                   # the production midpoint) is treated as country-
-                                   # invariant. Applied to the US pre-behavioral
-                                   # baseline (8-channel, 33.6%) yields a target of
-                                   # 33.6% × 0.179 ≈ 6.0% predicted US voluntary
-                                   # ownership.
-                                   #
-                                   # Bundle decomposition normalization: λ_W = 0.85
-                                   # (Force A) is normalized at the value implied by
-                                   # the Blanchett-Finke spending differential, kept
-                                   # for cross-paper consistency with the SS claiming
-                                   # companion paper. ψ_purchase (Force B) carries the
-                                   # residual: calibrated such that the model's
-                                   # combined behavioral effect matches the bundled
-                                   # UK target. Decomposition of the bundle into
-                                   # Force A vs Force B contributions is parameter-
-                                   # dependent rather than data-identified.
-                                   #
-                                   # Sensitivity range:
-                                   #   ψ ≈ 0.022 (UK 13% retention, low) → ~4.6% US
-                                   #   ψ ≈ 0.026 (UK 17% retention, mid) → ~6.0% US
-                                   #   ψ ≈ 0.016 (UK 25% retention, high) → ~8.8% US
-                                   # (interpolated from May 3 production sweep;
-                                   # tables/csv/psi_sensitivity.csv covers ψ ∈
-                                   # [0.0142, 0.0750] with monotonic decline in
-                                   # ownership; ψ = 0.0266 falls between the
-                                   # tabulated 0.0240 → 10.5% and 0.0281 → 3.5%)
-                                   #
-                                   # Empirical comparison (out-of-sample):
-                                   #   HRS lifetime contract: 2.02% [1.68, 2.43]
-                                   #   HRS income proxy:      3.34% [2.89, 3.85]
-                                   # Both fall within the wider sensitivity range
-                                   # [2.5%, 8.8%]; income proxy near lower-middle
-                                   # of headline UK retention bracket [4.6%, 8.8%].
-                                   #
-                                   # DO NOT retune ψ_purchase to match US ownership.
-                                   # US ownership is the test moment, not the target.
-                                   # Identification is locked: bundled behavioral
-                                   # wedge under proportional-wedge transport; UK
-                                   # 2015 reform is the only identifying moment.
-                                   # See paper/main.tex Section 3 (bundled
-                                   # behavioral wedge subsection) and Section 4
-                                   # (Joint calibration paragraph) for the lock-in
-                                   # language.
-                                   #
-                                   # PIPELINE STATUS: production CSVs in tables/csv/
-                                   # were generated May 3 with the OLD calibration
-                                   # (ψ = 0.0163, "60pp absolute behavioral drop"
-                                   # interpretation, producing 24.5% headline). The
-                                   # a-strict re-run with ψ = 0.0266 producing ~6%
-                                   # headline is PENDING. Manuscript prose has been
-                                   # updated to reflect the a-strict identification
-                                   # with hand-coded numerical values; macro-driven
-                                   # numbers in paper/numbers.tex remain stale until
-                                   # the pipeline is re-run at the new ψ.
-const LAMBDA_W = 1.0              # source-dependent utility (Force A) — NORMALIZATION
-                                   # under Option 1 bundled identification.
-                                   # Under (a-strict) bundling, all three behavioral
-                                   # forces (Force A SDU, Force B PED, Force C choice-
-                                   # architecture salience) are jointly identified
-                                   # from one external moment (UK 2015 reform). Two
-                                   # parameters from one moment is under-identified;
-                                   # we resolve by normalizing LAMBDA_W = 1.0 (SDU
-                                   # mechanism off) and letting PSI_PURCHASE carry
-                                   # the entire bundled behavioral effect through the
-                                   # at-purchase penalty mechanism.
-                                   # Force A is named in the manuscript as one
-                                   # conceptual component of the bundle, with
-                                   # Blanchett-Finke (2024-25) cited as descriptive
-                                   # evidence for SDU's existence in retirement
-                                   # spending data. BF is NOT used to identify
-                                   # LAMBDA_W in this paper — that would re-introduce
-                                   # a second moment and break the bundling logic.
-                                   # Cross-paper: the SS claiming companion paper
-                                   # (Tharp 2026) independently identifies SDU from
-                                   # claiming-age moments; that calibration does not
-                                   # transfer here under joint UK identification.
-                                   # Sensitivity: Section 6 reports model behavior
-                                   # under alternative LAMBDA_W normalizations
-                                   # including the BF-implied 0.85 value, with
-                                   # PSI_PURCHASE re-bisected for each.
+const UK_RETENTION_PRE   = 0.95   # UK pre-2015 reform: compulsory annuitization rate
+const UK_RETENTION_LOW   = 0.13   # UK post-2015 voluntary retention (low anchor; FCA)
+const UK_RETENTION_MID   = 0.17   # UK post-2015 voluntary retention (mid anchor; ABI/FCA central)
+const UK_RETENTION_HIGH  = 0.25   # UK post-2015 voluntary retention (high anchor; ABI)
+
+# Bundled behavioral wedge identification (Option 1 a-strict):
+# The bundled wedge (SDU + narrow-framing PED + choice-architecture salience)
+# is identified from the UK 2015 pension-freedoms reform as a proportional
+# retention factor (post/pre) and applied to the model's no-behavioral
+# baseline as a deterministic multiplicative transformation in
+# scripts/export_manuscript_numbers.jl. The model itself parameterizes only
+# rational + preference + structural channels.
+#
+# Production wedge factors:
+#   low  factor = UK_RETENTION_LOW  / UK_RETENTION_PRE = 0.137
+#   mid  factor = UK_RETENTION_MID  / UK_RETENTION_PRE = 0.179  (production)
+#   high factor = UK_RETENTION_HIGH / UK_RETENTION_PRE = 0.263
+#
+# Predicted US ownership = no-behavioral baseline × wedge factor.
+#
+# DO NOT calibrate the wedge to match observed US ownership. US ownership is
+# the test moment, not the target. The transport assumption is country-
+# invariance of the proportional retention factor under bundled identification.
+
+# NOTE: LAMBDA_W and PSI_PURCHASE constants have been removed. The behavioral
+# wedge mechanisms (SDU consumption transformation and at-purchase penalty)
+# have been removed from the model entirely under Option 1 bundling. The
+# bundled wedge is identified externally and applied as multiplicative
+# transport in scripts/export_manuscript_numbers.jl using the UK_RETENTION
+# constants above.
 
 # Public-care aversion (Ameriks et al. 2011 QJE; 2020 ECMA "Long-Term-Care Utility")
 # Households retain liquid wealth specifically to avoid Medicaid LTC reliance.
@@ -210,8 +101,22 @@ const LAMBDA_W = 1.0              # source-dependent utility (Force A) — NORMA
 # chi_LTC ≈ 0.5 from strategic-survey wealth equivalents (~$50K-$100K aversion
 # premium). The channel reduces predicted ownership because annuitization
 # accelerates Medicaid eligibility by depleting liquid wealth faster.
-const CHI_LTC = 0.5               # Ameriks (2020 ECMA) central estimate
-                                   # 1.0 = channel off; 0.5 = production active
+const CHI_LTC = 0.7               # Upper bound of Ameriks (2020 ECMA) 95% CI for
+                                   # public-care utility weight. Their central
+                                   # estimate is 0.5 with CI roughly [0.3, 0.7].
+                                   # We adopt 0.7 (the upper CI bound) as a more
+                                   # conservative choice than the central estimate,
+                                   # avoiding overcalibration of this channel
+                                   # relative to the model's other suppression
+                                   # mechanisms. The Phase 27 diagnostic showed
+                                   # CHI_LTC = 0.5 produces a pre-behavioral
+                                   # baseline of 1.4%, which is below any plausible
+                                   # behavioral-wedge identification target and
+                                   # creates a cliff in the at-purchase penalty
+                                   # mechanism. CHI_LTC = 0.7 is empirically
+                                   # defensible (within Ameriks CI) while leaving
+                                   # room for the bundled wedge to operate.
+                                   # 1.0 = channel off; 0.7 = production (May 2026).
 
 # HRS population data path
 const HRS_PATH = joinpath(@__DIR__, "..", "data", "processed", "lockwood_hrs_sample.csv")

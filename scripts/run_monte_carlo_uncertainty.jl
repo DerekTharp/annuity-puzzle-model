@@ -10,8 +10,10 @@
 #   MWR           ~ U(0.83, 0.91)     (Mitchell 1999 / Wettstein 2021 range)
 #   pessimism psi ~ U(0.97, 1.0)      (O'Dea-Sturrock CI)
 #   delta_c       ~ U(0.01, 0.03)     (Aguiar-Hurst sensitivity)
-#   psi_purchase  ~ U(0.005, 0.030)   (UK 2015 single-anchor SMM range
-#                                      [0.014, 0.028] with modest headroom)
+#
+# Note: the bundled behavioral wedge is identified externally and applied
+# as multiplicative transport (export_manuscript_numbers.jl); it is not a
+# parameter that varies in this MC.
 #
 # Output: tables/csv/monte_carlo_ownership.csv
 #         tables/tex/monte_carlo_summary.tex
@@ -69,16 +71,15 @@ base_surv = build_lockwood_survival(p_base)
 # Draw nuisance parameters (gamma fixed)
 rng = Random.MersenneTwister(12345)
 
-draws = Vector{NamedTuple{(:hazard_poor, :inflation, :mwr, :pessimism, :delta_c, :psi_purchase), NTuple{6, Float64}}}(undef, N_DRAWS)
+draws = Vector{NamedTuple{(:hazard_poor, :inflation, :mwr, :pessimism, :delta_c), NTuple{5, Float64}}}(undef, N_DRAWS)
 for i in 1:N_DRAWS
     hp     = 2.0   + (3.5   - 2.0  ) * rand(rng)
     pi_    = 0.015 + (0.025 - 0.015) * rand(rng)
     m      = 0.83  + (0.91  - 0.83 ) * rand(rng)
     psi    = 0.97  + (1.00  - 0.97 ) * rand(rng)
     dc     = 0.01  + (0.03  - 0.01 ) * rand(rng)
-    psi_p  = 0.005 + (0.030 - 0.005) * rand(rng)
     draws[i] = (hazard_poor=hp, inflation=pi_, mwr=m,
-                pessimism=psi, delta_c=dc, psi_purchase=psi_p)
+                pessimism=psi, delta_c=dc)
 end
 
 @printf("\n  Draws: %d (gamma fixed at %.1f)\n", N_DRAWS, GAMMA_FIXED)
@@ -86,8 +87,7 @@ for (lab, fn) in [("hazard_poor", d -> d.hazard_poor),
                   ("inflation",   d -> d.inflation),
                   ("MWR",         d -> d.mwr),
                   ("pessimism",   d -> d.pessimism),
-                  ("delta_c",     d -> d.delta_c),
-                  ("psi_purchase",d -> d.psi_purchase)]
+                  ("delta_c",     d -> d.delta_c)]
     vals = [fn(d) for d in draws]
     @printf("  %-13s mean=%.3f, range=[%.3f, %.3f]\n",
             lab, mean(vals), minimum(vals), maximum(vals))
@@ -118,7 +118,6 @@ _r = R_RATE
 _c_floor = C_FLOOR
 _fixed_cost = FIXED_COST
 _min_purchase = MIN_PURCHASE
-_lambda_w = LAMBDA_W
 _nw = _NW
 _na = _NA
 _nalpha = _NALPHA
@@ -153,8 +152,9 @@ results = parallel_solve(draws) do d
     fair_pr = compute_payout_rate(p_fair, _bs)
     grids = build_grids(p_fair, max(fair_pr, fair_pr_nom))
 
-    # Full 10-channel model: rational + age-varying needs + state-dep utility
-    # + behavioral purchase friction.
+    # Full model: rational + preferences + structural (chi_LTC).
+    # Bundled behavioral wedge is applied as multiplicative transport
+    # downstream, not as a model parameter.
     p_full = ModelParams(; common_kw...,
         theta=_theta, kappa=_kappa,
         mwr=d.mwr, fixed_cost=_fixed_cost, min_purchase=_min_purchase,
@@ -163,8 +163,7 @@ results = parallel_solve(draws) do d
         survival_pessimism=d.pessimism,
         consumption_decline=d.delta_c,
         health_utility=[1.0, 0.90, 0.75],
-        lambda_w=_lambda_w,
-        psi_purchase=d.psi_purchase,
+        chi_ltc=CHI_LTC,
         grid_kw...)
 
     sol = solve_lifecycle_health(p_full, grids, _bs, ss_mean_func)
@@ -172,7 +171,7 @@ results = parallel_solve(draws) do d
     own = own_result.ownership_rate * 100
 
     (hazard_poor=d.hazard_poor, inflation=d.inflation, mwr=d.mwr,
-     pessimism=d.pessimism, delta_c=d.delta_c, psi_purchase=d.psi_purchase,
+     pessimism=d.pessimism, delta_c=d.delta_c,
      ownership_pct=own)
 end
 
@@ -210,11 +209,11 @@ tables_dir = joinpath(@__DIR__, "..", "tables", "csv")
 mkpath(tables_dir)
 csv_path = joinpath(tables_dir, "monte_carlo_ownership.csv")
 open(csv_path, "w") do f
-    println(f, "gamma,hazard_poor,inflation,mwr,pessimism,delta_c,psi_purchase,ownership_pct")
+    println(f, "gamma,hazard_poor,inflation,mwr,pessimism,delta_c,ownership_pct")
     for r in results
-        @printf(f, "%.1f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.2f\n",
+        @printf(f, "%.1f,%.4f,%.4f,%.4f,%.4f,%.4f,%.2f\n",
             GAMMA_FIXED, r.hazard_poor, r.inflation, r.mwr,
-            r.pessimism, r.delta_c, r.psi_purchase, r.ownership_pct)
+            r.pessimism, r.delta_c, r.ownership_pct)
     end
 end
 println("\n  Results saved: $csv_path")

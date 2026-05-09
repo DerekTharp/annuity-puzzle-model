@@ -223,33 +223,16 @@ function main()
         joinpath(CALIB_DIR, "recalibrate_bequests.jl"))
     push!(timings, "Bequests" => t)
 
-    # --- Stage 9b: UK-anchored psi estimation (single-moment SMM) ---
-    # Produces: results/psi_estimation.json, tables/csv/psi_estimation.csv.
-    # Bisects psi to match UK 2015 pension-freedoms retention moment (mid-range
-    # 17%, sensitivity over 13-25%). Single-moment SMM, just-identified.
-    #
-    # SEQUENCING NOTE: This stage is intentionally placed BEFORE the Shapley
-    # subset enumeration (Stage 10), the SS cut robustness (Stage 11), and the
-    # gamma/inflation robustness sweep (Stage 12), so the SMM-derived psi is
-    # available on disk when downstream stages run. Currently those downstream
-    # stages still read PSI_PURCHASE from scripts/config.jl (the placeholder
-    # value); a follow-up refactor should have them read the SMM result from
-    # tables/csv/psi_estimation.csv. Until that refactor lands, the SMM
-    # estimate is reported separately and the downstream-stage headline
-    # reflects the placeholder; the UK-anchored ownership BRACKET (Stage 13b
-    # sensitivity sweep) is the empirical headline regardless of the
-    # placeholder choice.
-    t = run_stage(
-        "9b. UK-anchored psi Estimation (single-moment SMM)",
-        joinpath(SCRIPTS_DIR, "estimate_psi.jl"); parallel=true)
-    push!(timings, "Psi estimation" => t)
+    # NOTE: Stage 9b (UK-anchored psi estimation) has been removed. Under
+    # Option 1 bundled identification, the bundled behavioral wedge is applied
+    # as multiplicative transport in scripts/export_manuscript_numbers.jl
+    # rather than via parameter calibration. The SMM bisection is no longer
+    # needed.
 
-    # --- Stage 10: Exact Shapley decomposition (2048 subsets, 11 channels) ---
+    # --- Stage 10: Exact Shapley decomposition (512 subsets, 9 channels) ---
     # Produces: shapley_exact.tex/.csv
-    # NOTE: uses PSI_PURCHASE from scripts/config.jl (placeholder); see
-    # Stage 9b sequencing note above.
     t = run_stage(
-        "10. Exact Shapley Decomposition (2048 subsets)",
+        "10. Exact Shapley Decomposition (512 subsets)",
         joinpath(SCRIPTS_DIR, "run_subset_enumeration.jl"); parallel=true)
     push!(timings, "Shapley" => t)
 
@@ -274,26 +257,21 @@ function main()
         joinpath(SCRIPTS_DIR, "run_implied_gamma.jl"); parallel=true)
     push!(timings, "Implied gamma" => t)
 
-    # --- Stage 13b: Behavioral channel psi sensitivity sweep ---
-    # Produces: psi_sensitivity.csv. Solves the full 10-channel model at six
-    # psi_purchase values bracketing the Blanchett-Finke and Chalmers-Reuter
-    # behavioral evidence. Establishes the demand-side counterfactual range.
-    t = run_stage(
-        "13b. Behavioral psi-purchase Sensitivity Sweep",
-        joinpath(SCRIPTS_DIR, "run_psi_sensitivity.jl"); parallel=true)
-    push!(timings, "Psi sensitivity" => t)
+    # NOTE: Stage 13b (psi-purchase sensitivity sweep) has been removed.
+    # Under Option 1 bundled identification, the psi_purchase parameter no
+    # longer exists in the model. The bundled wedge is applied as
+    # multiplicative transport in scripts/export_manuscript_numbers.jl, and
+    # its sensitivity range is reported via the UK retention bracket
+    # [13%, 25%] mapped multiplicatively to the no-behavioral baseline.
 
-    # --- Stage 13c: Monte Carlo parameter uncertainty (10-channel) ---
+    # --- Stage 13c: Monte Carlo parameter uncertainty ---
     # Produces: monte_carlo_ownership.csv, monte_carlo_summary.tex.
     # 1000 joint draws over (gamma fixed) hazard_poor, inflation, MWR,
-    # pessimism, delta_c, psi_purchase. Yields 90% CI bands on the headline.
+    # pessimism, delta_c. Yields 90% CI bands on the no-behavioral baseline.
     t = run_stage(
         "13c. Monte Carlo Parameter Uncertainty",
         joinpath(SCRIPTS_DIR, "run_monte_carlo_uncertainty.jl"); parallel=true)
     push!(timings, "Monte Carlo uncertainty" => t)
-
-    # (Stage 13d / UK-anchored psi estimation has been moved to Stage 9b
-    #  so its output is available before the subset enumeration runs.)
 
     # --- Stage 14: Figure generation (reads CSVs) ---
     # Produces: figures/pdf/fig1-fig5.pdf, figures/png/fig1-fig5.png (5 figures).
@@ -313,15 +291,10 @@ function main()
         joinpath(SCRIPTS_DIR, "run_state_utility_sensitivity.jl"); parallel=true)
     push!(timings, "State-util sensitivity" => t)
 
-    # --- Stage 14c: Force A (lambda_W) sensitivity ---
-    # Produces: lambda_w_sensitivity.csv. Five full 11-channel solves at
-    # lambda_w in {0.625, 0.70, 0.85, 0.95, 1.00}, bracketing the SDU
-    # calibration uncertainty (raw Blanchett-Finke 0.625 vs production 0.85
-    # vs SDU-off 1.00).
-    t = run_stage(
-        "14c. Force A (lambda_W) Sensitivity",
-        joinpath(SCRIPTS_DIR, "run_lambda_w_sensitivity.jl"); parallel=true)
-    push!(timings, "Lambda_W sensitivity" => t)
+    # NOTE: Stage 14c (lambda_W sensitivity) has been removed. Under Option 1
+    # bundled identification, lambda_w is no longer a model parameter. The
+    # bundled wedge sensitivity is reported via the UK retention bracket
+    # in scripts/export_manuscript_numbers.jl.
 
     # --- Stage 15: Export manuscript numbers (must run AFTER all CSVs exist) ---
     # Produces: paper/numbers.tex — single source of truth for every numeric

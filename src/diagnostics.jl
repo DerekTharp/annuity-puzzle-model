@@ -33,11 +33,10 @@ utility + source-dependent utility) is:
   U'_c(c*) = β(1+r) E_m[ s · Σ_{H'} π(H,H') V'_W(W',A,H',t+1)
                        + (1-s) V'_beq(W') ]
 
-where U(c) = w_age(t) · w_health(H) · CRRA(c_eff(c, inc)), c_eff(c, inc)
-embeds the SDU income/portfolio split, and the marginal U'_c includes the
-SDU jacobian dC_eff/dc on the portfolio-funded margin. The diagnostic uses
-`marginal_flow_utility_sdu`, NOT the bare `marginal_utility(c, γ) = c^(-γ)`,
-so the LHS matches the same flow utility the solver maximizes.
+where U(c) = w_age(t) · w_health(H) · CRRA(c). The diagnostic uses
+`marginal_flow_utility`, which incorporates the age-varying needs and
+state-dependent utility weights, NOT the bare `marginal_utility(c, γ) =
+c^(-γ)`, so the LHS matches the same flow utility the solver maximizes.
 
 Source-aware accounting mirrors solve_lifecycle_health: medical absorbs
 income first, then portfolio, then the Medicaid floor lifts inc_after.
@@ -133,7 +132,7 @@ function compute_euler_residuals(
                             end
 
                             # LHS: full SDU-aware marginal flow utility
-                            lhs_q = marginal_flow_utility_sdu(c_q, inc_after, p.gamma, t, ih, p)
+                            lhs_q = marginal_flow_utility(c_q, p.gamma, t, ih, p)
                             lhs_total += gh_weights[iq] * lhs_q
 
                             W_next = (1.0 + p.r) * max(cash_node - c_q, 0.0)
@@ -162,7 +161,7 @@ function compute_euler_residuals(
                         # LHS: full SDU-aware marginal flow utility evaluated at
                         # the stored optimum (since with no shock the policy is
                         # deterministic and c_star is the actual c*(W,A,H,t)).
-                        lhs = marginal_flow_utility_sdu(c_star, inc_gross, p.gamma, t, ih, p)
+                        lhs = marginal_flow_utility(c_star, p.gamma, t, ih, p)
 
                         W_next = (1.0 + p.r) * (cash_before - c_star)
                         W_next = max(W_next, 0.0)

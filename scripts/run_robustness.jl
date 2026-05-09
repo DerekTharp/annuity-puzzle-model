@@ -73,7 +73,6 @@ base_kw = Dict{Symbol,Any}(
     :mwr_loaded => MWR_LOADED,
     :fixed_cost_val => FIXED_COST,
     :min_purchase_val => MIN_PURCHASE,
-    :lambda_w_val => LAMBDA_W,
     :inflation_val => INFLATION,
     :n_wealth => N_WEALTH, :n_annuity => N_ANNUITY, :n_alpha => N_ALPHA,
     :W_max => W_MAX, :n_quad => N_QUAD,
@@ -83,12 +82,11 @@ base_kw = Dict{Symbol,Any}(
     :survival_pessimism => SURVIVAL_PESSIMISM,
     :min_wealth => MIN_WEALTH,
     :ss_levels => SS_LEVELS,
-    # All headline preference / behavioral channels must be in base_kw;
-    # otherwise robustness sweeps evaluate a different model than the
-    # production headline.
+    # All headline preference channels must be in base_kw; otherwise
+    # robustness sweeps evaluate a different model than the production
+    # headline.
     :consumption_decline_val => CONSUMPTION_DECLINE,
     :health_utility_vals => Float64.(HEALTH_UTILITY),
-    :psi_purchase_val => PSI_PURCHASE,
     :verbose => false,
 )
 

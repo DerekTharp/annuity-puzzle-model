@@ -107,53 +107,62 @@ struct CounterfactualConfig
     psi::Float64
     c_floor::Float64
     ss_scale::Float64       # multiplier on SS_QUARTILE_LEVELS (1.0 = baseline)
-    psi_purchase::Float64   # behavioral purchase friction (0 = default architecture)
+    apply_wedge::Bool       # true = apply UK proportional wedge to model output;
+                            # false = report no-behavioral baseline (default-
+                            # architecture interpretation: bundled wedge absent)
     description::String
 end
 
+# Note: under Option 1 bundled identification, the bundled wedge is applied
+# as multiplicative transport in scripts/export_manuscript_numbers.jl. The
+# "Default architecture" counterfactual corresponds to NOT applying the wedge
+# (apply_wedge=false), since removing the choice architecture restores the
+# pre-behavioral level. Other counterfactuals apply the wedge as in the
+# production headline.
+
 configs = [
     CounterfactualConfig(
-        "Baseline", MWR_LOADED, INFLATION, SURVIVAL_PESSIMISM, C_FLOOR, 1.0, PSI_PURCHASE,
-        "Full ten-channel model, conservative (ABI-anchored) bracket end"),
+        "Baseline", MWR_LOADED, INFLATION, SURVIVAL_PESSIMISM, C_FLOOR, 1.0, true,
+        "Full model with bundled wedge applied"),
     CounterfactualConfig(
-        "Group pricing (MWR=0.90)", 0.90, INFLATION, SURVIVAL_PESSIMISM, C_FLOOR, 1.0, PSI_PURCHASE,
+        "Group pricing (MWR=0.90)", 0.90, INFLATION, SURVIVAL_PESSIMISM, C_FLOOR, 1.0, true,
         "TSP/employer plan annuity pricing (James et al. 2006)"),
     CounterfactualConfig(
-        "Public option (MWR=0.95)", 0.95, INFLATION, SURVIVAL_PESSIMISM, C_FLOOR, 1.0, PSI_PURCHASE,
+        "Public option (MWR=0.95)", 0.95, INFLATION, SURVIVAL_PESSIMISM, C_FLOOR, 1.0, true,
         "Government-offered annuity at administrative cost"),
     CounterfactualConfig(
-        "Actuarially fair (MWR=1.0)", 1.0, INFLATION, SURVIVAL_PESSIMISM, C_FLOOR, 1.0, PSI_PURCHASE,
+        "Actuarially fair (MWR=1.0)", 1.0, INFLATION, SURVIVAL_PESSIMISM, C_FLOOR, 1.0, true,
         "Eliminate all pricing loads (theoretical benchmark)"),
     CounterfactualConfig(
-        "Real annuity, TIPS-backed", 0.78, 0.0, SURVIVAL_PESSIMISM, C_FLOOR, 1.0, PSI_PURCHASE,
+        "Real annuity, TIPS-backed", 0.78, 0.0, SURVIVAL_PESSIMISM, C_FLOOR, 1.0, true,
         "Inflation-indexed annuity at TIPS-backed pricing (Brown et al. 2002)"),
     CounterfactualConfig(
-        "Real annuity, nominal-equiv", MWR_LOADED, 0.0, SURVIVAL_PESSIMISM, C_FLOOR, 1.0, PSI_PURCHASE,
+        "Real annuity, nominal-equiv", MWR_LOADED, 0.0, SURVIVAL_PESSIMISM, C_FLOOR, 1.0, true,
         "Inflation-indexed at production MWR — isolates pure inflation channel"),
     CounterfactualConfig(
-        "Fair + real", 1.0, 0.0, SURVIVAL_PESSIMISM, C_FLOOR, 1.0, PSI_PURCHASE,
+        "Fair + real", 1.0, 0.0, SURVIVAL_PESSIMISM, C_FLOOR, 1.0, true,
         "Eliminate both loads and inflation (supply-side upper bound)"),
     CounterfactualConfig(
-        "SS cut 23%", MWR_LOADED, INFLATION, SURVIVAL_PESSIMISM, C_FLOOR, 0.77, PSI_PURCHASE,
+        "SS cut 23%", MWR_LOADED, INFLATION, SURVIVAL_PESSIMISM, C_FLOOR, 0.77, true,
         "Trust fund exhaustion ~2033 (current-law default)"),
     CounterfactualConfig(
-        "Correct pessimism (psi=1.0)", MWR_LOADED, INFLATION, 1.0, C_FLOOR, 1.0, PSI_PURCHASE,
+        "Correct pessimism (psi=1.0)", MWR_LOADED, INFLATION, 1.0, C_FLOOR, 1.0, true,
         "Eliminate survival pessimism (information/disclosure intervention)"),
     CounterfactualConfig(
-        "Group + correct pessimism", 0.90, INFLATION, 1.0, C_FLOOR, 1.0, PSI_PURCHASE,
+        "Group + correct pessimism", 0.90, INFLATION, 1.0, C_FLOOR, 1.0, true,
         "MWR=0.90 + veridical survival beliefs — test interaction"),
     CounterfactualConfig(
         "Public consumption floor doubled", MWR_LOADED, INFLATION, SURVIVAL_PESSIMISM,
-        C_FLOOR * 2.0, 1.0, PSI_PURCHASE,
+        C_FLOOR * 2.0, 1.0, true,
         "Double the public consumption floor (c_floor); proxy for SSI/Medicaid expansion"),
     CounterfactualConfig(
-        "Best feasible package", 0.90, 0.0, 1.0, C_FLOOR, 1.0, PSI_PURCHASE,
-        "Group pricing + real annuity + correct pessimism"),
+        "Best feasible package", 0.90, 0.0, 1.0, C_FLOOR, 1.0, false,
+        "Group pricing + real annuity + correct pessimism + default architecture (no wedge)"),
     CounterfactualConfig(
-        "Default architecture (psi=0)", MWR_LOADED, INFLATION, SURVIVAL_PESSIMISM, C_FLOOR, 1.0, 0.0,
-        "Annuitization as default; removes behavioral friction (Chalmers-Reuter 2012)"),
+        "Default architecture (no wedge)", MWR_LOADED, INFLATION, SURVIVAL_PESSIMISM, C_FLOOR, 1.0, false,
+        "Annuitization as default; bundled wedge does not apply (Chalmers-Reuter 2012)"),
     CounterfactualConfig(
-        "Default + group pricing", 0.90, INFLATION, SURVIVAL_PESSIMISM, C_FLOOR, 1.0, 0.0,
+        "Default + group pricing", 0.90, INFLATION, SURVIVAL_PESSIMISM, C_FLOOR, 1.0, false,
         "Default architecture combined with group pricing"),
 ]
 
@@ -193,10 +202,10 @@ for (i, cfg) in enumerate(configs)
         payout = cfg.mwr * fair_pr
     end
 
-    # Build ModelParams with ALL TEN channels on (rational + preferences + behavioral)
-    # Use cfg-specific c_floor for Medicaid counterfactual.
-    # The behavioral channel (psi_purchase) inherits from cfg so demand-side
-    # counterfactuals (e.g. default architecture, psi=0) can override it.
+    # Build ModelParams with all model-internal channels on (rational +
+    # preferences + structural). The bundled behavioral wedge is applied
+    # post-hoc as multiplicative transport (apply_wedge=true) or omitted
+    # (apply_wedge=false, default-architecture interpretation).
     model_common = (gamma=GAMMA, beta=BETA, r=R_RATE,
                     stochastic_health=true, n_health_states=3, n_quad=N_QUAD,
                     c_floor=cfg.c_floor, hazard_mult=HAZARD_MULT)
@@ -210,9 +219,7 @@ for (i, cfg) in enumerate(configs)
         survival_pessimism=cfg.psi,
         consumption_decline=CONSUMPTION_DECLINE,
         health_utility=Float64.(HEALTH_UTILITY),
-        lambda_w=LAMBDA_W,
         chi_ltc=CHI_LTC,
-        psi_purchase=cfg.psi_purchase,
         grid_kw...)
 
     # SS levels for this counterfactual
@@ -263,16 +270,17 @@ println("=" ^ 70)
 flush(stdout)
 
 # CEV configs: baseline + top 3 counterfactuals.
-# Each row: (label, mwr, infl, surv_pessimism, psi_purchase).
-# "Best feasible" combines supply-side reform (group pricing, real annuity)
-# with the demand-side default architecture (psi_purchase = 0). Without the
-# psi_purchase override the "Best feasible" CEV would understate the welfare
-# gain by holding the narrow-framing penalty at the production value.
+# Each row: (label, mwr, infl, surv_pessimism). The bundled behavioral
+# wedge does not enter the within-model welfare computation under Option 1
+# (it's a post-hoc multiplicative reduction applied to ownership rates,
+# not a structural parameter affecting agent decisions). Welfare effects
+# of removing the bundled wedge are reported separately as the
+# "Default architecture" lever in Section 5.
 cev_configs = [
-    ("Baseline",      MWR_LOADED, INFLATION, SURVIVAL_PESSIMISM, PSI_PURCHASE),
-    ("Group pricing", 0.90,       INFLATION, SURVIVAL_PESSIMISM, PSI_PURCHASE),
-    ("Real annuity",  MWR_LOADED, 0.0,       SURVIVAL_PESSIMISM, PSI_PURCHASE),
-    ("Best feasible", 0.90,       0.0,       1.0,                0.0),
+    ("Baseline",      MWR_LOADED, INFLATION, SURVIVAL_PESSIMISM),
+    ("Group pricing", 0.90,       INFLATION, SURVIVAL_PESSIMISM),
+    ("Real annuity",  MWR_LOADED, 0.0,       SURVIVAL_PESSIMISM),
+    ("Best feasible", 0.90,       0.0,       1.0),
 ]
 
 bequest_specs = [
@@ -291,9 +299,9 @@ flush(stdout)
 
 cev_results = Dict{String, Any}()
 
-for (label, mwr, infl, surv_pess, psi_p) in cev_configs
-    @printf("\n  --- CEV Grid: %s (MWR=%.2f, infl=%.1f%%, surv_pess=%.3f, psi_p=%.4f) ---\n",
-        label, mwr, infl * 100, surv_pess, psi_p)
+for (label, mwr, infl, surv_pess) in cev_configs
+    @printf("\n  --- CEV Grid: %s (MWR=%.2f, infl=%.1f%%, surv_pess=%.3f) ---\n",
+        label, mwr, infl * 100, surv_pess)
     flush(stdout)
 
     cev_out = compute_cev_grid(
@@ -315,8 +323,6 @@ for (label, mwr, infl, surv_pess, psi_p) in cev_configs
         survival_pessimism=surv_pess,
         consumption_decline=CONSUMPTION_DECLINE,
         health_utility=Float64.(HEALTH_UTILITY),
-        psi_purchase=psi_p,
-        lambda_w=LAMBDA_W,
         chi_ltc=CHI_LTC,
         verbose=true,
     )
@@ -432,12 +438,12 @@ mkpath(joinpath(tables_dir, "tex"))
 # the parser when changing schema.
 csv_path = joinpath(tables_dir, "csv", "welfare_counterfactuals.csv")
 open(csv_path, "w") do f
-    println(f, "scenario,mwr,inflation,psi,c_floor,ss_scale,ownership_pct,mean_alpha,psi_purchase,description")
+    println(f, "scenario,mwr,inflation,psi,c_floor,ss_scale,ownership_pct,mean_alpha,apply_wedge,description")
     for (i, r) in enumerate(results)
         cfg = configs[i]
         @printf(f, "%s,%.2f,%.3f,%.3f,%.0f,%.2f,%.2f,%.4f,%.3f,%s\n",
             r.label, cfg.mwr, cfg.inflation, cfg.psi, cfg.c_floor, cfg.ss_scale,
-            r.ownership * 100, r.mean_alpha, cfg.psi_purchase, r.description)
+            r.ownership * 100, r.mean_alpha, cfg.apply_wedge, r.description)
     end
 end
 println("\n  Ownership CSV saved: ", csv_path)

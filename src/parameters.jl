@@ -12,11 +12,13 @@ using TOML
     kappa::Float64 = 0.0          # bequest shifter (Lockwood 2018)
     consumption_decline::Float64 = 0.0  # age-varying consumption needs (Aguiar-Hurst)
     health_utility::Vector{Float64} = [1.0, 1.0, 1.0]  # state-dependent utility [G,F,P] (FLN 2013)
-    psi_purchase::Float64 = 0.0       # purchase event disutility (Chalmers-Reuter 2012, Blanchett-Finke 2025); 0 = off
-    psi_purchase_c_ref::Float64 = 18_000.0  # reference consumption (\$/yr) for converting dollar premium to utility units
-    lambda_w::Float64 = 1.0           # source-dependent utility (Blanchett-Finke 2024-25, partialled)
-                                       # 1.0 = off; 0.85 = production residual after netting medical/bequest/tax channels
-                                       # Implementation: c_eff = c_income + lambda_w * c_portfolio
+    # NOTE: Behavioral wedge (SDU + narrow-framing PED + choice-architecture salience)
+    # is NOT parameterized in the model. It is identified externally from the UK 2015
+    # pension-freedoms reform as a proportional retention factor and applied to the
+    # model's no-behavioral baseline as a deterministic multiplicative transformation
+    # in scripts/export_manuscript_numbers.jl. The model's structural parameters
+    # therefore include only rational + preference + structural channels (the latter
+    # being chi_ltc / public-care aversion).
     chi_ltc::Float64 = 1.0            # public-care aversion (Ameriks 2011 QJE; 2020 ECMA)
                                        # 1.0 = channel off
                                        # 0.5 = production: utility multiplied by chi_ltc when
@@ -99,7 +101,7 @@ function load_params(config_path::String)
     section_map = Dict(
         "preferences" => [:gamma, :beta, :theta, :kappa,
                           :consumption_decline, :health_utility],
-        "behavioral" => [:psi_purchase, :psi_purchase_c_ref, :lambda_w, :chi_ltc],
+        "structural" => [:chi_ltc],
         "demographics" => [:age_start, :age_end],
         "income" => [:r, :ss_mean, :ss_quartile_shares],
         "annuity" => [:mwr, :fixed_cost, :inflation_rate, :min_purchase,
