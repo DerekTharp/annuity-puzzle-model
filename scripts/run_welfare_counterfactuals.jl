@@ -364,7 +364,7 @@ println("  (DFJ bequests, Good health)")
 println("=" ^ 70)
 
 @printf("\n  %-12s", "Wealth")
-for (label, _, _, _, _) in cev_configs
+for (label, _, _, _) in cev_configs
     @printf("  %16s", label)
 end
 println()
@@ -373,7 +373,7 @@ println("  " * "-" ^ (12 + 18 * length(cev_configs)))
 for (iw, w) in enumerate(wealth_eval)
     W_str = string("\$", round(Int, w / 1000), "K")
     @printf("  %-12s", W_str)
-    for (label, _, _, _, _) in cev_configs
+    for (label, _, _, _) in cev_configs
         r = cev_results[label].grid[iw, 2, 1]  # DFJ bequests, Good health
         @printf("  %15.2f%%", r.cev * 100)
     end
@@ -384,7 +384,7 @@ println("  " * "-" ^ (12 + 18 * length(cev_configs)))
 # Same for Fair health
 println("\n  (DFJ bequests, Fair health)")
 @printf("  %-12s", "Wealth")
-for (label, _, _, _, _) in cev_configs
+for (label, _, _, _) in cev_configs
     @printf("  %16s", label)
 end
 println()
@@ -393,7 +393,7 @@ println("  " * "-" ^ (12 + 18 * length(cev_configs)))
 for (iw, w) in enumerate(wealth_eval)
     W_str = string("\$", round(Int, w / 1000), "K")
     @printf("  %-12s", W_str)
-    for (label, _, _, _, _) in cev_configs
+    for (label, _, _, _) in cev_configs
         r = cev_results[label].grid[iw, 2, 2]  # DFJ bequests, Fair health
         @printf("  %15.2f%%", r.cev * 100)
     end
@@ -413,7 +413,7 @@ println("=" ^ 70)
     "Counterfactual", "Bequest Spec", "Mean CEV", "Med CEV", "CEV>0", "CEV>1%")
 println("  " * "-" ^ 78)
 
-for (label, _, _, _, _) in cev_configs
+for (label, _, _, _) in cev_configs
     cev_out = cev_results[label]
     for pcev in cev_out.population_cev
         @printf("  %-20s  %-16s  %8.2f%%  %8.2f%%  %7.1f%%  %7.1f%%\n",
@@ -452,7 +452,7 @@ println("\n  Ownership CSV saved: ", csv_path)
 cev_csv_path = joinpath(tables_dir, "csv", "cev_counterfactuals.csv")
 open(cev_csv_path, "w") do f
     print(f, "wealth,health")
-    for (label, _, _, _, _) in cev_configs
+    for (label, _, _, _) in cev_configs
         @printf(f, ",cev_%s,alpha_%s",
             replace(lowercase(label), " " => "_"),
             replace(lowercase(label), " " => "_"))
@@ -462,7 +462,7 @@ open(cev_csv_path, "w") do f
     for (iw, w) in enumerate(wealth_eval)
         for ih in 1:3
             @printf(f, "%.0f,%s", w, health_names[ih])
-            for (label, _, _, _, _) in cev_configs
+            for (label, _, _, _) in cev_configs
                 r = cev_results[label].grid[iw, 2, ih]  # DFJ bequests
                 @printf(f, ",%.4f,%.4f", r.cev, r.alpha_star)
             end
@@ -528,7 +528,7 @@ open(cev_tex_path, "w") do f
     println(f, raw"\toprule")
     # Header
     print(f, "Wealth")
-    for (label, _, _, _, _) in cev_configs
+    for (label, _, _, _) in cev_configs
         @printf(f, " & %s", label)
     end
     println(f, " \\\\")
@@ -538,7 +538,7 @@ open(cev_tex_path, "w") do f
     for (iw, w) in enumerate(wealth_eval)
         W_str = string("\\\$", round(Int, w / 1000), "K")
         print(f, W_str)
-        for (label, _, _, _, _) in cev_configs
+        for (label, _, _, _) in cev_configs
             r = cev_results[label].grid[iw, 2, 1]
             @printf(f, " & %.2f", r.cev * 100)
         end
@@ -550,7 +550,7 @@ open(cev_tex_path, "w") do f
     for (iw, w) in enumerate(wealth_eval)
         W_str = string("\\\$", round(Int, w / 1000), "K")
         print(f, W_str)
-        for (label, _, _, _, _) in cev_configs
+        for (label, _, _, _) in cev_configs
             r = cev_results[label].grid[iw, 2, 2]
             @printf(f, " & %.2f", r.cev * 100)
         end
@@ -562,7 +562,7 @@ open(cev_tex_path, "w") do f
     for (iw, w) in enumerate(wealth_eval)
         W_str = string("\\\$", round(Int, w / 1000), "K")
         print(f, W_str)
-        for (label, _, _, _, _) in cev_configs
+        for (label, _, _, _) in cev_configs
             r = cev_results[label].grid[iw, 1, 1]
             @printf(f, " & %.2f", r.cev * 100)
         end
