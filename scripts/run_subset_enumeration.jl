@@ -91,9 +91,18 @@ const N_SUBSETS = 2^N_CHANNELS  # 2048
 const CHANNEL_NAMES = [
     "SS", "Bequests", "Medical+R-S", "Pessimism", "Age needs",
     "State utility", "Loads", "Inflation",
-    "SDU (Force A)", "Narrow framing (Force B)",
+    "SDU (Force A)", "Bundled behavioral wedge",
     "Public-care aversion (LTC)",
 ]
+# Channel naming under Option 1 a-strict bundling:
+#   - "SDU (Force A)" mechanism is preserved in the enumeration for sensitivity
+#     analysis, but its Shapley value will be near zero in production runs that
+#     use LAMBDA_W = 1.0 (the SDU mechanism is off as a normalization choice).
+#   - "Bundled behavioral wedge" replaces the prior "Narrow framing (Force B)"
+#     label. The PSI_PURCHASE mechanism still operates through the at-purchase
+#     penalty, but its calibrated value reflects the FULL bundled effect of
+#     SDU + narrow framing + choice-architecture salience under joint UK
+#     identification, not narrow framing alone.
 
 println("=" ^ 70)
 println("  FULL SUBSET ENUMERATION: 2^$N_CHANNELS = $N_SUBSETS CHANNEL SUBSETS")

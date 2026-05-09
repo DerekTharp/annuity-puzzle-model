@@ -482,12 +482,17 @@ function run_decomposition(
         step_num += 1
     end
 
-    # --- + Purchase disutility (Force B; narrow framing under loss aversion;
-    #     Barberis-Huang 2009 narrow framing in finance; Tversky-Kahneman 1992
-    #     loss aversion). The penalty is proportional to the underwater amount
+    # --- + Bundled behavioral wedge (Force A: SDU; Force B: narrow framing PED;
+    #     Force C: choice-architecture salience; jointly identified from UK 2015
+    #     pension-freedoms reform under proportional-wedge transport).
+    #     Operates mechanically through the at-purchase penalty mechanism
+    #     (Barberis-Huang 2009 narrow framing; Tversky-Kahneman 1992 loss
+    #     aversion). The penalty is proportional to the underwater amount
     #     (premium minus cumulative payouts) at each period and vanishes at
-    #     breakeven — the household experiences ongoing felt cost of the
-    #     irreversible purchase until the payouts fully recoup the premium. ---
+    #     breakeven. Under Option 1 bundling, LAMBDA_W is normalized to 1.0
+    #     (Force A mechanism off) and PSI_PURCHASE carries the entire bundled
+    #     behavioral effect; the parameter is therefore best interpreted as a
+    #     reduced-form bundled wedge, not narrow framing alone. ---
     psi_purchase_active = psi_purchase_val > 0.0
     if psi_purchase_active
         p_psi = ModelParams(; common_kw...,
@@ -503,8 +508,8 @@ function run_decomposition(
             grid_kw...)
         res_psi = solve_and_evaluate(p_psi, grids, base_surv, ss_arg,
             pop, loaded_pr_nom;
-            step_name="$step_num. + Purchase disutility (psi=$(psi_purchase_val))", verbose=verbose)
-        push!(steps, DecompositionStep("+ Purchase disutility",
+            step_name="$step_num. + Bundled behavioral wedge (psi=$(psi_purchase_val))", verbose=verbose)
+        push!(steps, DecompositionStep("+ Bundled behavioral wedge",
             res_psi.ownership, res_psi.mean_alpha, res_psi.ownership - prev_rate, res_psi.solve_time))
         prev_rate = res_psi.ownership
         step_num += 1

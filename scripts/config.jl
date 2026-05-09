@@ -62,30 +62,62 @@ const HEALTH_UTILITY = [1.0, 0.92, 0.82]  # state-dep utility — FLN (2013) cen
                                            # empirically defensible range and
                                            # avoiding interaction with steeper
                                            # hazards / public-care aversion.
-const PSI_PURCHASE = 0.0266       # narrow-framing purchase penalty within the JOINTLY
-                                   # IDENTIFIED behavioral bundle (a-strict).
+const PSI_PURCHASE = 0.001        # bundled behavioral wedge parameter (Option 1
+                                   # a-strict). Operates through the at-purchase
+                                   # penalty mechanism but interpretation is the
+                                   # FULL bundled wedge, not narrow framing alone.
                                    #
-                                   # CALIBRATION (a-strict, locked in May 8, 2026):
+                                   # CALIBRATION (Option 1 a-strict, May 9, 2026):
                                    # The UK 2015 pension-freedoms reform activated all
                                    # behavioral phenomena at once when compulsion lifted.
                                    # The bundle contains three named forces:
-                                   #   Force A (SDU, parameterized as LAMBDA_W): raises
-                                   #     annuitization, post-purchase consumption channel
-                                   #   Force B (narrow framing PED, parameterized as
-                                   #     PSI_PURCHASE): suppresses annuitization,
-                                   #     at-purchase loss-aversion channel
-                                   #   Force C (choice-architecture salience: provider
-                                   #     communications, adviser conversations, status-
-                                   #     quo bias, Madrian-Beshears defaults): mixed
-                                   #     sign at sub-component level, NOT separately
-                                   #     parameterized; absorbed into the calibrated
-                                   #     PSI_PURCHASE residual.
-                                   # The 78 pp UK swing is the JOINT footprint of all
-                                   # three forces. We CANNOT separately identify them
-                                   # from a single moment; we transport the bundle.
-                                   # PSI_PURCHASE is therefore best read as a reduced-
-                                   # form parameter capturing Force B + Force C, not
-                                   # narrow framing alone.
+                                   #   Force A (SDU): post-purchase license-to-spend
+                                   #     on guaranteed-income flows. Named, not
+                                   #     parameterized (LAMBDA_W = 1.0 normalization).
+                                   #   Force B (narrow framing PED): at-purchase loss
+                                   #     aversion over unrecouped premium until
+                                   #     breakeven. Operates through the PSI_PURCHASE
+                                   #     mechanism in the model.
+                                   #   Force C (choice-architecture salience):
+                                   #     provider communications, adviser conversations,
+                                   #     status-quo bias, Madrian-Beshears defaults.
+                                   #     Named, not parameterized.
+                                   #
+                                   # All three forces are observed AS A BUNDLE in the
+                                   # UK 2015 reform. Under joint identification, only
+                                   # one mechanism (PSI_PURCHASE) is parameterized;
+                                   # it carries the bundled wedge effect. The other
+                                   # two forces are conceptually present but
+                                   # mechanically absorbed into PSI_PURCHASE under
+                                   # the LAMBDA_W = 1.0 normalization.
+                                   #
+                                   # SMM target: PSI_PURCHASE bisected such that the
+                                   # model's voluntary ownership matches the UK
+                                   # proportional-wedge prediction. With chi_LTC = 0.5
+                                   # active, the pre-behavioral 11-channel baseline
+                                   # is roughly 1.8% (steep suppression from Medicaid-
+                                   # avoidance). Under proportional transport
+                                   # (UK retention 17/95 = 0.179), target US
+                                   # ownership ~ 1.8% × 0.179 ~ 0.3%. The actual
+                                   # production value will be set by Stage 9b SMM
+                                   # bisection during the AWS pipeline run; the
+                                   # 0.001 placeholder reflects the order of magnitude
+                                   # implied by the existing SMM grid (psi=0.001154
+                                   # produced 13% retention in the May 9 run with
+                                   # LAMBDA_W = 0.85; the LAMBDA_W = 1.0 SMM will
+                                   # land at a different value).
+                                   #
+                                   # DO NOT retune PSI_PURCHASE to match US ownership.
+                                   # US ownership is the test moment, not the target.
+                                   # Whatever the model predicts is the honest result
+                                   # under bundled identification.
+                                   #
+                                   # PIPELINE STATUS: The May 9 production run used
+                                   # LAMBDA_W = 0.85 and PSI_PURCHASE = 0.0266 which
+                                   # was inconsistent with the (a-strict) framing
+                                   # (two moments doing two jobs). This commit
+                                   # corrects to true Option 1 bundling. Re-run
+                                   # required for production CSVs and numbers.tex.
                                    #
                                    # Identification: proportional behavioral wedge.
                                    # The post/pre retention ratio (17/95 = 0.179 at
@@ -143,21 +175,32 @@ const PSI_PURCHASE = 0.0266       # narrow-framing purchase penalty within the J
                                    # with hand-coded numerical values; macro-driven
                                    # numbers in paper/numbers.tex remain stale until
                                    # the pipeline is re-run at the new ψ.
-const LAMBDA_W = 0.85             # source-dependent utility (Blanchett-Finke 2024-25
-                                   # spending differential, partialled). The raw 80/50
-                                   # spending differential between income and portfolio
-                                   # gives 0.625 as a gross SDU loading, but that
-                                   # differential is observationally confounded with
-                                   # liquidity buffering, mental accounting, bequest
-                                   # preservation, and tax timing — channels already
-                                   # captured separately in this model. Netting those
-                                   # channels from the differential leaves a residual
-                                   # SDU loading of ~0.85 (defensible range
-                                   # [0.80, 0.90] across alternative
-                                   # decompositions). 1.0 = SDU off; <1.0 = portfolio
-                                   # dollars consumed at discounted utility weight.
-                                   # The 0.625 raw value is reported as an upper-
-                                   # bound sensitivity in the robustness table.
+const LAMBDA_W = 1.0              # source-dependent utility (Force A) — NORMALIZATION
+                                   # under Option 1 bundled identification.
+                                   # Under (a-strict) bundling, all three behavioral
+                                   # forces (Force A SDU, Force B PED, Force C choice-
+                                   # architecture salience) are jointly identified
+                                   # from one external moment (UK 2015 reform). Two
+                                   # parameters from one moment is under-identified;
+                                   # we resolve by normalizing LAMBDA_W = 1.0 (SDU
+                                   # mechanism off) and letting PSI_PURCHASE carry
+                                   # the entire bundled behavioral effect through the
+                                   # at-purchase penalty mechanism.
+                                   # Force A is named in the manuscript as one
+                                   # conceptual component of the bundle, with
+                                   # Blanchett-Finke (2024-25) cited as descriptive
+                                   # evidence for SDU's existence in retirement
+                                   # spending data. BF is NOT used to identify
+                                   # LAMBDA_W in this paper — that would re-introduce
+                                   # a second moment and break the bundling logic.
+                                   # Cross-paper: the SS claiming companion paper
+                                   # (Tharp 2026) independently identifies SDU from
+                                   # claiming-age moments; that calibration does not
+                                   # transfer here under joint UK identification.
+                                   # Sensitivity: Section 6 reports model behavior
+                                   # under alternative LAMBDA_W normalizations
+                                   # including the BF-implied 0.85 value, with
+                                   # PSI_PURCHASE re-bisected for each.
 
 # Public-care aversion (Ameriks et al. 2011 QJE; 2020 ECMA "Long-Term-Care Utility")
 # Households retain liquid wealth specifically to avoid Medicaid LTC reliance.

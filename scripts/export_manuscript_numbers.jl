@@ -613,8 +613,17 @@ function build_macros!()
     if haskey(sh, "SDU (Force A)")
         def!("shapSDU",         fmt_num(sh["SDU (Force A)"].value_pp; digits=1))
     end
-    if haskey(sh, "Narrow framing (Force B)")
-        def!("shapNarrowFraming", fmt_num(sh["Narrow framing (Force B)"].value_pp; digits=1))
+    # Under Option 1 a-strict bundling, the prior "Narrow framing (Force B)"
+    # channel is renamed "Bundled behavioral wedge" to reflect that PSI_PURCHASE
+    # carries the full bundled wedge effect (SDU + narrow framing + Force C).
+    # We define both shapBundledWedge (preferred) and shapNarrowFraming
+    # (legacy alias) for compatibility; manuscript prose uses the bundled-
+    # wedge framing.
+    bundled_key = haskey(sh, "Bundled behavioral wedge") ? "Bundled behavioral wedge" :
+                  (haskey(sh, "Narrow framing (Force B)") ? "Narrow framing (Force B)" : nothing)
+    if bundled_key !== nothing
+        def!("shapBundledWedge", fmt_num(sh[bundled_key].value_pp; digits=1))
+        def!("shapNarrowFraming", fmt_num(sh[bundled_key].value_pp; digits=1))
     end
 
     def!("shapShareSS",         fmt_pct(sh["SS"].share_pct; digits=0))
@@ -630,8 +639,11 @@ function build_macros!()
     if haskey(sh, "SDU (Force A)")
         def!("shapShareSDU",    fmt_pct(sh["SDU (Force A)"].share_pct; digits=0))
     end
-    if haskey(sh, "Narrow framing (Force B)")
-        def!("shapShareNarrowFraming", fmt_pct(sh["Narrow framing (Force B)"].share_pct; digits=0))
+    bundled_key2 = haskey(sh, "Bundled behavioral wedge") ? "Bundled behavioral wedge" :
+                   (haskey(sh, "Narrow framing (Force B)") ? "Narrow framing (Force B)" : nothing)
+    if bundled_key2 !== nothing
+        def!("shapShareBundledWedge", fmt_pct(sh[bundled_key2].share_pct; digits=0))
+        def!("shapShareNarrowFraming", fmt_pct(sh[bundled_key2].share_pct; digits=0))
     end
 
     # Non-pricing non-traditional channels sum: Med+R-S + Pessimism + Age needs
