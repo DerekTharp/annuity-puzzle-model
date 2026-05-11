@@ -177,58 +177,68 @@ if target_optin <= 0.0
 end
 
 # ===================================================================
-# Bisection on psi to hit target_optin
+# Bisection on psi to hit target_optin.
+# Wrapped in a function to give the bracket/bisection state a proper
+# local scope — top-level `while`/`for` loops in Julia 1.10+ create a
+# soft local scope that does not write back to outer-scope bindings,
+# so `psi_hi *= 2` inside a top-level loop fails with UndefVarError.
 # ===================================================================
-psi_lo = 0.0
-psi_hi = 5.0  # upper bracket — reduce if calibration converges quickly
-own_lo = own_default
-own_hi = solve_ownership(psi_hi; lambda_w_val=LAMBDA_W)
-@printf("\n  Bracket: psi in [%.3f, %.3f] -> ownership in [%.2f%%, %.2f%%]\n",
-    psi_lo, psi_hi, own_lo * 100, own_hi * 100)
-flush(stdout)
-
-# Expand bracket if needed
-expansion_iters = 0
-while own_hi > target_optin && expansion_iters < 5
-    psi_hi *= 2
+function bisect_psi(own_default::Float64, target_optin::Float64)
+    psi_lo = 0.0
+    psi_hi = 5.0  # upper bracket — reduce if calibration converges quickly
+    own_lo = own_default
     own_hi = solve_ownership(psi_hi; lambda_w_val=LAMBDA_W)
-    @printf("  Expanded bracket: psi_hi -> %.3f, ownership = %.2f%%\n",
-        psi_hi, own_hi * 100)
-    expansion_iters += 1
-    flush(stdout)
-end
-
-# Bisect
-println("\nBisecting...")
-flush(stdout)
-psi_calibrated = NaN
-own_calibrated = NaN
-for iter in 1:25
-    psi_mid = 0.5 * (psi_lo + psi_hi)
-    own_mid = solve_ownership(psi_mid; lambda_w_val=LAMBDA_W)
-    @printf("  iter %2d: psi = %.4f -> ownership = %.3f%%  (target %.3f%%)\n",
-        iter, psi_mid, own_mid * 100, target_optin * 100)
+    @printf("\n  Bracket: psi in [%.3f, %.3f] -> ownership in [%.2f%%, %.2f%%]\n",
+        psi_lo, psi_hi, own_lo * 100, own_hi * 100)
     flush(stdout)
 
-    if abs(own_mid - target_optin) < 0.002  # 0.2 pp tolerance
-        psi_calibrated = psi_mid
-        own_calibrated = own_mid
-        break
+    # Expand bracket if needed
+    expansion_iters = 0
+    while own_hi > target_optin && expansion_iters < 5
+        psi_hi *= 2
+        own_hi = solve_ownership(psi_hi; lambda_w_val=LAMBDA_W)
+        @printf("  Expanded bracket: psi_hi -> %.3f, ownership = %.2f%%\n",
+            psi_hi, own_hi * 100)
+        expansion_iters += 1
+        flush(stdout)
     end
 
-    if own_mid > target_optin
-        psi_lo = psi_mid
-        own_lo = own_mid
-    else
-        psi_hi = psi_mid
-        own_hi = own_mid
+    # Bisect
+    println("\nBisecting...")
+    flush(stdout)
+    psi_calibrated = NaN
+    own_calibrated = NaN
+    for iter in 1:25
+        psi_mid = 0.5 * (psi_lo + psi_hi)
+        own_mid = solve_ownership(psi_mid; lambda_w_val=LAMBDA_W)
+        @printf("  iter %2d: psi = %.4f -> ownership = %.3f%%  (target %.3f%%)\n",
+            iter, psi_mid, own_mid * 100, target_optin * 100)
+        flush(stdout)
+
+        if abs(own_mid - target_optin) < 0.002  # 0.2 pp tolerance
+            psi_calibrated = psi_mid
+            own_calibrated = own_mid
+            break
+        end
+
+        if own_mid > target_optin
+            psi_lo = psi_mid
+            own_lo = own_mid
+        else
+            psi_hi = psi_mid
+            own_hi = own_mid
+        end
     end
+
+    if isnan(psi_calibrated)
+        psi_calibrated = 0.5 * (psi_lo + psi_hi)
+        own_calibrated = solve_ownership(psi_calibrated; lambda_w_val=LAMBDA_W)
+    end
+
+    return psi_calibrated, own_calibrated
 end
 
-if isnan(psi_calibrated)
-    psi_calibrated = 0.5 * (psi_lo + psi_hi)
-    own_calibrated = solve_ownership(psi_calibrated; lambda_w_val=LAMBDA_W)
-end
+psi_calibrated, own_calibrated = bisect_psi(own_default, target_optin)
 
 @printf("\n  Calibrated psi_purchase: %.4f\n", psi_calibrated)
 @printf("  Implied opt-in ownership: %.2f%%\n", own_calibrated * 100)
