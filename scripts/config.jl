@@ -71,14 +71,16 @@ const UK_RETENTION_HIGH  = 0.25   # UK post-2015 voluntary retention (high ancho
 #
 # Model 1 (structural multi-channel, US-anchored): rational + preference +
 # structural (chi_ltc) + behavioral (SDU + PED) channels parameterized
-# directly in the Bellman equation. SDU calibrated to Blanchett-Finke
-# (2024-25); PED calibrated to Chalmers-Reuter (2012) Oregon PERS
-# default-vs-opt-in elasticity in scripts/calibrate_psi_chalmers_reuter.jl.
+# directly in the Bellman equation. Behavioral parameters (LAMBDA_W,
+# PSI_PURCHASE) are exploratory best guesses anchored to literature
+# magnitudes (Blanchett-Finke 2024-25 spending differential; Brown 2008 /
+# Chalmers-Reuter 2012 / Hu-Scott 2007 framing-effect magnitudes), not
+# moment-matched. Sensitivity ranges reported in manuscript.
 #
 # Model 2 (UK reduced-form transport): apply the proportional retention
-# factor from the UK 2015 reform (UK_post / UK_pre) to the model's
-# no-behavioral baseline as a deterministic multiplicative transformation
-# in scripts/export_manuscript_numbers.jl. The UK pre-reform 95% rate is a
+# factor from the UK 2015 reform (UK_post / UK_pre) to the FRICTIONLESS
+# Yaari baseline as a deterministic multiplicative transformation in
+# scripts/export_manuscript_numbers.jl. The UK pre-reform 95% rate is a
 # COMPULSION equilibrium, so the wedge captures the bundle of behavioral
 # AND rational frictions that voluntary retirees express; the no-behavioral
 # baseline already absorbs most rational frictions, so this transport
@@ -92,34 +94,34 @@ const UK_RETENTION_HIGH  = 0.25   # UK post-2015 voluntary retention (high ancho
 # Both Model 1 and Model 2 predictions are reported alongside the HRS
 # empirical (2.0-3.3%) for triangulation.
 
-# Behavioral channel calibrations for Model 1.
+# Behavioral channel calibrations for Model 1 (exploratory parameters).
+#
+# These are best-guess literature-anchored values, not identified from a
+# moment match. Sensitivity ranges are reported across plausible spans.
 #
 # LAMBDA_W: source-dependent utility discount on portfolio drawdowns
 # (Force A; Blanchett-Finke 2024-25). Households consume income (SS,
 # annuity payouts) at full utility weight and portfolio drawdowns at a
-# discount lambda_w in (0, 1]. Calibrated to the Blanchett-Finke spending
-# differential (~0.85 partialled).
-const LAMBDA_W = 0.85
+# discount lambda_w in (0, 1]. Production central value is the
+# Blanchett-Finke point estimate: retirees spend ~80% of income but only
+# ~50% of portfolio, so 50/80 = 0.625. Sensitivity reported across
+# {0.5, 0.625, 0.75, 0.85}.
+const LAMBDA_W = 0.625
 
 # PSI_PURCHASE: narrow-framing at-purchase penalty intensity (Force B;
 # Barberis-Huang 2009 narrow framing; Tversky-Kahneman 1992 loss aversion).
-# Calibrated to the Chalmers-Reuter (2012) Oregon PERS 35 pp default-vs-
-# opt-in ownership gap by scripts/calibrate_psi_chalmers_reuter.jl. The
-# value below is a placeholder pending Stage 9b calibration; the
-# calibration script writes the calibrated value into a JSON file that
-# subsequent stages read at runtime.
+# No direct empirical identification — the parameter scales the NPV of the
+# loss-aversion stream over the underwater period of the SPIA. Chosen so
+# PED-alone produces an ownership shift in the magnitude range of
+# documented framing/default effects (Brown 2008 ~25 pp; Chalmers-Reuter
+# 2012 ~35 pp; Hu-Scott 2007 ~20-35% NPV discount). Sensitivity reported
+# across {0.01, 0.05, 0.09}.
 const PSI_PURCHASE = 0.05
 
 # PSI_PURCHASE_C_REF: reference consumption used to express the at-purchase
 # loss-aversion stream in utility units. Set to typical SS benefit so the
 # resulting psi_purchase magnitudes have an interpretable scale.
 const PSI_PURCHASE_C_REF = 18_000.0
-
-# Chalmers-Reuter (2012) Oregon PERS calibration target — observed
-# default-vs-opt-in ownership gap (35 pp). Used by
-# scripts/calibrate_psi_chalmers_reuter.jl as the moment that pins down
-# psi_purchase.
-const CHALMERS_REUTER_GAP_TARGET = 0.35
 
 # Public-care aversion (Ameriks et al. 2011 QJE; 2020 ECMA "Long-Term-Care Utility")
 # Households retain liquid wealth specifically to avoid Medicaid LTC reliance.

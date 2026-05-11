@@ -530,28 +530,41 @@ function build_macros!()
     # compulsion-equilibrium retention rate and a 13-25% post-reform
     # voluntary retention rate. Model 2 transports the proportional
     # retention factor (UK_post / UK_pre) to the US as a deterministic
-    # multiplicative transformation on the no-behavioral baseline:
+    # multiplicative transformation on the FRICTIONLESS Yaari baseline:
     #
-    #   Model 2 prediction = no-behavioral baseline × (UK_post / UK_pre)
+    #   Model 2 prediction = frictionless baseline × (UK_post / UK_pre)
+    #
+    # The frictionless baseline is the HRS-population ownership rate when
+    # NO channels are active (Yaari benchmark on the empirical wealth
+    # distribution). The UK retention factor captures the combined effect
+    # of all rational AND behavioral frictions that voluntary households
+    # express when compulsion lifts, so applying it directly to the
+    # frictionless baseline yields a clean reduced-form prediction without
+    # double-counting any structural channel.
     #
     # Because the UK pre-reform 95% rate is itself a compulsion equilibrium
-    # (not a no-behavioral state), the transport bracket should be
-    # interpreted as an upper bound on the friction wedge — Model 1 already
-    # absorbs most rational frictions inside the no-behavioral baseline.
+    # (not a no-friction state), the transport prediction should be read
+    # as an upper bound on the combined friction wedge.
     #
     # Production midpoint: UK_post = 17%, UK_pre = 95%, factor = 17/95 = 0.179
     # Sensitivity range: UK_post in {13%, 17%, 25%}; factor in [0.137, 0.263].
     # ===================================================================
-    if !isnan(own_no_behavioral_pct)
+    own_frictionless_pct = NaN
+    try
+        own_frictionless_pct = subset_ownership(0)
+    catch e
+        @warn "Could not load frictionless baseline for Model 2" exception=e
+    end
+    if !isnan(own_frictionless_pct)
         # Source UK retention constants from config.jl (single source of truth)
         wedge_pre  = UK_RETENTION_PRE
         wedge_low  = UK_RETENTION_LOW  / wedge_pre   # 13/95 = 0.137
         wedge_mid  = UK_RETENTION_MID  / wedge_pre   # 17/95 = 0.179
         wedge_high = UK_RETENTION_HIGH / wedge_pre   # 25/95 = 0.263
 
-        ownNum_low  = own_no_behavioral_pct * wedge_low
-        ownNum_mid  = own_no_behavioral_pct * wedge_mid
-        ownNum_high = own_no_behavioral_pct * wedge_high
+        ownNum_low  = own_frictionless_pct * wedge_low
+        ownNum_mid  = own_frictionless_pct * wedge_mid
+        ownNum_high = own_frictionless_pct * wedge_high
 
         # Wedge factor macros (for display in the manuscript)
         def!("pWedgeFactorLow",  fmt_num(wedge_low;  digits=3))
@@ -561,6 +574,12 @@ function build_macros!()
         def!("pUKRetentionLow",  fmt_pct(UK_RETENTION_LOW  * 100; digits=0))
         def!("pUKRetentionMid",  fmt_pct(UK_RETENTION_MID  * 100; digits=0))
         def!("pUKRetentionHigh", fmt_pct(UK_RETENTION_HIGH * 100; digits=0))
+
+        # Frictionless baseline (the multiplicand for Model 2). The
+        # ownFrictionless macro is already defined earlier in build_macros!
+        # at the start of the subset-ownership block; emit only the Num
+        # variant here so the backfill pass doesn't double-define.
+        macro_exists("ownFrictionlessNum") || def!("ownFrictionlessNum", fmt_num(own_frictionless_pct; digits=1))
 
         # Model 2 wedge-multiplied US ownership predictions
         def!("ownWedgeLow",  fmt_pct(ownNum_low;  digits=1))
@@ -889,7 +908,8 @@ function write_extension_path_table()
     #     Layer 1 (rational): SS, Bequests, Medical+R-S, Pessimism, Loads, Inflation
     #     Layer 2 (preference): Age needs, State-dependent utility, chi_LTC
     #     Layer 3 (behavioral): SDU (Force A), PED (Force B)
-    #   Model 2: no-behavioral baseline x UK_post / UK_pre.
+    #   Model 2: frictionless baseline x UK_post / UK_pre.
+    bm0 = 0                                  # frictionless Yaari baseline
     bm7 = B_SS | B_BEQUESTS | B_MED_RS | B_PESSIMISM | B_LOADS | B_INFLATION
     bm8 = bm7 | B_AGE_NEEDS
     bm9 = bm8 | B_STATE_UTIL
@@ -898,7 +918,7 @@ function write_extension_path_table()
     bm11_full = bm10_sdu | B_PED            # + Force B (Model 1 headline)
 
     own = Dict{Int,Float64}()
-    for bm in (bm7, bm8, bm9, bm9_ltc, bm10_sdu, bm11_full)
+    for bm in (bm0, bm7, bm8, bm9, bm9_ltc, bm10_sdu, bm11_full)
         try
             own[bm] = subset_ownership(bm)
         catch
@@ -906,13 +926,16 @@ function write_extension_path_table()
         end
     end
 
-    # Model 2: bundled wedge applied to the no-behavioral baseline
+    # Model 2: UK reduced-form wedge applied to the FRICTIONLESS baseline.
+    # The wedge captures the joint rational+behavioral retention that
+    # voluntary households express when compulsion lifts, so it should
+    # operate on a baseline with no frictions of any kind.
     wedge_factor_mid = 0.17 / 0.95
     wedge_factor_low = 0.13 / 0.95
     wedge_factor_high = 0.25 / 0.95
-    own_wedge_mid = own[bm9_ltc] * wedge_factor_mid
-    own_wedge_low = own[bm9_ltc] * wedge_factor_low
-    own_wedge_high = own[bm9_ltc] * wedge_factor_high
+    own_wedge_mid  = own[bm0] * wedge_factor_mid
+    own_wedge_low  = own[bm0] * wedge_factor_low
+    own_wedge_high = own[bm0] * wedge_factor_high
 
     out = joinpath(REPO_ROOT, "tables", "tex", "extension_path.tex")
     open(out, "w") do f
@@ -937,8 +960,8 @@ function write_extension_path_table()
         @printf(f, "+ Narrow-framing penalty (Force B; Model 1) & %.1f & %+.1f \\\\\n",
                 own[bm11_full], own[bm11_full] - own[bm10_sdu])
         println(f, raw"\midrule")
-        @printf(f, "Model 2: no-behavioral baseline \$\\times\$ UK 17/95 & %.1f & --- \\\\\n",
-                own_wedge_mid)
+        @printf(f, "Model 2: frictionless baseline (%.1f) \$\\times\$ UK 17/95 & %.1f & --- \\\\\n",
+                own[bm0], own_wedge_mid)
         println(f, raw"\bottomrule")
         println(f, raw"\end{tabular}")
         println(f, raw"\begin{tablenotes}")
@@ -950,7 +973,7 @@ function write_extension_path_table()
         println(f, raw"respectively.")
         println(f, raw"\item Model 2 (bottom row) applies the UK 2015 pension-freedoms")
         @printf(f, "\\item retention factor (UK post / UK pre = %.2f at the production midpoint) to the\n", wedge_factor_mid)
-        @printf(f, "\\item no-behavioral baseline. The UK retention range [13\\%%, 25\\%%] maps to a Model~2 prediction bracket of [%.1f\\%%, %.1f\\%%].\n",
+        @printf(f, "\\item frictionless Yaari baseline. The UK retention range [13\\%%, 25\\%%] maps to a Model~2 prediction bracket of [%.1f\\%%, %.1f\\%%].\n",
                 own_wedge_low, own_wedge_high)
         println(f, raw"\end{tablenotes}")
         println(f, raw"\end{threeparttable}")

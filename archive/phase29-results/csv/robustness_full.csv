@@ -1,0 +1,58 @@
+category,specification,ownership
+Gamma sweep,gamma=1.50,0.0%
+Gamma sweep,gamma=2.00,0.0%
+Gamma sweep,gamma=2.20,0.0%
+Gamma sweep,gamma=2.30,0.0%
+Gamma sweep,gamma=2.35,0.0%
+Gamma sweep,gamma=2.40,0.1%
+Gamma sweep,gamma=2.45,0.5%
+Gamma sweep,gamma=2.50,1.8%
+Gamma sweep,gamma=2.55,4.0%
+Gamma sweep,gamma=2.60,6.4%
+Gamma sweep,gamma=2.70,9.6%
+Gamma sweep,gamma=2.80,12.8%
+Gamma sweep,gamma=3.00,18.1%
+Gamma sweep,gamma=3.50,22.9%
+Gamma sweep,gamma=4.00,23.8%
+Gamma sweep,gamma=5.00,23.6%
+Hazard mult,[0.45, 1.0, 3.5] (R-S functional, age 65-75),3.2%
+Hazard mult,[0.50, 1.0, 3.0] (baseline),5.2%
+Hazard mult,[0.57, 1.0, 2.7] (HRS SRH empirical),6.4%
+Hazard mult,[0.60, 1.0, 2.0] (conservative SRH),10.6%
+Hazard mult,Age-varying HRS (3 bands),7.3%
+Min purchase,$0 (any purchase),16.5%
+Min purchase,$1000,16.5%
+Min purchase,$5000,16.5%
+Min purchase,$10000,16.5%
+Min purchase,$25000,16.5%
+Grid convergence,Coarse (40×15),2.3%
+Grid convergence,Medium (60×20),1.7%
+Grid convergence,Production (80×30) [baseline],1.8%
+Grid convergence,Fine (100×40),1.2%
+Bequest spec,No bequests,21.0%
+Bequest spec,Weak bequests (theta=2, kappa=$10),30.2%
+Bequest spec,Moderate bequests (theta=10, kappa=$10),29.5%
+Bequest spec,DFJ luxury (theta=57.0, kappa=$272K),1.8%
+Gamma×Inflation,g=2.4,pi=1%,0.3%
+Gamma×Inflation,g=2.4,pi=2%,0.1%
+Gamma×Inflation,g=2.4,pi=3%,0.0%
+Gamma×Inflation,g=2.5,pi=1%,4.7%
+Gamma×Inflation,g=2.5,pi=2%,1.8%
+Gamma×Inflation,g=2.5,pi=3%,0.7%
+Gamma×Inflation,g=2.6,pi=1%,9.6%
+Gamma×Inflation,g=2.6,pi=2%,6.4%
+Gamma×Inflation,g=2.6,pi=3%,3.3%
+Gamma×Inflation,g=3.0,pi=1%,22.5%
+Gamma×Inflation,g=3.0,pi=2%,18.1%
+Gamma×Inflation,g=3.0,pi=3%,13.6%
+MWR sweep,MWR=0.82,0.0%
+MWR sweep,MWR=0.85,0.4%
+MWR sweep,MWR=0.90,5.8%
+MWR sweep,MWR=0.95,15.4%
+GH nodes,n_quad=5,1.1%
+GH nodes,n_quad=7,1.7%
+GH nodes,n_quad=11,1.7%
+Survival pessimism,psi=0.970,5.1%
+Survival pessimism,psi=0.981,8.7%
+Survival pessimism,psi=0.990,14.0%
+Survival pessimism,psi=1.000,21.4%

@@ -1,0 +1,4 @@
+bequest_spec,mean_cev,median_cev,frac_positive,frac_above_1pct,n_total,n_excluded,n_included
+No bequest,0.006846,0.000000,0.1967,0.1490,5303,1658,3645
+Moderate (DFJ),0.000280,0.000000,0.0919,0.0000,5303,1658,3645
+Strong bequest,0.000000,0.000000,0.0000,0.0000,5303,1658,3645

@@ -1,0 +1,11 @@
+label,psi,ownership_pct,mean_alpha,solve_time,default_gap_pp
+No PED (rational + SDU only),0.0000,79.2691,0.587996,284.7,0.0000
+UK low (55pp behavioral),0.0142,31.7990,0.162382,286.7,47.4701
+UK mid (60pp behavioral),0.0163,24.4554,0.130625,285.8,54.8138
+UK high (65pp behavioral),0.0194,18.5172,0.093865,286.4,60.7519
+UK ELSA strip-low (70pp behavioral),0.0220,13.3521,0.067439,289.6,65.9171
+UK ELSA strip-high (74pp behavioral),0.0240,10.5411,0.052351,290.3,68.7280
+UK low total (75pp drop),0.0281,3.5488,0.025235,285.5,75.7203
+UK ELSA total (88pp drop),0.0335,2.3190,0.016704,286.2,76.9501
+Above sensitivity range,0.0400,1.3001,0.009079,287.0,77.9691
+Corner-bound region,0.0750,0.0000,0.000000,285.6,79.2691

@@ -1,0 +1,11 @@
+step,ownership_pct,mean_alpha,delta_pp,solve_time_s
+Yaari benchmark,41.85,0.4076,-58.15,9.8
++ Social Security,100.00,0.9447,58.15,37.6
++ Bequest motives,100.00,0.9087,0.00,35.3
++ Medical expenditure risk (uncorrelated),97.36,0.8104,-2.64,282.1
++ Health-mortality correlation (R-S),87.74,0.5279,-9.63,277.4
++ Survival pessimism,62.40,0.2451,-25.33,276.6
++ State-dependent utility,62.68,0.2434,0.28,276.3
++ Age-varying consumption needs,54.92,0.1511,-7.77,277.8
++ Realistic pricing loads,8.29,0.0104,-46.63,278.0
++ Inflation erosion,1.76,0.0018,-6.54,278.9

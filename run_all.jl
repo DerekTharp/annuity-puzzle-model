@@ -223,14 +223,12 @@ function main()
         joinpath(CALIB_DIR, "recalibrate_bequests.jl"))
     push!(timings, "Bequests" => t)
 
-    # --- Stage 9b: Calibrate psi_purchase to Chalmers-Reuter (2012) ---
-    # Bisects psi_purchase so the at-purchase friction reproduces the
-    # 35 pp Oregon PERS default-vs-opt-in ownership gap. Writes
-    # results/psi_calibration.toml; downstream stages consume this value.
-    t = run_stage(
-        "9b. Calibrate psi_purchase (Chalmers-Reuter)",
-        joinpath(SCRIPTS_DIR, "calibrate_psi_chalmers_reuter.jl"))
-    push!(timings, "Psi calibration" => t)
+    # NOTE: Stage 9b (Chalmers-Reuter psi calibration) was removed in Phase 30.
+    # The behavioral parameters lambda_w and psi_purchase are now exploratory
+    # best guesses (literature-anchored magnitudes, not moment-matched), set
+    # directly in scripts/config.jl. Sensitivity ranges are reported in the
+    # manuscript across plausible spans. The CR 35 pp default-vs-opt-in gap
+    # remains a literature reference but is not used as a calibration target.
 
     # --- Stage 10: Exact Shapley decomposition (2048 subsets, 11 channels) ---
     # Produces: shapley_exact.tex/.csv

@@ -1,0 +1,15 @@
+scenario,mwr,inflation,psi,c_floor,ss_scale,ownership_pct,mean_alpha,apply_wedge,description
+Baseline,0.87,0.020,0.960,6180,1.00,1.65,0.0017,1.000,Full model with bundled wedge applied
+Group pricing (MWR=0.90),0.90,0.020,0.960,6180,1.00,5.83,0.0079,1.000,TSP/employer plan annuity pricing (James et al. 2006)
+Public option (MWR=0.95),0.95,0.020,0.960,6180,1.00,17.57,0.0382,1.000,Government-offered annuity at administrative cost
+Actuarially fair (MWR=1.0),1.00,0.020,0.960,6180,1.00,30.25,0.0963,1.000,Eliminate all pricing loads (theoretical benchmark)
+Real annuity, TIPS-backed,0.78,0.000,0.960,6180,1.00,0.00,0.0000,1.000,Inflation-indexed annuity at TIPS-backed pricing (Brown et al. 2002)
+Real annuity, nominal-equiv,0.87,0.000,0.960,6180,1.00,8.75,0.0111,1.000,Inflation-indexed at production MWR — isolates pure inflation channel
+Fair + real,1.00,0.000,0.960,6180,1.00,37.10,0.1216,1.000,Eliminate both loads and inflation (supply-side upper bound)
+SS cut 23%,0.87,0.020,0.960,6180,0.77,12.37,0.0195,1.000,Trust fund exhaustion ~2033 (current-law default)
+Correct pessimism (psi=1.0),0.87,0.020,1.000,6180,1.00,25.05,0.0813,1.000,Eliminate survival pessimism (information/disclosure intervention)
+Group + correct pessimism,0.90,0.020,1.000,6180,1.00,33.56,0.1420,1.000,MWR=0.90 + veridical survival beliefs — test interaction
+Public consumption floor doubled,0.87,0.020,0.960,12360,1.00,0.67,0.0005,1.000,Double the public consumption floor (c_floor); proxy for SSI/Medicaid expansion
+Best feasible package,0.90,0.000,1.000,6180,1.00,42.55,0.1888,0.000,Group pricing + real annuity + correct pessimism + default architecture (no wedge)
+Default architecture (no wedge),0.87,0.020,0.960,6180,1.00,1.65,0.0017,0.000,Annuitization as default; bundled wedge does not apply (Chalmers-Reuter 2012)
+Default + group pricing,0.90,0.020,0.960,6180,1.00,5.83,0.0079,0.000,Default architecture combined with group pricing

@@ -1,0 +1,11 @@
+step,own_gamma2.0,alpha_gamma2.0,ret_gamma2.0,own_gamma2.5,alpha_gamma2.5,ret_gamma2.5,own_gamma3.0,alpha_gamma3.0,ret_gamma3.0
+Yaari benchmark,40.69,0.3969,0.0,41.85,0.4076,0.0,42.45,0.4124,0.0
++ Social Security,100.00,0.9340,245.8,100.00,0.9447,239.0,100.00,0.9508,235.6
++ Bequest motives,100.00,0.8364,100.0,100.00,0.9087,100.0,100.00,0.9354,100.0
++ Medical expenditure risk (uncorrelated),97.47,0.7763,97.5,97.36,0.8104,97.4,97.89,0.8113,97.9
++ Health-mortality correlation (R-S),81.38,0.3964,83.5,87.74,0.5279,90.1,89.00,0.5648,90.9
++ Survival pessimism,31.83,0.0263,39.1,62.40,0.2451,71.1,67.64,0.3358,76.0
++ State-dependent utility,27.34,0.0193,85.9,62.68,0.2434,100.5,67.96,0.3380,100.5
++ Age-varying consumption needs,1.34,0.0003,4.9,54.92,0.1511,87.6,60.44,0.2598,88.9
++ Realistic pricing loads,0.00,0.0000,0.0,8.29,0.0104,15.1,26.11,0.0815,43.2
++ Inflation erosion,0.00,0.0000,0.0,1.76,0.0018,21.2,18.10,0.0522,69.3

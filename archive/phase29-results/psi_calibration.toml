@@ -1,0 +1,8 @@
+implied_gap = 0.1491608523477277
+psi_purchase_c_ref = 18000.0
+source = "Chalmers-Reuter (2012) Oregon PERS, 35 pp default-vs-opt-in"
+default_ownership = 0.1491608523477277
+optin_ownership_calibrated = 0.0
+lambda_w_used = 0.85
+psi_purchase_calibrated = 159.9999976158142
+target_gap = 0.35

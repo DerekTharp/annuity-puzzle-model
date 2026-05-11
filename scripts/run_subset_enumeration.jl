@@ -64,10 +64,10 @@ include(joinpath(@__DIR__, "config.jl"))
 const CHI_LTC_VAL = CHI_LTC
 
 # LAMBDA_W_VAL / PSI_PURCHASE_VAL / PSI_PURCHASE_C_REF_VAL: behavioral channel
-# parameters sourced from config.jl. SDU is calibrated to Blanchett-Finke
-# (2024-25) spending differential (~0.85). PED is calibrated to the Chalmers-
-# Reuter (2012) Oregon PERS 35 pp default-vs-opt-in elasticity in
-# scripts/calibrate_psi_chalmers_reuter.jl.
+# parameters sourced from config.jl. Both are exploratory best guesses
+# anchored to literature magnitudes (SDU: Blanchett-Finke 2024-25 50/80
+# spending differential; PED: Brown 2008 / Chalmers-Reuter 2012 framing
+# effects); not moment-matched. Sensitivity ranges reported in manuscript.
 const LAMBDA_W_VAL = LAMBDA_W
 const PSI_PURCHASE_VAL = PSI_PURCHASE
 const PSI_PURCHASE_C_REF_VAL = PSI_PURCHASE_C_REF

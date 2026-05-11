@@ -1,0 +1,31 @@
+\begin{table}[htbp]
+\centering
+\caption{Exact Shapley-Value Decomposition of Predicted Annuity Ownership}
+\label{tab:shapley_exact}
+\begin{tabular}{lcc}
+\toprule
+Channel & Shapley (pp) & Share (\%) \\
+\midrule
+SS & -17.65 & -42.2 \\
+Bequests & +0.85 & 2.0 \\
+Medical+R-S & +8.60 & 20.6 \\
+Pessimism & +5.85 & 14.0 \\
+Age needs & +2.90 & 6.9 \\
+State utility & +0.26 & 0.6 \\
+Loads & +14.01 & 33.5 \\
+Inflation & +1.44 & 3.4 \\
+Public-care aversion (LTC) & -0.64 & -1.5 \\
+Source-dependent utility (SDU) & -13.44 & -32.1 \\
+Narrow-framing penalty (PED) & +39.65 & 94.7 \\
+\midrule
+Total & +41.85 & 100.0 \\
+\bottomrule
+\end{tabular}
+\begin{tablenotes}
+\small
+\item Exact Shapley values computed from all 2048 channel subsets.
+Each value represents the weighted average marginal ownership reduction (pp)
+across all coalition orderings.
+Yaari baseline: 41.8\%. Full model: 0.0\%.
+\end{tablenotes}
+\end{table}

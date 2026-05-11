@@ -1,0 +1,49 @@
+kappa,theta,step,ownership_pct
+272628,56.96,Yaari benchmark,56.89
+272628,56.96,+ Social Security,100.00
+272628,56.96,+ Bequest motives,100.00
+272628,56.96,+ Medical expenditure risk (uncorrelated),98.41
+272628,56.96,+ Health-mortality correlation (R-S),95.05
+272628,56.96,+ Survival pessimism,82.33
+272628,56.96,+ Realistic pricing loads,17.67
+272628,56.96,+ Inflation erosion,3.00
+100000,41.68,Yaari benchmark,56.89
+100000,41.68,+ Social Security,100.00
+100000,41.68,+ Bequest motives,100.00
+100000,41.68,+ Medical expenditure risk (uncorrelated),98.06
+100000,41.68,+ Health-mortality correlation (R-S),92.93
+100000,41.68,+ Survival pessimism,72.97
+100000,41.68,+ Realistic pricing loads,6.36
+100000,41.68,+ Inflation erosion,0.00
+50000,116.60,Yaari benchmark,56.89
+50000,116.60,+ Social Security,100.00
+50000,116.60,+ Bequest motives,68.02
+50000,116.60,+ Medical expenditure risk (uncorrelated),96.11
+50000,116.60,+ Health-mortality correlation (R-S),52.30
+50000,116.60,+ Survival pessimism,44.70
+50000,116.60,+ Realistic pricing loads,0.00
+50000,116.60,+ Inflation erosion,0.00
+25000,243.02,Yaari benchmark,56.89
+25000,243.02,+ Social Security,100.00
+25000,243.02,+ Bequest motives,44.35
+25000,243.02,+ Medical expenditure risk (uncorrelated),84.98
+25000,243.02,+ Health-mortality correlation (R-S),59.72
+25000,243.02,+ Survival pessimism,46.82
+25000,243.02,+ Realistic pricing loads,0.00
+25000,243.02,+ Inflation erosion,0.00
+10000,4030.89,Yaari benchmark,56.89
+10000,4030.89,+ Social Security,100.00
+10000,4030.89,+ Bequest motives,0.00
+10000,4030.89,+ Medical expenditure risk (uncorrelated),96.11
+10000,4030.89,+ Health-mortality correlation (R-S),75.27
+10000,4030.89,+ Survival pessimism,59.72
+10000,4030.89,+ Realistic pricing loads,17.84
+10000,4030.89,+ Inflation erosion,13.43
+0,707.87,Yaari benchmark,56.89
+0,707.87,+ Social Security,100.00
+0,707.87,+ Bequest motives,18.55
+0,707.87,+ Medical expenditure risk (uncorrelated),100.00
+0,707.87,+ Health-mortality correlation (R-S),94.88
+0,707.87,+ Survival pessimism,88.52
+0,707.87,+ Realistic pricing loads,50.00
+0,707.87,+ Inflation erosion,43.29

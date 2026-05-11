@@ -77,8 +77,7 @@ echo "run_all.jl exit code: $PIPELINE_RC" | tee -a "$LOG"
 # the partial CSVs aids diagnosis). The bundle includes:
 #   - All CSVs and LaTeX tables (tables/{csv,tex})
 #   - All figures (figures/{pdf,png})
-#   - All intermediate result objects (results/*.json, *.jld2, etc.) so
-#     downstream provenance like psi_estimation.json travels with the run
+#   - All intermediate result objects (results/*) for provenance
 #   - Generated manuscript macros (paper/numbers.tex)
 #   - Lockfile snapshot (Project.toml, Manifest.toml) for reproducibility
 #   - Launch provenance manifest (.aws-launch-provenance.txt) tying the
