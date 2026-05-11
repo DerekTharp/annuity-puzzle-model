@@ -59,6 +59,16 @@ function compute_wtp(sol::Solution, payout_rate::Float64; A_existing::Float64=0.
             W_c = clamp(W_rem, g.W[1], g.W[end])
             A_c = clamp(A_total, g.A[1], g.A[end])
             V_val = V_interp(W_c, A_c)
+
+            # Mirror solver: subtract narrow-framing at-purchase penalty NPV.
+            if p.psi_purchase > 0.0
+                premium = alpha * W_0
+                V_val -= purchase_penalty(
+                    premium, payout_rate, p.gamma, p.psi_purchase,
+                    p.psi_purchase_c_ref, p.beta, sol.base_surv,
+                )
+            end
+
             if V_val > best_V
                 best_V = V_val
             end
@@ -102,6 +112,16 @@ function compute_wtp(sol::Solution, payout_rate::Float64; A_existing::Float64=0.
                 W_c = clamp(W_rem, g.W[1], g.W[end])
                 A_c = clamp(A_total, g.A[1], g.A[end])
                 V_val = V_interp(W_c, A_c)
+
+                # Mirror solver: subtract narrow-framing at-purchase penalty.
+                if p.psi_purchase > 0.0
+                    premium = alpha * W_mid
+                    V_val -= purchase_penalty(
+                        premium, payout_rate, p.gamma, p.psi_purchase,
+                        p.psi_purchase_c_ref, p.beta, sol.base_surv,
+                    )
+                end
+
                 if V_val > V_best_mid
                     V_best_mid = V_val
                 end
@@ -174,6 +194,15 @@ function compute_wtp_lockwood(
         W_c = clamp(W_rem, g.W[1], g.W[end])
         A_c = clamp(A_total, g.A[1], g.A[end])
         V_val = V_interp(W_c, A_c)
+
+        # Mirror solver: subtract narrow-framing at-purchase penalty NPV.
+        if p.psi_purchase > 0.0
+            V_val -= purchase_penalty(
+                pi, payout_rate, p.gamma, p.psi_purchase,
+                p.psi_purchase_c_ref, p.beta, sol.base_surv,
+            )
+        end
+
         if V_val > best_V
             best_V = V_val
             best_alpha = alpha
@@ -215,6 +244,15 @@ function compute_wtp_lockwood(
             W_c = clamp(W_rem, g.W[1], g.W[end])
             A_c = clamp(A_total, g.A[1], g.A[end])
             V_val = V_interp(W_c, A_c)
+
+            # Mirror solver: subtract narrow-framing at-purchase penalty NPV.
+            if p.psi_purchase > 0.0
+                V_val -= purchase_penalty(
+                    pi, payout_rate, p.gamma, p.psi_purchase,
+                    p.psi_purchase_c_ref, p.beta, sol.base_surv,
+                )
+            end
+
             if V_val > V_best_mid
                 V_best_mid = V_val
             end
@@ -387,6 +425,20 @@ function compute_ownership_rate(
             W_c = clamp(W_rem, g.W[1], g.W[end])
             A_c = clamp(A_total, g.A[1], g.A[end])
             V_val = V_interp(W_c, A_c)
+
+            # Mirror solver: subtract narrow-framing at-purchase penalty NPV.
+            # Use age-aware purchase_period so cumulative-survival weights
+            # align with the effective purchase moment. Premium passed in real
+            # (age-65) dollars to match c_ref scale.
+            if p.psi_purchase > 0.0
+                surv_for_penalty = surv === nothing ? sol.base_surv : surv
+                V_val -= purchase_penalty(
+                    pi, payout_rate, p.gamma, p.psi_purchase,
+                    p.psi_purchase_c_ref, p.beta, surv_for_penalty;
+                    purchase_period=t,
+                )
+            end
+
             if V_val > best_V
                 best_V = V_val
                 best_pi = pi
@@ -463,6 +515,15 @@ function compute_wtp_health(
         W_c = clamp(W_rem, g.W[1], g.W[end])
         A_c = clamp(A_total, g.A[1], g.A[end])
         V_val = V_interp(W_c, A_c)
+
+        # Mirror solver: subtract narrow-framing at-purchase penalty NPV.
+        if p.psi_purchase > 0.0
+            V_val -= purchase_penalty(
+                pi, payout_rate, p.gamma, p.psi_purchase,
+                p.psi_purchase_c_ref, p.beta, sol.base_surv,
+            )
+        end
+
         if V_val > best_V
             best_V = V_val
             best_alpha = alpha
@@ -501,6 +562,15 @@ function compute_wtp_health(
             W_c = clamp(W_rem, g.W[1], g.W[end])
             A_c = clamp(A_total, g.A[1], g.A[end])
             V_val = V_interp(W_c, A_c)
+
+            # Mirror solver: subtract narrow-framing at-purchase penalty NPV.
+            if p.psi_purchase > 0.0
+                V_val -= purchase_penalty(
+                    pi, payout_rate, p.gamma, p.psi_purchase,
+                    p.psi_purchase_c_ref, p.beta, sol.base_surv,
+                )
+            end
+
             if V_val > V_best_mid
                 V_best_mid = V_val
             end
@@ -645,6 +715,19 @@ function compute_ownership_rate_health(
             W_c = clamp(W_rem, g.W[1], g.W[end])
             A_c = clamp(A_total, g.A[1], g.A[end])
             V_val = V_interp(W_c, A_c)
+
+            # Mirror solver: subtract narrow-framing at-purchase penalty NPV.
+            # purchase_period=t aligns cumulative-survival weighting with the
+            # actual purchase moment.
+            if p.psi_purchase > 0.0
+                surv_for_penalty = base_surv === nothing ? sol.base_surv : base_surv
+                V_val -= purchase_penalty(
+                    premium, payout_rate, p.gamma, p.psi_purchase,
+                    p.psi_purchase_c_ref, p.beta, surv_for_penalty;
+                    purchase_period=t,
+                )
+            end
+
             if V_val > best_V
                 best_V = V_val
                 best_pi = pi

@@ -67,31 +67,59 @@ const UK_RETENTION_LOW   = 0.13   # UK post-2015 voluntary retention (low anchor
 const UK_RETENTION_MID   = 0.17   # UK post-2015 voluntary retention (mid anchor; ABI/FCA central)
 const UK_RETENTION_HIGH  = 0.25   # UK post-2015 voluntary retention (high anchor; ABI)
 
-# Bundled behavioral wedge identification (Option 1 a-strict):
-# The bundled wedge (SDU + narrow-framing PED + choice-architecture salience)
-# is identified from the UK 2015 pension-freedoms reform as a proportional
-# retention factor (post/pre) and applied to the model's no-behavioral
-# baseline as a deterministic multiplicative transformation in
-# scripts/export_manuscript_numbers.jl. The model itself parameterizes only
-# rational + preference + structural channels.
+# Two-model architecture.
 #
-# Production wedge factors:
+# Model 1 (structural multi-channel, US-anchored): rational + preference +
+# structural (chi_ltc) + behavioral (SDU + PED) channels parameterized
+# directly in the Bellman equation. SDU calibrated to Blanchett-Finke
+# (2024-25); PED calibrated to Chalmers-Reuter (2012) Oregon PERS
+# default-vs-opt-in elasticity in scripts/calibrate_psi_chalmers_reuter.jl.
+#
+# Model 2 (UK reduced-form transport): apply the proportional retention
+# factor from the UK 2015 reform (UK_post / UK_pre) to the model's
+# no-behavioral baseline as a deterministic multiplicative transformation
+# in scripts/export_manuscript_numbers.jl. The UK pre-reform 95% rate is a
+# COMPULSION equilibrium, so the wedge captures the bundle of behavioral
+# AND rational frictions that voluntary retirees express; the no-behavioral
+# baseline already absorbs most rational frictions, so this transport
+# bracket is interpreted as an upper bound on the friction wedge.
+#
+# Production Model 2 wedge factors (UK_post / UK_pre):
 #   low  factor = UK_RETENTION_LOW  / UK_RETENTION_PRE = 0.137
 #   mid  factor = UK_RETENTION_MID  / UK_RETENTION_PRE = 0.179  (production)
 #   high factor = UK_RETENTION_HIGH / UK_RETENTION_PRE = 0.263
 #
-# Predicted US ownership = no-behavioral baseline × wedge factor.
-#
-# DO NOT calibrate the wedge to match observed US ownership. US ownership is
-# the test moment, not the target. The transport assumption is country-
-# invariance of the proportional retention factor under bundled identification.
+# Both Model 1 and Model 2 predictions are reported alongside the HRS
+# empirical (2.0-3.3%) for triangulation.
 
-# NOTE: LAMBDA_W and PSI_PURCHASE constants have been removed. The behavioral
-# wedge mechanisms (SDU consumption transformation and at-purchase penalty)
-# have been removed from the model entirely under Option 1 bundling. The
-# bundled wedge is identified externally and applied as multiplicative
-# transport in scripts/export_manuscript_numbers.jl using the UK_RETENTION
-# constants above.
+# Behavioral channel calibrations for Model 1.
+#
+# LAMBDA_W: source-dependent utility discount on portfolio drawdowns
+# (Force A; Blanchett-Finke 2024-25). Households consume income (SS,
+# annuity payouts) at full utility weight and portfolio drawdowns at a
+# discount lambda_w in (0, 1]. Calibrated to the Blanchett-Finke spending
+# differential (~0.85 partialled).
+const LAMBDA_W = 0.85
+
+# PSI_PURCHASE: narrow-framing at-purchase penalty intensity (Force B;
+# Barberis-Huang 2009 narrow framing; Tversky-Kahneman 1992 loss aversion).
+# Calibrated to the Chalmers-Reuter (2012) Oregon PERS 35 pp default-vs-
+# opt-in ownership gap by scripts/calibrate_psi_chalmers_reuter.jl. The
+# value below is a placeholder pending Stage 9b calibration; the
+# calibration script writes the calibrated value into a JSON file that
+# subsequent stages read at runtime.
+const PSI_PURCHASE = 0.05
+
+# PSI_PURCHASE_C_REF: reference consumption used to express the at-purchase
+# loss-aversion stream in utility units. Set to typical SS benefit so the
+# resulting psi_purchase magnitudes have an interpretable scale.
+const PSI_PURCHASE_C_REF = 18_000.0
+
+# Chalmers-Reuter (2012) Oregon PERS calibration target — observed
+# default-vs-opt-in ownership gap (35 pp). Used by
+# scripts/calibrate_psi_chalmers_reuter.jl as the moment that pins down
+# psi_purchase.
+const CHALMERS_REUTER_GAP_TARGET = 0.35
 
 # Public-care aversion (Ameriks et al. 2011 QJE; 2020 ECMA "Long-Term-Care Utility")
 # Households retain liquid wealth specifically to avoid Medicaid LTC reliance.

@@ -1,9 +1,6 @@
-# Smoke test: solve the full model once on a coarse grid and confirm the
-# solver runs end-to-end. Under Option 1 bundled identification, the SDU
-# and at-purchase penalty mechanisms have been removed; the bundled wedge
-# is applied via multiplicative transport in
-# scripts/export_manuscript_numbers.jl. This test verifies the model-
-# internal channels (rational + preferences + chi_LTC) all run cleanly.
+# Smoke test: solve the full Model 1 (11-channel) model once on a coarse
+# grid and confirm the solver runs end-to-end with all rational, preference,
+# structural, and behavioral channels active.
 
 using Test
 using DelimitedFiles
@@ -35,8 +32,7 @@ include(joinpath(@__DIR__, "..", "scripts", "config.jl"))
     p_grid = ModelParams(; common_kw..., mwr=1.0, grid_kw...)
     grids = build_grids(p_grid, fair_pr_nom)
 
-    # Full model (rational + preferences + structural; no behavioral wedge
-    # mechanism in the model itself).
+    # Full Model 1 (rational + preferences + structural + behavioral).
     p_model = ModelParams(; common_kw...,
         theta=THETA_DFJ, kappa=KAPPA_DFJ,
         mwr=MWR_LOADED, fixed_cost=FIXED_COST,
@@ -46,6 +42,9 @@ include(joinpath(@__DIR__, "..", "scripts", "config.jl"))
         consumption_decline=CONSUMPTION_DECLINE,
         health_utility=Float64.(HEALTH_UTILITY),
         chi_ltc=CHI_LTC,
+        lambda_w=LAMBDA_W,
+        psi_purchase=PSI_PURCHASE,
+        psi_purchase_c_ref=PSI_PURCHASE_C_REF,
         grid_kw...)
 
     # Synthetic small population
@@ -62,9 +61,5 @@ include(joinpath(@__DIR__, "..", "scripts", "config.jl"))
     @test 0.0 <= res.mean_alpha <= 1.0
     @test isfinite(res.mean_alpha)
     println("  Smoke test: ownership=$(round(res.ownership * 100, digits=2))%, mean_alpha=$(round(res.mean_alpha, digits=4))")
-
-    # Sanity check: model-internal channels produce the no-behavioral
-    # baseline. The bundled wedge is applied externally and shrinks this
-    # ownership by the multiplicative factor (UK_post / UK_pre).
-    println("  No-behavioral baseline produced cleanly.")
+    println("  Model 1 full 11-channel solve produced cleanly.")
 end

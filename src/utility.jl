@@ -86,10 +86,88 @@ function flow_utility(c::Float64, gamma::Float64, t::Int, ih::Int, p::ModelParam
     return w_age * w_health * utility(c, gamma)
 end
 
-# SDU (source-dependent utility) and at-purchase penalty mechanisms have been
-# removed from the model. The bundled behavioral wedge (SDU + narrow-framing
-# PED + choice-architecture salience) is identified externally from the UK
-# 2015 pension-freedoms reform as a proportional retention factor and applied
-# to the model's no-behavioral baseline as a deterministic multiplicative
-# transformation in scripts/export_manuscript_numbers.jl. The model itself
-# therefore parameterizes only rational + preference + structural channels.
+"""
+Source-dependent flow utility (Force A; Blanchett-Finke 2024-25; Shefrin-Thaler
+1988 mental accounting).
+
+Households consume income (SS, annuity payouts) at full utility weight and
+portfolio drawdowns at a discount lambda_w in (0, 1]. The discount applies at
+the dollar level (multiplicative on c) rather than at the utility level — this
+avoids the sign-flip that would occur for gamma>1 if lambda_w multiplied a
+negative CRRA value directly.
+
+  c_income    = min(c, inc)
+  c_portfolio = max(0, c - inc)
+  c_eff       = c_income + lambda_w * c_portfolio
+  u           = w_age * w_health * U(c_eff, gamma)
+
+When lambda_w = 1 (default), c_eff = c and this reduces to flow_utility above.
+When lambda_w < 1, drawing from portfolio yields strictly less effective
+consumption per dollar.
+"""
+function flow_utility_sdu(c::Float64, inc::Float64, gamma::Float64, t::Int,
+                          ih::Int, p::ModelParams)
+    if p.lambda_w >= 1.0
+        c_eff = c
+    else
+        c_income = min(c, inc)
+        c_portfolio = max(0.0, c - inc)
+        c_eff = c_income + p.lambda_w * c_portfolio
+    end
+    w_age = consumption_weight(t, p.consumption_decline)
+    w_health = health_utility_weight(ih, p)
+    return w_age * w_health * utility(c_eff, gamma)
+end
+
+"""
+Narrow-framing at-purchase penalty NPV (Force B; Barberis-Huang 2009 narrow
+framing; Tversky-Kahneman 1992 loss aversion).
+
+The household evaluates the SPIA as a stand-alone investment with its own
+gain/loss tally. While cumulative payouts are below the premium ("underwater"),
+the household experiences per-period loss-aversion disutility proportional to
+the unrecouped premium. Once cumulative payouts cross the premium (breakeven),
+the loss tally turns positive and the penalty vanishes.
+
+Per-period flow at period t (t=1 is age 65):
+
+    flow_t = psi_purchase * u'(c_ref) * max(0, premium - A * (t-1))
+
+where A = annual annuity income, payout_rate = A / premium, and breakeven
+period t* = ceil(1/payout_rate). Total disutility is the survival- and
+discount-weighted NPV.
+"""
+function purchase_penalty(premium::Float64,
+                          payout_rate::Float64,
+                          gamma::Float64,
+                          psi_purchase::Float64,
+                          c_ref::Float64,
+                          beta::Float64,
+                          surv::Vector{Float64};
+                          purchase_period::Int=1)
+    psi_purchase <= 0.0 && return 0.0
+    premium <= 0.0 && return 0.0
+    payout_rate <= 0.0 && return 0.0
+
+    A = premium * payout_rate
+    mu_ref = c_ref^(-gamma)
+    breakeven_t = ceil(Int, 1.0 / payout_rate) + 1
+
+    surv_offset = purchase_period - 1
+    surv_remaining = surv_offset == 0 ? surv : @view surv[purchase_period:end]
+
+    npv = 0.0
+    cum_surv = 1.0
+    horizon = min(breakeven_t, length(surv_remaining) + 1)
+    for t in 1:horizon
+        underwater = max(0.0, premium - A * (t - 1))
+        underwater <= 0.0 && break
+        flow = psi_purchase * mu_ref * underwater
+        discount = beta^(t - 1)
+        npv += cum_surv * discount * flow
+        if t <= length(surv_remaining)
+            cum_surv *= surv_remaining[t]
+        end
+    end
+    return npv
+end

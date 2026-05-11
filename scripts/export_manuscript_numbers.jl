@@ -21,8 +21,10 @@ using Printf
 include(joinpath(@__DIR__, "config.jl"))
 
 # Local overrides from run_subset_enumeration.jl (must stay in sync).
-const CONSUMPTION_DECLINE_ACTIVE = 0.02
-const HEALTH_UTILITY_ACTIVE = [1.0, 0.90, 0.75]
+# These are descriptive constants used in macro labels; values match the
+# production calibration in scripts/config.jl.
+const CONSUMPTION_DECLINE_ACTIVE = CONSUMPTION_DECLINE
+const HEALTH_UTILITY_ACTIVE = HEALTH_UTILITY
 
 const REPO_ROOT = abspath(joinpath(@__DIR__, ".."))
 const CSV_DIR   = joinpath(REPO_ROOT, "tables", "csv")
@@ -30,10 +32,11 @@ const OUT_PATH  = joinpath(REPO_ROOT, "paper", "numbers.tex")
 const HRS_PATH  = joinpath(REPO_ROOT, "data", "processed", "lockwood_hrs_sample.csv")
 
 # Channel bits (must match run_subset_enumeration.jl).
-# Ten channels: eight rational/preference + two behavioral. Medical and R-S
-# correlation are combined into a single channel because the R-S mechanism's
-# quantitative bite in this framework operates through the interaction with
-# stochastic medical costs (see review_reports/ for panel discussion).
+# Eleven channels: seven rational + two preference + one structural (chi_ltc)
+# + two behavioral (SDU, PED). Medical and R-S correlation are combined into a
+# single channel because the R-S mechanism's quantitative bite in this
+# framework operates through the interaction with stochastic medical costs
+# (see review_reports/ for panel discussion).
 const B_SS           = 1 << 0
 const B_BEQUESTS     = 1 << 1
 const B_MED_RS       = 1 << 2   # Combined: medical risk + R-S correlation
@@ -42,10 +45,9 @@ const B_AGE_NEEDS    = 1 << 4
 const B_STATE_UTIL   = 1 << 5
 const B_LOADS        = 1 << 6
 const B_INFLATION    = 1 << 7
-const B_LTC          = 1 << 8  # Public-care aversion (Ameriks 2011, 2020 ECMA)
-# Note: under Option 1 bundled identification, the SDU and at-purchase
-# penalty mechanisms have been removed from the model. The bundled wedge is
-# applied as multiplicative transport below (no bitmask channel).
+const B_LTC          = 1 << 8   # Public-care aversion (Ameriks 2011, 2020 ECMA)
+const B_SDU          = 1 << 9   # Source-dependent utility (Force A)
+const B_PED          = 1 << 10  # Narrow-framing at-purchase penalty (Force B)
 
 # Backward compatibility aliases for prose macros that used the old names.
 # B_MEDICAL alone is no longer meaningful (always implies the R-S correlation).
@@ -479,11 +481,10 @@ function build_macros!()
     def!("ownAddPessimism",     fmt_pct(subset_ownership(B_SS | B_BEQUESTS | B_MED_RS | B_PESSIMISM); digits=1))
     # + Loads (skip age needs / state utility — these come in the extension table)
     def!("ownAddLoads",         fmt_pct(subset_ownership(B_SS | B_BEQUESTS | B_MED_RS | B_PESSIMISM | B_LOADS); digits=1))
-    # Sequential decomposition macros under the 11-channel structure
-    # (= 6 rational + 3 preference + 2 behavioral, where the 3rd preference
-    # channel is public-care aversion / LTC; Ameriks 2011 QJE; 2020 ECMA).
-    # Names use descriptive suffixes (Ext, LTC, SDU, Full) so the channel
-    # count in the macro name matches the bitmask popcount.
+    # Sequential decomposition macros under the 11-channel structure.
+    # Layer 1 (rational): SS, Bequests, MedRS, Pessimism, Loads, Inflation
+    # Layer 2 (preference): Age needs, State utility, LTC (chi_ltc structural)
+    # Layer 3 (behavioral): SDU (Force A), PED (Force B)
     #
     # 6-channel rational (SS+Bequests+MedRS+Pessimism+Loads+Inflation; bitmask 207)
     def!("ownSixChannel",       fmt_pct(subset_ownership(B_SS | B_BEQUESTS | B_MED_RS | B_PESSIMISM | B_LOADS | B_INFLATION); digits=1))
@@ -491,11 +492,8 @@ function build_macros!()
     def!("ownSevenChannelExt",  fmt_pct(subset_ownership(B_SS | B_BEQUESTS | B_MED_RS | B_PESSIMISM | B_AGE_NEEDS | B_LOADS | B_INFLATION); digits=1))
     # 8-channel: + state-dependent utility (bitmask 255)
     def!("ownEightChannelExt",  fmt_pct(subset_ownership(B_SS | B_BEQUESTS | B_MED_RS | B_PESSIMISM | B_AGE_NEEDS | B_STATE_UTIL | B_LOADS | B_INFLATION); digits=1))
-    # 9-channel: + LTC / public-care aversion (bitmask 1279). Full
-    # 9-channel full (production no-behavioral baseline):
-    # All rational + preference + structural channels active. This is the
-    # baseline to which the bundled behavioral wedge is applied via
-    # multiplicative transport.
+    # 9-channel: + LTC / public-care aversion (bitmask 511). This is the
+    # NO-BEHAVIORAL BASELINE used by Model 2 multiplicative wedge transport.
     own_no_behavioral_pct = NaN
     try
         own_no_behavioral_pct = subset_ownership(B_SS | B_BEQUESTS | B_MED_RS | B_PESSIMISM | B_AGE_NEEDS | B_STATE_UTIL | B_LOADS | B_INFLATION | B_LTC)
@@ -505,22 +503,41 @@ function build_macros!()
         @warn "Skipping ownNineChannelLTC / ownNoBehavioralBaseline (pipeline not yet run)" exception=e
     end
 
+    # 10-channel: + SDU (Force A; bitmask 1023)
+    own_ten_sdu_pct = NaN
+    try
+        own_ten_sdu_pct = subset_ownership(B_SS | B_BEQUESTS | B_MED_RS | B_PESSIMISM | B_AGE_NEEDS | B_STATE_UTIL | B_LOADS | B_INFLATION | B_LTC | B_SDU)
+        def!("ownTenChannelSDU", fmt_pct(own_ten_sdu_pct; digits=1))
+    catch e
+        @warn "Skipping ownTenChannelSDU" exception=e
+    end
+
+    # 11-channel: + PED (Force B; bitmask 2047). MODEL 1 STRUCTURAL HEADLINE.
+    own_model1_pct = NaN
+    try
+        own_model1_pct = subset_ownership(B_SS | B_BEQUESTS | B_MED_RS | B_PESSIMISM | B_AGE_NEEDS | B_STATE_UTIL | B_LOADS | B_INFLATION | B_LTC | B_SDU | B_PED)
+        def!("ownElevenChannelFull", fmt_pct(own_model1_pct; digits=1))
+        def!("ownModelOne", fmt_pct(own_model1_pct; digits=1))
+        def!("ownModelOneStructural", fmt_pct(own_model1_pct; digits=1))
+    catch e
+        @warn "Skipping ownElevenChannelFull / ownModelOne" exception=e
+    end
+
     # ===================================================================
-    # BUNDLED BEHAVIORAL WEDGE: multiplicative transport from UK 2015
+    # MODEL 2 — UK reduced-form transport (multiplicative wedge)
     # ===================================================================
-    # Under Option 1 bundled identification (Tharp 2026), the bundled
-    # behavioral wedge (SDU + narrow-framing PED + choice-architecture
-    # salience) is identified externally as a proportional retention factor
-    # from the UK 2015 pension-freedoms reform and applied to the model's
-    # no-behavioral baseline as a deterministic multiplicative transformation:
+    # The UK 2015 pension-freedoms reform produced a 95% pre-reform
+    # compulsion-equilibrium retention rate and a 13-25% post-reform
+    # voluntary retention rate. Model 2 transports the proportional
+    # retention factor (UK_post / UK_pre) to the US as a deterministic
+    # multiplicative transformation on the no-behavioral baseline:
     #
-    #   predicted US ownership = no-behavioral baseline × (UK_post / UK_pre)
+    #   Model 2 prediction = no-behavioral baseline × (UK_post / UK_pre)
     #
-    # The wedge is NOT a model parameter. The mechanisms (SDU consumption
-    # transformation and at-purchase penalty) have been removed from the model.
-    # Force A / Force B / Force C are named in the manuscript as conceptually
-    # distinct components of the bundle, but the model parameterizes none of
-    # them; they are observed jointly in UK 2015 and transported jointly.
+    # Because the UK pre-reform 95% rate is itself a compulsion equilibrium
+    # (not a no-behavioral state), the transport bracket should be
+    # interpreted as an upper bound on the friction wedge — Model 1 already
+    # absorbs most rational frictions inside the no-behavioral baseline.
     #
     # Production midpoint: UK_post = 17%, UK_pre = 95%, factor = 17/95 = 0.179
     # Sensitivity range: UK_post in {13%, 17%, 25%}; factor in [0.137, 0.263].
@@ -545,12 +562,19 @@ function build_macros!()
         def!("pUKRetentionMid",  fmt_pct(UK_RETENTION_MID  * 100; digits=0))
         def!("pUKRetentionHigh", fmt_pct(UK_RETENTION_HIGH * 100; digits=0))
 
-        # Wedge-multiplied US ownership predictions (the headline numbers)
+        # Model 2 wedge-multiplied US ownership predictions
         def!("ownWedgeLow",  fmt_pct(ownNum_low;  digits=1))
         def!("ownWedgeMid",  fmt_pct(ownNum_mid;  digits=1))
         def!("ownWedgeHigh", fmt_pct(ownNum_high; digits=1))
 
-        # Headline = mid-anchor production prediction
+        # Model 2 named aliases — used in prose alongside Model 1 macros
+        def!("ownModelTwoLow",  fmt_pct(ownNum_low;  digits=1))
+        def!("ownModelTwoMid",  fmt_pct(ownNum_mid;  digits=1))
+        def!("ownModelTwoHigh", fmt_pct(ownNum_high; digits=1))
+        def!("ownModelTwo",     fmt_pct(ownNum_mid;  digits=1))
+
+        # Headline = Model 2 mid-anchor (used in legacy prose; Model 1
+        # predictions are reported separately as ownModelOne).
         def!("ownHeadline",  fmt_pct(ownNum_mid;  digits=1))
 
         # Bracket macros for prose convenience
@@ -624,10 +648,15 @@ function build_macros!()
     def!("shapStateUtil",       fmt_num(sh["State utility"].value_pp; digits=1))
     def!("shapLoads",           fmt_num(sh["Loads"].value_pp; digits=1))
     def!("shapInflation",       fmt_num(sh["Inflation"].value_pp; digits=1))
-    # Under Option 1 bundled identification, the SDU and narrow-framing
-    # mechanisms have been removed from the model. The bundled behavioral
-    # wedge is applied as multiplicative transport (see ownWedge* macros
-    # above) and does not appear in the Shapley enumeration.
+    if haskey(sh, "Public-care aversion (LTC)")
+        def!("shapLTC",         fmt_num(sh["Public-care aversion (LTC)"].value_pp; digits=1))
+    end
+    if haskey(sh, "Source-dependent utility (SDU)")
+        def!("shapSDU",         fmt_num(sh["Source-dependent utility (SDU)"].value_pp; digits=1))
+    end
+    if haskey(sh, "Narrow-framing penalty (PED)")
+        def!("shapPED",         fmt_num(sh["Narrow-framing penalty (PED)"].value_pp; digits=1))
+    end
 
     def!("shapShareSS",         fmt_pct(sh["SS"].share_pct; digits=0))
     def!("shapShareBequests",   fmt_pct(sh["Bequests"].share_pct; digits=0))
@@ -639,11 +668,14 @@ function build_macros!()
     def!("shapShareStateUtil",  fmt_pct(sh["State utility"].share_pct; digits=0))
     def!("shapShareLoads",      fmt_pct(sh["Loads"].share_pct; digits=0))
     def!("shapShareInflation",  fmt_pct(sh["Inflation"].share_pct; digits=0))
-    bundled_key2 = haskey(sh, "Bundled behavioral wedge") ? "Bundled behavioral wedge" :
-                   (haskey(sh, "Narrow framing (Force B)") ? "Narrow framing (Force B)" : nothing)
-    if bundled_key2 !== nothing
-        def!("shapShareBundledWedge", fmt_pct(sh[bundled_key2].share_pct; digits=0))
-        def!("shapShareNarrowFraming", fmt_pct(sh[bundled_key2].share_pct; digits=0))
+    if haskey(sh, "Public-care aversion (LTC)")
+        def!("shapShareLTC",    fmt_pct(sh["Public-care aversion (LTC)"].share_pct; digits=0))
+    end
+    if haskey(sh, "Source-dependent utility (SDU)")
+        def!("shapShareSDU",    fmt_pct(sh["Source-dependent utility (SDU)"].share_pct; digits=0))
+    end
+    if haskey(sh, "Narrow-framing penalty (PED)")
+        def!("shapSharePED",    fmt_pct(sh["Narrow-framing penalty (PED)"].share_pct; digits=0))
     end
 
     # Non-pricing non-traditional channels sum: Med+R-S + Pessimism + Age needs
@@ -795,15 +827,14 @@ function build_macros!()
     def!("deltaNineChannelRSmFLN", fmt_num(rs.ownership_pct - fln.ownership_pct; digits=1))
 
     # ======================================================================
-    # Section L — Bundled behavioral wedge (multiplicative transport)
+    # Section L — Model 2 (UK reduced-form transport)
     # ======================================================================
-    # The bundled behavioral wedge is computed in Section F above as
-    # ownNoBehavioralBaseline × (UK_post / UK_pre). See ownWedge* and
-    # ownBracket* macros there. Under Option 1 bundled identification, the
-    # SDU and at-purchase penalty mechanisms have been removed from the
-    # model; the wedge is applied as a deterministic multiplicative
-    # transformation in this script rather than via SMM bisection of a
-    # model parameter.
+    # Model 2 is computed in Section F above as
+    # ownNoBehavioralBaseline x (UK_post / UK_pre). See ownWedge* and
+    # ownBracket* macros there. Model 1's structural behavioral channels
+    # (SDU, PED) are reported via ownModelOne (= ownElevenChannelFull) and
+    # the corresponding Shapley macros (shapSDU, shapPED) are emitted in
+    # Section F's Shapley block.
 
     # ======================================================================
     # Section M — Monte Carlo parameter uncertainty
@@ -853,19 +884,21 @@ backfill_num_variants!()
 # ---------------------------------------------------------------------------
 
 function write_extension_path_table()
-    # Three-layer decomposition: rational + preference + structural (chi_LTC).
-    # The bundled behavioral wedge is applied as multiplicative transport in
-    # this script (ownWedge* macros above) and shown as the final row.
+    # Two-model decomposition.
+    #   Model 1 layers:
+    #     Layer 1 (rational): SS, Bequests, Medical+R-S, Pessimism, Loads, Inflation
+    #     Layer 2 (preference): Age needs, State-dependent utility, chi_LTC
+    #     Layer 3 (behavioral): SDU (Force A), PED (Force B)
+    #   Model 2: no-behavioral baseline x UK_post / UK_pre.
     bm7 = B_SS | B_BEQUESTS | B_MED_RS | B_PESSIMISM | B_LOADS | B_INFLATION
-    # + age needs
     bm8 = bm7 | B_AGE_NEEDS
-    # + state utility (= 8-channel rational+preferences)
     bm9 = bm8 | B_STATE_UTIL
-    # + chi_LTC public-care aversion (= 9-channel no-behavioral baseline)
-    bm9_ltc = bm9 | B_LTC
+    bm9_ltc = bm9 | B_LTC                  # 9-channel no-behavioral baseline
+    bm10_sdu = bm9_ltc | B_SDU              # + Force A
+    bm11_full = bm10_sdu | B_PED            # + Force B (Model 1 headline)
 
     own = Dict{Int,Float64}()
-    for bm in (bm7, bm8, bm9, bm9_ltc)
+    for bm in (bm7, bm8, bm9, bm9_ltc, bm10_sdu, bm11_full)
         try
             own[bm] = subset_ownership(bm)
         catch
@@ -873,7 +906,7 @@ function write_extension_path_table()
         end
     end
 
-    # Bundled wedge midpoint applied to the no-behavioral baseline
+    # Model 2: bundled wedge applied to the no-behavioral baseline
     wedge_factor_mid = 0.17 / 0.95
     wedge_factor_low = 0.13 / 0.95
     wedge_factor_high = 0.25 / 0.95
@@ -885,7 +918,7 @@ function write_extension_path_table()
     open(out, "w") do f
         println(f, raw"\begin{table}[htbp]")
         println(f, raw"\centering")
-        println(f, raw"\caption{Three-Layer Decomposition with Bundled Behavioral Wedge}")
+        println(f, raw"\caption{Two-Model Decomposition: Structural Channels and UK Reduced-Form Transport}")
         println(f, raw"\label{tab:extension_path}")
         println(f, raw"\begin{threeparttable}")
         println(f, raw"\begin{tabular}{lcc}")
@@ -895,20 +928,29 @@ function write_extension_path_table()
         @printf(f, "Six rational channels (Layer~1)              & %.1f & --- \\\\\n", own[bm7])
         @printf(f, "+ Age-varying consumption needs              & %.1f & %+.1f \\\\\n",
                 own[bm8], own[bm8] - own[bm7])
-        @printf(f, "+ State-dependent utility (Layer~2 complete) & %.1f & %+.1f \\\\\n",
+        @printf(f, "+ State-dependent utility                    & %.1f & %+.1f \\\\\n",
                 own[bm9], own[bm9] - own[bm8])
-        @printf(f, "+ Public-care aversion \$\\chi_{\\text{LTC}}\$ (Layer~3)         & %.1f & %+.1f \\\\\n",
+        @printf(f, "+ Public-care aversion \$\\chi_{\\text{LTC}}\$ (Layer~2 complete)         & %.1f & %+.1f \\\\\n",
                 own[bm9_ltc], own[bm9_ltc] - own[bm9])
-        @printf(f, "\$\\times\$ Bundled behavioral wedge (UK 17/95) & %.1f & --- \\\\\n",
+        @printf(f, "+ Source-dependent utility (Force A)         & %.1f & %+.1f \\\\\n",
+                own[bm10_sdu], own[bm10_sdu] - own[bm9_ltc])
+        @printf(f, "+ Narrow-framing penalty (Force B; Model 1) & %.1f & %+.1f \\\\\n",
+                own[bm11_full], own[bm11_full] - own[bm10_sdu])
+        println(f, raw"\midrule")
+        @printf(f, "Model 2: no-behavioral baseline \$\\times\$ UK 17/95 & %.1f & --- \\\\\n",
                 own_wedge_mid)
         println(f, raw"\bottomrule")
         println(f, raw"\end{tabular}")
         println(f, raw"\begin{tablenotes}")
         println(f, raw"\small")
-        println(f, raw"\item Layers 1-3 are model-internal channels. The final row applies the bundled")
-        println(f, raw"behavioral wedge identified from the UK 2015 pension-freedoms reform")
-        @printf(f, "\\item as a multiplicative retention factor (UK post / UK pre = %.2f at the production midpoint).\n", wedge_factor_mid)
-        @printf(f, "\\item The UK retention sensitivity range [13\\%%, 25\\%%] maps to a US prediction bracket of [%.1f\\%%, %.1f\\%%].\n",
+        println(f, raw"\item Model 1 (top block) is the structural multi-channel decomposition.")
+        println(f, raw"Layer 1 covers rational frictions; Layer 2 adds preference and structural")
+        println(f, raw"channels; Force A (SDU) and Force B (PED) close the model with behavioral")
+        println(f, raw"channels calibrated to Blanchett-Finke (2024-25) and Chalmers-Reuter (2012)")
+        println(f, raw"respectively.")
+        println(f, raw"\item Model 2 (bottom row) applies the UK 2015 pension-freedoms")
+        @printf(f, "\\item retention factor (UK post / UK pre = %.2f at the production midpoint) to the\n", wedge_factor_mid)
+        @printf(f, "\\item no-behavioral baseline. The UK retention range [13\\%%, 25\\%%] maps to a Model~2 prediction bracket of [%.1f\\%%, %.1f\\%%].\n",
                 own_wedge_low, own_wedge_high)
         println(f, raw"\end{tablenotes}")
         println(f, raw"\end{threeparttable}")
@@ -929,11 +971,16 @@ write_extension_path_table()
 # ---------------------------------------------------------------------------
 
 const FALLBACKS = String[
-    # Production headline macros under Option 1 bundled identification.
-    # The headline ownership is computed as multiplicative transport from
-    # the 9-channel no-behavioral baseline.
+    # Production headline macros for the two-model architecture.
+    # Model 1 (structural multi-channel): ownModelOne / ownElevenChannelFull.
+    # Model 2 (UK reduced-form transport): ownWedge* / ownModelTwo*.
+    # The 9-channel ownNoBehavioralBaseline is the input to the Model 2 wedge.
     "ownNoBehavioralBaseline",
+    "ownTenChannelSDU",
+    "ownElevenChannelFull",
+    "ownModelOne", "ownModelOneStructural",
     "ownWedgeLow", "ownWedgeMid", "ownWedgeHigh",
+    "ownModelTwoLow", "ownModelTwoMid", "ownModelTwoHigh", "ownModelTwo",
     "ownHeadline",
     "ownBracketLow", "ownBracketHigh",
     "pWedgeFactorLow", "pWedgeFactorMid", "pWedgeFactorHigh",

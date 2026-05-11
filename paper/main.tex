@@ -34,16 +34,22 @@
 % Regenerate via `julia --project=. scripts/export_manuscript_numbers.jl`.
 \input{numbers.tex}
 
-% Defensive placeholders for macros introduced under Option 1 bundled
-% identification. \providecommand only defines the macro if it isn't already
-% defined in numbers.tex, so the manuscript compiles cleanly during the
-% transition period before the pipeline regenerates numbers.tex with the new
-% multiplicative-wedge macros. Once the AWS rerun completes, numbers.tex
-% emits these macros directly and these placeholders silently no-op.
+% Defensive placeholders for two-model architecture macros.
+% \providecommand only defines a macro if it isn't already defined in
+% numbers.tex, so the manuscript compiles cleanly during the transition
+% period before the pipeline regenerates numbers.tex.
 \providecommand{\ownNoBehavioralBaseline}{[pending]}
+\providecommand{\ownTenChannelSDU}{[pending]}
+\providecommand{\ownElevenChannelFull}{[pending]}
+\providecommand{\ownModelOne}{[pending]}
+\providecommand{\ownModelOneStructural}{[pending]}
 \providecommand{\ownWedgeLow}{[pending]}
 \providecommand{\ownWedgeMid}{[pending]}
 \providecommand{\ownWedgeHigh}{[pending]}
+\providecommand{\ownModelTwo}{[pending]}
+\providecommand{\ownModelTwoLow}{[pending]}
+\providecommand{\ownModelTwoMid}{[pending]}
+\providecommand{\ownModelTwoHigh}{[pending]}
 \providecommand{\ownHeadline}{[pending]}
 \providecommand{\pWedgeFactorLow}{0.137}
 \providecommand{\pWedgeFactorMid}{0.179}
@@ -53,21 +59,20 @@
 \providecommand{\pUKRetentionMid}{17\%}
 \providecommand{\pUKRetentionHigh}{25\%}
 \providecommand{\pChiLTC}{0.7}
-% Legacy macros (retained for backward-compatibility prose; will be regenerated
-% by the new export script as either values or "[obsolete]" placeholders).
-\providecommand{\pLambdaW}{[obsolete]}
-\providecommand{\pPsiPurchase}{[obsolete]}
+\providecommand{\pLambdaW}{0.85}
+\providecommand{\pPsiPurchase}{[pending]}
 \providecommand{\pPsiPurchaseCRef}{18{,}000}
-\providecommand{\pPsiBracketLow}{[obsolete]}
-\providecommand{\pPsiBracketHigh}{[obsolete]}
 \providecommand{\ownTenChannelFull}{\ownNoBehavioralBaseline}
 \providecommand{\ownTenChannelFullNum}{\ownNoBehavioralBaseline}
-\providecommand{\ownElevenChannelFull}{\ownHeadline}
-\providecommand{\ownNineChannelSDU}{\ownNoBehavioralBaseline}
-\providecommand{\shapSDU}{0.0}
-\providecommand{\shapShareSDU}{0\%}
-\providecommand{\shapNarrowFraming}{[N/A]}
-\providecommand{\shapShareNarrowFraming}{[N/A]}
+\providecommand{\ownNineChannelSDU}{\ownTenChannelSDU}
+\providecommand{\shapSDU}{[pending]}
+\providecommand{\shapPED}{[pending]}
+\providecommand{\shapLTC}{[pending]}
+\providecommand{\shapShareSDU}{[pending]}
+\providecommand{\shapSharePED}{[pending]}
+\providecommand{\shapShareLTC}{[pending]}
+\providecommand{\shapNarrowFraming}{\shapPED}
+\providecommand{\shapShareNarrowFraming}{\shapSharePED}
 \providecommand{\shapBundledWedge}{[N/A]}
 
 \externaldocument[A-][nocite]{appendix}

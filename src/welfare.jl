@@ -107,6 +107,15 @@ function compute_cev(
         W_rc = clamp(W_rem, g.W[1], g.W[end])
         A_tc = clamp(A_total, g.A[1], g.A[end])
         V_val = V_interp(W_rc, A_tc)
+
+        # Mirror solver: subtract narrow-framing at-purchase penalty NPV.
+        if p.psi_purchase > 0.0
+            V_val -= purchase_penalty(
+                pi, payout_rate, p.gamma, p.psi_purchase,
+                p.psi_purchase_c_ref, p.beta, sol.base_surv,
+            )
+        end
+
         if V_val > best_V
             best_V = V_val
             best_alpha = alpha
@@ -263,6 +272,19 @@ function compute_cev_population(
             W_rc = clamp(W_rem, g.W[1], g.W[end])
             A_tc = clamp(A_total, g.A[1], g.A[end])
             V_val = V_interp(W_rc, A_tc)
+
+            # Mirror solver: subtract narrow-framing at-purchase penalty NPV.
+            # Use age-specific purchase_period to align cumulative-survival
+            # weights with the effective purchase moment.
+            if p.psi_purchase > 0.0
+                surv_for_penalty = base_surv === nothing ? sol.base_surv : base_surv
+                V_val -= purchase_penalty(
+                    premium, payout_rate, p.gamma, p.psi_purchase,
+                    p.psi_purchase_c_ref, p.beta, surv_for_penalty;
+                    purchase_period=t,
+                )
+            end
+
             if V_val > best_V
                 best_V = V_val
                 best_alpha = alpha
@@ -357,6 +379,9 @@ function compute_cev_grid(
     consumption_decline::Float64=0.0,
     health_utility::Vector{Float64}=[1.0, 1.0, 1.0],
     chi_ltc::Float64=1.0,
+    lambda_w::Float64=1.0,
+    psi_purchase::Float64=0.0,
+    psi_purchase_c_ref::Float64=18_000.0,
     verbose::Bool=true,
 )
     # Default bequest specs using Lockwood's original DFJ theta (no recalibration)
@@ -430,6 +455,9 @@ function compute_cev_grid(
             theta=bspec.theta, kappa=bspec.kappa,
             mwr=mwr_loaded, fixed_cost=fixed_cost_val, min_purchase=min_purchase_val,
             chi_ltc=chi_ltc,
+            lambda_w=lambda_w,
+            psi_purchase=psi_purchase,
+            psi_purchase_c_ref=psi_purchase_c_ref,
             inflation_rate=inflation_val,
             medical_enabled=true, health_mortality_corr=true,
             grid_kw...)
@@ -529,6 +557,15 @@ function simulate_welfare_comparison(
         W_rc = clamp(W_rem, g.W[1], g.W[end])
         A_tc = clamp(A_total, g.A[1], g.A[end])
         V_val = V_interp(W_rc, A_tc)
+
+        # Mirror solver: subtract narrow-framing at-purchase penalty NPV.
+        if p.psi_purchase > 0.0
+            V_val -= purchase_penalty(
+                pi, payout_rate, p.gamma, p.psi_purchase,
+                p.psi_purchase_c_ref, p.beta, base_surv,
+            )
+        end
+
         if V_val > best_V
             best_V = V_val
             best_alpha = alpha

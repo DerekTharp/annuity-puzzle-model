@@ -223,16 +223,19 @@ function main()
         joinpath(CALIB_DIR, "recalibrate_bequests.jl"))
     push!(timings, "Bequests" => t)
 
-    # NOTE: Stage 9b (UK-anchored psi estimation) has been removed. Under
-    # Option 1 bundled identification, the bundled behavioral wedge is applied
-    # as multiplicative transport in scripts/export_manuscript_numbers.jl
-    # rather than via parameter calibration. The SMM bisection is no longer
-    # needed.
+    # --- Stage 9b: Calibrate psi_purchase to Chalmers-Reuter (2012) ---
+    # Bisects psi_purchase so the at-purchase friction reproduces the
+    # 35 pp Oregon PERS default-vs-opt-in ownership gap. Writes
+    # results/psi_calibration.toml; downstream stages consume this value.
+    t = run_stage(
+        "9b. Calibrate psi_purchase (Chalmers-Reuter)",
+        joinpath(SCRIPTS_DIR, "calibrate_psi_chalmers_reuter.jl"))
+    push!(timings, "Psi calibration" => t)
 
-    # --- Stage 10: Exact Shapley decomposition (512 subsets, 9 channels) ---
+    # --- Stage 10: Exact Shapley decomposition (2048 subsets, 11 channels) ---
     # Produces: shapley_exact.tex/.csv
     t = run_stage(
-        "10. Exact Shapley Decomposition (512 subsets)",
+        "10. Exact Shapley Decomposition (2048 subsets)",
         joinpath(SCRIPTS_DIR, "run_subset_enumeration.jl"); parallel=true)
     push!(timings, "Shapley" => t)
 

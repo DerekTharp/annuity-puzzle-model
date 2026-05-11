@@ -166,9 +166,12 @@ Steps (with ss_levels):
   7. + Age-varying consumption needs (Aguiar-Hurst, optional)
   8. + Realistic pricing loads (MWR < 1, fixed cost)
   9. + Inflation erosion (nominal annuity)
+ 10. + Source-dependent utility (Force A; Blanchett-Finke 2024-25, optional)
+ 11. + Narrow-framing at-purchase penalty (Force B; Chalmers-Reuter 2012, optional)
 
-Steps 6 and 7 are skipped when their parameters are at neutral defaults
-(health_utility=[1,1,1] and consumption_decline=0.0).
+Steps 6, 7, 10, and 11 are skipped when their parameters are at neutral
+defaults (health_utility=[1,1,1], consumption_decline=0.0, lambda_w=1.0,
+psi_purchase=0.0).
 
 Returns DecompositionResult with ownership rates at each step.
 """
@@ -201,6 +204,9 @@ function run_decomposition(
     consumption_decline_val::Float64=0.0,
     health_utility_vals::Vector{Float64}=[1.0, 1.0, 1.0],
     min_purchase_val::Float64=0.0,
+    lambda_w_val::Float64=1.0,
+    psi_purchase_val::Float64=0.0,
+    psi_purchase_c_ref_val::Float64=18_000.0,
     verbose::Bool=true,
 )
     ss_zero(age, p) = 0.0
@@ -451,13 +457,59 @@ function run_decomposition(
     prev_rate = res_infl.ownership
     step_num += 1
 
-    # NOTE: The bundled behavioral wedge (SDU + narrow-framing PED +
-    # choice-architecture salience) is NOT a step in the sequential
-    # decomposition. It is identified externally from the UK 2015 pension-
-    # freedoms reform as a proportional retention factor and applied to the
-    # final pre-behavioral baseline of this decomposition as a deterministic
-    # multiplicative transformation. See scripts/export_manuscript_numbers.jl
-    # for the wedge calculation.
+    # Track cumulative behavioral channel overrides
+    cur_lambda_w = 1.0
+    cur_psi_purchase = 0.0
+
+    # --- + Source-dependent utility (Force A; Blanchett-Finke 2024-25, optional) ---
+    sdu_active = lambda_w_val < 1.0
+    if sdu_active
+        cur_lambda_w = lambda_w_val
+        p_sdu = ModelParams(; common_kw...,
+            theta=theta, kappa=kappa, mwr=mwr_loaded, fixed_cost=fixed_cost_val,
+            min_purchase=min_purchase_val,
+            inflation_rate=inflation_val,
+            medical_enabled=true, health_mortality_corr=true,
+            survival_pessimism=survival_pessimism,
+            health_utility=cur_health_utility,
+            consumption_decline=cur_consumption_decline,
+            lambda_w=cur_lambda_w,
+            grid_kw...)
+        res_sdu = solve_and_evaluate(p_sdu, grids, base_surv, ss_arg,
+            pop, loaded_pr_nom;
+            step_name="$step_num. + Source-dependent utility (lambda_w=$(cur_lambda_w))",
+            verbose=verbose)
+        push!(steps, DecompositionStep("+ Source-dependent utility",
+            res_sdu.ownership, res_sdu.mean_alpha, res_sdu.ownership - prev_rate, res_sdu.solve_time))
+        prev_rate = res_sdu.ownership
+        step_num += 1
+    end
+
+    # --- + Narrow-framing at-purchase penalty (Force B; Chalmers-Reuter 2012, optional) ---
+    ped_active = psi_purchase_val > 0.0
+    if ped_active
+        cur_psi_purchase = psi_purchase_val
+        p_ped = ModelParams(; common_kw...,
+            theta=theta, kappa=kappa, mwr=mwr_loaded, fixed_cost=fixed_cost_val,
+            min_purchase=min_purchase_val,
+            inflation_rate=inflation_val,
+            medical_enabled=true, health_mortality_corr=true,
+            survival_pessimism=survival_pessimism,
+            health_utility=cur_health_utility,
+            consumption_decline=cur_consumption_decline,
+            lambda_w=cur_lambda_w,
+            psi_purchase=cur_psi_purchase,
+            psi_purchase_c_ref=psi_purchase_c_ref_val,
+            grid_kw...)
+        res_ped = solve_and_evaluate(p_ped, grids, base_surv, ss_arg,
+            pop, loaded_pr_nom;
+            step_name="$step_num. + Narrow-framing penalty (psi=$(cur_psi_purchase))",
+            verbose=verbose)
+        push!(steps, DecompositionStep("+ Narrow-framing at-purchase penalty",
+            res_ped.ownership, res_ped.mean_alpha, res_ped.ownership - prev_rate, res_ped.solve_time))
+        prev_rate = res_ped.ownership
+        step_num += 1
+    end
 
     if verbose
         println("\n  " * "-" ^ 78)
@@ -503,6 +555,9 @@ function run_multiplicative_analysis(
     ss_levels::Vector{Float64}=Float64[],
     consumption_decline_val::Float64=0.0,
     health_utility_vals::Vector{Float64}=[1.0, 1.0, 1.0],
+    lambda_w_val::Float64=1.0,
+    psi_purchase_val::Float64=0.0,
+    psi_purchase_c_ref_val::Float64=18_000.0,
     verbose::Bool=true,
 )
     ss_zero(age, p) = 0.0
@@ -655,6 +710,27 @@ function run_multiplicative_analysis(
         grid_kw...)
     _eval_channel("Inflation erosion", p_infl_ch, fair_pr_nom, ss_arg_off)
 
+    # Source-dependent utility (Force A) only
+    if lambda_w_val < 1.0
+        p_sdu_ch = ModelParams(; common_kw...,
+            theta=0.0, kappa=0.0, mwr=1.0, fixed_cost=0.0, inflation_rate=0.0,
+            medical_enabled=false, health_mortality_corr=false,
+            lambda_w=lambda_w_val,
+            grid_kw...)
+        _eval_channel("Source-dependent utility", p_sdu_ch, fair_pr, ss_arg_off)
+    end
+
+    # Narrow-framing at-purchase penalty (Force B) only
+    if psi_purchase_val > 0.0
+        p_ped_ch = ModelParams(; common_kw...,
+            theta=0.0, kappa=0.0, mwr=1.0, fixed_cost=0.0, inflation_rate=0.0,
+            medical_enabled=false, health_mortality_corr=false,
+            psi_purchase=psi_purchase_val,
+            psi_purchase_c_ref=psi_purchase_c_ref_val,
+            grid_kw...)
+        _eval_channel("Narrow-framing penalty", p_ped_ch, fair_pr, ss_arg_off)
+    end
+
     sum_of_individual = sum(individual_drops)
 
     # Full model with all channels
@@ -667,6 +743,9 @@ function run_multiplicative_analysis(
         survival_pessimism=survival_pessimism,
         health_utility=health_utility_vals,
         consumption_decline=consumption_decline_val,
+        lambda_w=lambda_w_val,
+        psi_purchase=psi_purchase_val,
+        psi_purchase_c_ref=psi_purchase_c_ref_val,
         grid_kw...)
     if ss_enabled
         res_full = solve_and_evaluate(p_full, grids, base_surv, ss_levels,
@@ -739,6 +818,9 @@ function run_pairwise_interactions(
     ss_levels::Vector{Float64}=Float64[],
     consumption_decline_val::Float64=0.0,
     health_utility_vals::Vector{Float64}=[1.0, 1.0, 1.0],
+    lambda_w_val::Float64=1.0,
+    psi_purchase_val::Float64=0.0,
+    psi_purchase_c_ref_val::Float64=18_000.0,
     verbose::Bool=true,
 )
     ss_zero(age, p) = 0.0
@@ -840,6 +922,27 @@ function run_pairwise_interactions(
              fair_pr, false))
     end
 
+    # SDU (Force A) — source-dependent utility from Blanchett-Finke 2024-25.
+    if lambda_w_val < 1.0
+        push!(channel_specs,
+            ("SDU",
+             (theta=0.0, kappa=0.0, mwr=1.0, fixed_cost=0.0, inflation_rate=0.0,
+              medical_enabled=false, health_mortality_corr=false,
+              survival_pessimism=1.0, lambda_w=lambda_w_val),
+             fair_pr, false))
+    end
+
+    # PED (Force B) — narrow-framing at-purchase penalty (Chalmers-Reuter 2012).
+    if psi_purchase_val > 0.0
+        push!(channel_specs,
+            ("PED",
+             (theta=0.0, kappa=0.0, mwr=1.0, fixed_cost=0.0, inflation_rate=0.0,
+              medical_enabled=false, health_mortality_corr=false,
+              survival_pessimism=1.0, psi_purchase=psi_purchase_val,
+              psi_purchase_c_ref=psi_purchase_c_ref_val),
+             fair_pr, false))
+    end
+
     n_ch = length(channel_specs)
     channel_names = [c[1] for c in channel_specs]
 
@@ -929,6 +1032,12 @@ function run_pairwise_interactions(
                 merged[:health_utility] = v
             elseif k == :consumption_decline && v > 0
                 merged[:consumption_decline] = v
+            elseif k == :lambda_w && v < 1.0
+                merged[:lambda_w] = v
+            elseif k == :psi_purchase && v > 0
+                merged[:psi_purchase] = v
+            elseif k == :psi_purchase_c_ref
+                merged[:psi_purchase_c_ref] = v
             end
         end
 

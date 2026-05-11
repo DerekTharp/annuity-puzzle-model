@@ -12,13 +12,18 @@ using TOML
     kappa::Float64 = 0.0          # bequest shifter (Lockwood 2018)
     consumption_decline::Float64 = 0.0  # age-varying consumption needs (Aguiar-Hurst)
     health_utility::Vector{Float64} = [1.0, 1.0, 1.0]  # state-dependent utility [G,F,P] (FLN 2013)
-    # NOTE: Behavioral wedge (SDU + narrow-framing PED + choice-architecture salience)
-    # is NOT parameterized in the model. It is identified externally from the UK 2015
-    # pension-freedoms reform as a proportional retention factor and applied to the
-    # model's no-behavioral baseline as a deterministic multiplicative transformation
-    # in scripts/export_manuscript_numbers.jl. The model's structural parameters
-    # therefore include only rational + preference + structural channels (the latter
-    # being chi_ltc / public-care aversion).
+    # Model 1 (structural) parameters: behavioral mechanisms parameterized in the
+    # Bellman equation. Model 2 (UK reduced-form transport) is computed as
+    # multiplicative post-processing on the frictionless baseline in
+    # scripts/export_manuscript_numbers.jl and does not require model parameters.
+    psi_purchase::Float64 = 0.0       # narrow-framing at-purchase disutility (Force B)
+                                       # Calibrated from Chalmers-Reuter (2012) Oregon
+                                       # PERS 35 pp default-vs-opt-in elasticity.
+    psi_purchase_c_ref::Float64 = 18_000.0  # reference consumption for utility units
+    lambda_w::Float64 = 1.0           # source-dependent utility (Force A)
+                                       # Calibrated to Blanchett-Finke (2024-25)
+                                       # spending differential (~0.85 partialled).
+                                       # Implementation: c_eff = c_income + lambda_w * c_portfolio
     chi_ltc::Float64 = 1.0            # public-care aversion (Ameriks 2011 QJE; 2020 ECMA)
                                        # 1.0 = channel off
                                        # 0.5 = production: utility multiplied by chi_ltc when
@@ -101,6 +106,7 @@ function load_params(config_path::String)
     section_map = Dict(
         "preferences" => [:gamma, :beta, :theta, :kappa,
                           :consumption_decline, :health_utility],
+        "behavioral" => [:psi_purchase, :psi_purchase_c_ref, :lambda_w],
         "structural" => [:chi_ltc],
         "demographics" => [:age_start, :age_end],
         "income" => [:r, :ss_mean, :ss_quartile_shares],

@@ -164,7 +164,7 @@ function solve_lifecycle_health(
                         # backward-induction block). Apply chi_ltc to flow
                         # utility only; bequest component of V_k is unaffected.
                         if p.chi_ltc < 1.0 && medicaid_binding && ih == 3
-                            flow_u = flow_utility(c_k, p.gamma, T, ih, p)
+                            flow_u = flow_utility_sdu(c_k, inc_after, p.gamma, T, ih, p)
                             V_k = V_k + (p.chi_ltc - 1.0) * flow_u
                         end
                         V_total += gh_weights[iq] * V_k
@@ -271,7 +271,7 @@ function solve_lifecycle_health(
                         # geometrically across periods, which is stronger than
                         # the Ameriks specification.
                         if p.chi_ltc < 1.0 && medicaid_binding && ih == 3
-                            flow_u = flow_utility(c_k, p.gamma, t, ih, p)
+                            flow_u = flow_utility_sdu(c_k, inc_after, p.gamma, t, ih, p)
                             V_k = V_k + (p.chi_ltc - 1.0) * flow_u
                         end
                         V_total += gh_weights[iq] * V_k
@@ -342,6 +342,18 @@ function solve_annuitization(
 
             V_val = V_interp(W_clamped, A_clamped)
 
+            # Narrow-framing at-purchase penalty (Force B; Barberis-Huang 2009).
+            # Subtract NPV of mental-accounting loss-aversion stream from the
+            # underwater period of the SPIA. Channel inactive when
+            # psi_purchase = 0.
+            if alpha > 0.0 && p.psi_purchase > 0.0
+                premium = alpha * W_0
+                V_val -= purchase_penalty(
+                    premium, payout_rate, p.gamma, p.psi_purchase,
+                    p.psi_purchase_c_ref, p.beta, sol.base_surv,
+                )
+            end
+
             if V_val > best_V
                 best_V = V_val
                 best_alpha = alpha
@@ -401,14 +413,17 @@ function solve_annuitization_health(
 
             V_val = V_interp(W_clamped, A_clamped)
 
-            # Note: the at-purchase narrow-framing penalty (PED) and source-
-            # dependent utility (SDU) mechanisms are NOT parameterized in the
-            # model. The bundled behavioral wedge (SDU + PED + choice-
-            # architecture salience) is identified externally from the UK 2015
-            # pension-freedoms reform as a proportional retention factor and
-            # applied to the model's no-behavioral baseline as a deterministic
-            # multiplicative transformation in
-            # scripts/export_manuscript_numbers.jl.
+            # Narrow-framing at-purchase penalty (Force B; Barberis-Huang 2009).
+            # Subtract NPV of mental-accounting loss-aversion stream from the
+            # underwater period of the SPIA. Channel inactive when
+            # psi_purchase = 0.
+            if alpha > 0.0 && p.psi_purchase > 0.0
+                premium = alpha * W_0
+                V_val -= purchase_penalty(
+                    premium, payout_rate, p.gamma, p.psi_purchase,
+                    p.psi_purchase_c_ref, p.beta, sol.base_surv,
+                )
+            end
 
             if V_val > best_V
                 best_V = V_val
