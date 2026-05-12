@@ -79,11 +79,54 @@ end
 """
 Flow utility combining CRRA with age-varying needs and health-state weights.
 With defaults (consumption_decline=0, health_utility=[1,1,1]), reduces to utility(c, gamma).
+
+The age and health weights enter as multipliers on CRRA utility (w * U(c)).
+Under gamma > 1, U(c) is negative; multiplying by w < 1 makes the LEVEL of
+utility less negative (higher), but the MARGINAL utility w * c^(-gamma) is
+correctly lower for w < 1. The agent's policy decisions are driven by
+marginal utility, so the behavioral direction of these channels is correct:
+declining-needs (w_age < 1 at older ages) and Poor-health (w_health < 1)
+both correctly LOWER the marginal utility of consumption, suppressing
+annuity demand.
+
+The level inversion does affect cross-state value-function comparisons.
+This matters for the public-care aversion channel (chi_LTC), which is
+identified from a state-comparison primitive (Medicaid vs. self-financed
+consumption). chi_LTC is therefore applied as a consumption-equivalent
+discount inside the binding state (see flow_utility_chi_ltc below) rather
+than as a multiplier on negative CRRA utility.
 """
 function flow_utility(c::Float64, gamma::Float64, t::Int, ih::Int, p::ModelParams)
     w_age = consumption_weight(t, p.consumption_decline)
     w_health = health_utility_weight(ih, p)
     return w_age * w_health * utility(c, gamma)
+end
+
+"""
+Flow utility with the chi_LTC public-care aversion discount applied as a
+consumption-equivalent transformation in the Medicaid-binding Poor state.
+
+Ameriks et al. (2020 ECMA) identify a preference for self-financed over
+publicly-financed long-term care from strategic-survey wealth equivalents.
+The operationalization here: when the consumption floor binds AND health is
+Poor, the household's effective consumption is chi_LTC * c (the
+publicly-financed portion delivers chi_LTC < 1 units of effective
+consumption per dollar). This is then evaluated through CRRA, with age and
+health weights applied as in flow_utility.
+
+The earlier specification multiplied flow utility by chi_LTC (i.e., flow_u
+became chi_LTC * flow_utility(c)). Under gamma > 1 that specification is
+sign-inverted: chi_LTC < 1 multiplies a negative CRRA value, making the
+binding state LESS negative (higher value), which means the agent prefers
+to enter Medicaid — the OPPOSITE of the Ameriks aversion. The
+consumption-equivalent form below has the correct sign under any gamma > 0.
+"""
+function flow_utility_chi_ltc(c::Float64, gamma::Float64, t::Int, ih::Int,
+                              p::ModelParams)
+    c_eff = p.chi_ltc * c
+    w_age = consumption_weight(t, p.consumption_decline)
+    w_health = health_utility_weight(ih, p)
+    return w_age * w_health * utility(c_eff, gamma)
 end
 
 """
@@ -114,6 +157,28 @@ function flow_utility_sdu(c::Float64, inc::Float64, gamma::Float64, t::Int,
         c_portfolio = max(0.0, c - inc)
         c_eff = c_income + p.lambda_w * c_portfolio
     end
+    w_age = consumption_weight(t, p.consumption_decline)
+    w_health = health_utility_weight(ih, p)
+    return w_age * w_health * utility(c_eff, gamma)
+end
+
+"""
+SDU flow utility with the chi_LTC public-care aversion discount applied as a
+consumption-equivalent transformation in the Medicaid-binding Poor state.
+Combines the SDU income-vs-portfolio waterfall with the consumption-equivalent
+chi_LTC discount; this is the binding-state utility under the production
+specification when both channels are active.
+"""
+function flow_utility_sdu_chi_ltc(c::Float64, inc::Float64, gamma::Float64,
+                                  t::Int, ih::Int, p::ModelParams)
+    if p.lambda_w >= 1.0
+        c_eff_sdu = c
+    else
+        c_income = min(c, inc)
+        c_portfolio = max(0.0, c - inc)
+        c_eff_sdu = c_income + p.lambda_w * c_portfolio
+    end
+    c_eff = p.chi_ltc * c_eff_sdu
     w_age = consumption_weight(t, p.consumption_decline)
     w_health = health_utility_weight(ih, p)
     return w_age * w_health * utility(c_eff, gamma)

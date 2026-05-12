@@ -161,12 +161,19 @@ function solve_lifecycle_health(
                             inc_after = p.c_floor - W_after
                         end
                         V_k, c_k = terminal_value(W_after, 0.0, inc_after, p, T, ih)
-                        # Public-care aversion at terminal period (mirrors the
-                        # backward-induction block). Apply chi_ltc to flow
-                        # utility only; bequest component of V_k is unaffected.
+                        # Public-care aversion at terminal period: swap the
+                        # flow utility from flow_utility_sdu(c_k) to
+                        # flow_utility_sdu_chi_ltc(c_k), which applies
+                        # chi_ltc as a consumption-equivalent discount. This
+                        # correctly LOWERS utility in the binding Poor state
+                        # under gamma > 1 (the prior additive correction
+                        # (chi_ltc - 1) * flow_u inverted the sign because
+                        # flow_u was negative). Bequest component is
+                        # unaffected.
                         if p.chi_ltc < 1.0 && medicaid_binding && ih == 3
                             flow_u = flow_utility_sdu(c_k, inc_after, p.gamma, T, ih, p)
-                            V_k = V_k + (p.chi_ltc - 1.0) * flow_u
+                            flow_u_chi = flow_utility_sdu_chi_ltc(c_k, inc_after, p.gamma, T, ih, p)
+                            V_k = V_k - flow_u + flow_u_chi
                         end
                         V_total += gh_weights[iq] * V_k
                         c_total += gh_weights[iq] * c_k
@@ -265,16 +272,23 @@ function solve_lifecycle_health(
                         # Public-care aversion (Ameriks 2011 QJE; 2020 ECMA):
                         # when the agent must rely on Medicaid AND is in Poor
                         # health (proxy for LTC need), the realized consumption
-                        # is Medicaid-financed and yields utility multiplied by
-                        # chi_ltc < 1. The multiplier applies to FLOW utility
-                        # only — continuation V already incorporates chi_ltc at
-                        # future binding states via the backward induction.
-                        # Multiplying V_k directly would compound the penalty
-                        # geometrically across periods, which is stronger than
-                        # the Ameriks specification.
+                        # is Medicaid-financed and yields lower utility than
+                        # the same dollars self-financed. Implemented as a
+                        # consumption-equivalent discount: replace the
+                        # binding-state flow utility flow_utility_sdu(c_k)
+                        # with flow_utility_sdu_chi_ltc(c_k), which evaluates
+                        # CRRA at c_eff = chi_ltc * (SDU-effective c). Under
+                        # gamma > 1 this correctly LOWERS the binding-state
+                        # utility, producing the Ameriks aversion direction.
+                        # The flow correction is applied per-period; the
+                        # backward induction propagates the lower
+                        # continuation value through future binding states
+                        # without geometric compounding (each period's flow
+                        # is adjusted once).
                         if p.chi_ltc < 1.0 && medicaid_binding && ih == 3
                             flow_u = flow_utility_sdu(c_k, inc_after, p.gamma, t, ih, p)
-                            V_k = V_k + (p.chi_ltc - 1.0) * flow_u
+                            flow_u_chi = flow_utility_sdu_chi_ltc(c_k, inc_after, p.gamma, t, ih, p)
+                            V_k = V_k - flow_u + flow_u_chi
                         end
                         V_total += gh_weights[iq] * V_k
                         c_total += gh_weights[iq] * c_k

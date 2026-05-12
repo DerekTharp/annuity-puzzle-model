@@ -230,6 +230,59 @@ function shapley_lookup()
     out
 end
 
+# Compute the 9-channel Shapley headline by restricting the 11-channel
+# subset enumeration to subsets where SDU (bit 9) and PED (bit 10) are off.
+# This is the structural (rational + preference + chi_LTC) attribution
+# without the exploratory behavioral channels muddying the contribution
+# magnitudes. Returns Dict{channel_name => Shapley value in pp} where
+# pp is signed (negative for boosters).
+function shapley_nine_channel()
+    rows, _ = read_csv("subset_enumeration.csv")
+    lookup = Dict{Int, Float64}()
+    for r in eachrow(rows)
+        bm = Int(r[1])
+        # Restrict to subsets with SDU (bit 9) and PED (bit 10) OFF.
+        ((bm >> 9) & 1 == 0) && ((bm >> 10) & 1 == 0) || continue
+        lookup[bm] = Float64(r[3])  # ownership_pct
+    end
+    haskey(lookup, 0) || error("Empty subset (bitmask 0) missing from subset_enumeration.csv")
+    yaari = lookup[0]
+    full_mask_9 = (1 << 9) - 1  # 511 with all 9 non-behavioral channels on
+    haskey(lookup, full_mask_9) || error("9-channel full subset (bitmask 511) missing")
+    total_drop = yaari - lookup[full_mask_9]
+
+    n = 9
+    # Precompute factorials for the Shapley weights
+    fact = zeros(Int, n + 1)
+    fact[1] = 1
+    for k in 1:n
+        fact[k + 1] = fact[k] * k
+    end
+
+    # Channel names in bitmask order (matches run_subset_enumeration.jl)
+    names = ["SS", "Bequests", "Medical+R-S", "Pessimism", "Age needs",
+             "State utility", "Loads", "Inflation", "Public-care aversion (LTC)"]
+
+    out = Dict{String, NamedTuple{(:value_pp, :share_pct), Tuple{Float64, Float64}}}()
+    for i in 1:n
+        bit_i = 1 << (i - 1)
+        phi = 0.0
+        for s_mask in 0:full_mask_9
+            (s_mask & bit_i) != 0 && continue  # skip if i is in S
+            s_size = count_ones(s_mask)
+            s_union_i = s_mask | bit_i
+            # Marginal contribution of i to coalition S, expressed as drop:
+            #   mc = ownership(S) - ownership(S ∪ {i})
+            mc = lookup[s_mask] - lookup[s_union_i]
+            weight = Float64(fact[s_size + 1]) * Float64(fact[n - s_size]) / Float64(fact[n + 1])
+            phi += weight * mc
+        end
+        share = total_drop > 0 ? phi / total_drop * 100 : 0.0
+        out[names[i]] = (value_pp=phi, share_pct=share)
+    end
+    return out
+end
+
 # robustness_full.csv embeds commas in specification fields (e.g. "g=2.5,pi=1%")
 # so we parse by prefix-match on "category," + reverse-split for the ownership field.
 function robustness_ownership(category::AbstractString, specification::AbstractString)
@@ -633,6 +686,32 @@ function build_macros!()
     rs_pess_age_share = sh["Medical+R-S"].share_pct + sh["Pessimism"].share_pct + sh["Age needs"].share_pct
     def!("shapRSPessAge",       fmt_num(rs_pess_age_pp; digits=1))
     def!("shapShareRSPessAge",  fmt_pct(rs_pess_age_share; digits=0))
+
+    # ----------------------------------------------------------------------
+    # Section F2 — Nine-channel Shapley (headline structural attribution)
+    # The eleven-channel Shapley above mixes the exploratory behavioral
+    # parameters (SDU, PED) with the structural channels. The nine-channel
+    # Shapley restricts the cooperative game to subsets where SDU and PED
+    # are off (bits 9 and 10 of the bitmask), giving an order-independent
+    # attribution among the rational, preference, and structural-LTC
+    # channels alone. This is the disciplined Model 1 attribution; the
+    # eleven-channel Shapley is reported as the exploratory extension.
+    # ----------------------------------------------------------------------
+    sh9 = shapley_nine_channel()
+    for (key, name) in [
+        ("NineSS",         "SS"),
+        ("NineBequests",   "Bequests"),
+        ("NineMedRS",      "Medical+R-S"),
+        ("NinePessimism",  "Pessimism"),
+        ("NineAgeNeeds",   "Age needs"),
+        ("NineStateUtil",  "State utility"),
+        ("NineLoads",      "Loads"),
+        ("NineInflation",  "Inflation"),
+        ("NineLTC",        "Public-care aversion (LTC)"),
+    ]
+        def!("shap" * key,       fmt_num(sh9[name].value_pp; digits=1))
+        def!("shapShare" * key,  fmt_pct(sh9[name].share_pct; digits=0))
+    end
 
     # ======================================================================
     # Section G — Welfare: CEV at headline cells

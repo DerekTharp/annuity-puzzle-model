@@ -1,7 +1,8 @@
 # Compute the corrected SPIA-equivalent ownership rate using the HRS fat-file
 # per-contract lifetime indicator (q286_1, q286_2). For each respondent in
-# our analysis sample (single, age 65-69, alive, waves 5-9), check whether
-# any reported annuity contract was coded as "continues for life" (response 1).
+# our analysis sample (single, age 65-69, alive, non-housing wealth >= the
+# MIN_WEALTH floor used by the model), check whether any reported annuity
+# contract was coded as "continues for life" (response 1).
 #
 # Cross-validate against:
 #   - Lockwood (2012) reported 3.6% lifetime annuity rate
@@ -30,6 +31,11 @@ WAVES = [
 
 # Single marital status codes
 const SINGLE_CODES = Set([3, 4, 5, 7, 8])
+
+# Minimum-wealth filter — matched to the model's analysis sample. Sourced
+# from scripts/config.jl as the single source of truth so the HRS empirical
+# comparator and the model analysis sample cannot drift apart silently.
+include(joinpath(@__DIR__, "..", "scripts", "config.jl"))
 
 numval(x::Real) = Float64(x)
 numval(x) = Float64(x.value)
@@ -66,12 +72,16 @@ for (w, ff, life_vars) in WAVES
 
     # RAND wave-specific filter columns
     age_sym    = Symbol("r$(w)agey_b")
-    mstat_sym  = Symbol("r$(w)mstat")
+    mstat_sym   = Symbol("r$(w)mstat")
+    hatotb_sym  = Symbol("h$(w)atotb")
+    hahous_sym  = Symbol("h$(w)ahous")
     iwstat_sym = Symbol("r$(w)iwstat")
     iann_sym   = Symbol("r$(w)iann")
 
     age_col    = collect(getproperty(rand_tbl, age_sym))
-    mstat_col  = collect(getproperty(rand_tbl, mstat_sym))
+    mstat_col   = collect(getproperty(rand_tbl, mstat_sym))
+    hatotb_col  = collect(getproperty(rand_tbl, hatotb_sym))
+    hahous_col  = collect(getproperty(rand_tbl, hahous_sym))
     iwstat_col = collect(getproperty(rand_tbl, iwstat_sym))
     iann_col   = collect(getproperty(rand_tbl, iann_sym))
 
@@ -107,6 +117,17 @@ for (w, ff, life_vars) in WAVES
         ismissing(mstat_col[ri]) && continue
         mstat = numval(mstat_col[ri])
         mstat in SINGLE_CODES || continue
+
+        # Wealth filter — match the model analysis sample. Compute non-housing
+        # wealth as total household wealth minus primary residence value, floored
+        # at zero. Households with non-housing wealth below MIN_WEALTH are excluded
+        # from both numerator and denominator, mirroring the model's wealth-restricted
+        # solve set.
+        ismissing(hatotb_col[ri]) && continue
+        wealth_total = numval(hatotb_col[ri])
+        wealth_house = ismissing(hahous_col[ri]) ? 0.0 : numval(hahous_col[ri])
+        wealth_non_housing = max(wealth_total - wealth_house, 0.0)
+        wealth_non_housing >= MIN_WEALTH || continue
 
         n_eligible += 1
         push!(all_eligible_persons, h)

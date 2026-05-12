@@ -27,7 +27,7 @@ include("diagnostics.jl")
 export ModelParams, load_params
 export utility, bequest_utility, marginal_utility
 export flow_utility, consumption_weight, health_utility_weight, marginal_flow_utility,
-       flow_utility_sdu, purchase_penalty
+       flow_utility_sdu, flow_utility_chi_ltc, flow_utility_sdu_chi_ltc, purchase_penalty
 export build_wealth_grid, build_annuity_grid, build_alpha_grid, build_grids, Grids
 export clamp_audit, reset_clamp_audit!, report_clamp_audit
 export ss_benefit, ss_benefit_by_wealth, ss_benefit_zero
