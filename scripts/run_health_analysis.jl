@@ -1,7 +1,7 @@
-# Phase 3: Health and Medical Expenditures Analysis
+# Health and Medical Expenditures Analysis
 # Reichling-Smetters (2015) Replication and Health-Aware WTP
 #
-# This script demonstrates the key Phase 3 results:
+# This script demonstrates:
 # 1. Gauss-Hermite quadrature validation
 # 2. Medical expense calibration vs Jones et al. (2018)
 # 3. R-S sign reversal: correlated health-mortality eliminates annuity demand
@@ -12,7 +12,7 @@ include(joinpath(@__DIR__, "..", "src", "AnnuityPuzzle.jl"))
 using .AnnuityPuzzle
 
 println("=" ^ 70)
-println("  PHASE 3: HEALTH AND MEDICAL EXPENDITURES")
+println("  HEALTH AND MEDICAL EXPENDITURES")
 println("  Reichling-Smetters (2015) Mechanism Analysis")
 println("=" ^ 70)
 
@@ -163,7 +163,7 @@ y_ref = tot_W * 0.50 * pr_l
 println(@sprintf("%-20s  %-10s  %-10s", "Configuration", "WTP", "alpha*"))
 println("-" ^ 42)
 
-# No health (Phase 2 baseline)
+# No-health baseline (deterministic mortality, no medical shocks)
 p_nohealth = ModelParams(
     gamma=2.0, beta=1.0/1.03, r=0.03,
     theta=0.0, kappa=10.0,
@@ -175,7 +175,7 @@ p_nohealth = ModelParams(
 grids_nh = build_grids(p_nohealth, pr_l)
 sol_nh = solve_lifecycle(p_nohealth, grids_nh, surv_l, ss_zero_l)
 res_nh = compute_wtp_lockwood(N_ref, y_ref, sol_nh, pr_l)
-println(@sprintf("%-20s  %-10s  %-10.2f", "No health (Phase 2)",
+println(@sprintf("%-20s  %-10s  %-10.2f", "No health",
     @sprintf("%.1f%%", res_nh.wtp * 100), res_nh.alpha_star))
 
 # Health-aware WTP by initial health state
@@ -213,5 +213,5 @@ println("  Good health ≈ 40% lower hazard rate")
 println("  Poor health ≈ 100% higher hazard rate")
 
 println("\n" * "=" ^ 70)
-println("  PHASE 3 ANALYSIS COMPLETE")
+println("  HEALTH ANALYSIS COMPLETE")
 println("=" ^ 70)

@@ -248,14 +248,7 @@ function figure_3_hazard_sensitivity()
     end
 
     if isempty(labels)
-        println("  WARNING: Hazard mult data not found in CSV, using placeholders.")
-        labels = [
-            "R-S functional\n[0.45, 1.0, 3.5]",
-            "Baseline\n[0.50, 1.0, 3.0]",
-            "HRS SRH\n[0.57, 1.0, 2.7]",
-            "Conservative\n[0.60, 1.0, 2.0]",
-        ]
-        ownership = [0.0, 1.4, 5.7, 24.4]
+        error("Hazard mult data missing from $csv_path; run scripts/run_robustness.jl first.")
     end
 
     bar_colors = [CB_BLUE, CB_GREEN, CB_ORANGE, CB_RED]
@@ -303,8 +296,8 @@ end
 function figure_4_policy_functions()
     println("Generating Figure 4: Policy Functions (requires model solves)...")
     # Constants come from config.jl (loaded at top of this file).
-    # Use Lockwood's original theta at all gamma values (no recalibration)
-    HAZARD_MULT = [0.50, 1.0, 3.0]
+    # Use Lockwood's original theta at all gamma values (no recalibration).
+    # HAZARD_MULT pulled directly from config; do not redefine here.
 
     grid_kw = (
         n_wealth = N_WEALTH, n_annuity = N_ANNUITY, n_alpha = N_ALPHA,

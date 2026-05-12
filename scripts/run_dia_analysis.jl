@@ -6,8 +6,9 @@
 #   3. DIA-85: payments begin at age 85 (deferral_start_period=21)
 #
 # Policy-relevant given SECURE 2.0 Act expansion of QLAC limits.
-# DIA preserves liquidity during ages 65-79 but has worse MWR (0.50 vs 0.82)
-# and inflation erodes purchasing power before payments begin.
+# DIA preserves liquidity during ages 65-79 but has worse MWR (~0.50 for
+# DIA-80) than SPIA, and inflation erodes purchasing power before payments
+# begin.
 
 using Printf
 using DelimitedFiles

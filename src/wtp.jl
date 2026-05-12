@@ -352,8 +352,7 @@ function compute_ownership_rate(
     ))}()
 
     # Cap wealth at the grid maximum rather than dropping agents above it.
-    # See compute_ownership_rate_health for the full rationale; same fix
-    # applied here for the no-health Phase 1/2 code path.
+    # See compute_ownership_rate_health for the full rationale.
     n_capped = 0
     for i in 1:n_individuals
         raw_W = population[i, 1]
@@ -455,11 +454,11 @@ end
 
 
 # ===================================================================
-# Phase 3: Health-Aware WTP and Ownership
+# Health-aware WTP and ownership computations
 # ===================================================================
 
 """
-Compute WTP for annuity market access with health states (Phase 3).
+Compute WTP for annuity market access with health states.
 
 For a given initial health state, computes the fraction of non-annuity
 wealth the agent would pay to access annuity markets.
@@ -494,10 +493,11 @@ function compute_wtp_health(
     V_no_ann = V_interp(N_c, y_c)
 
     # V with optimal annuitization of N_ref. The narrow-framing purchase
-    # penalty must be subtracted whenever Force B is active so the agent's
+    # penalty must be subtracted whenever psi_purchase > 0 so the agent's
     # alpha search reflects the same friction the production solver uses
     # (src/solve.jl:solve_annuitization_health). Omitting it overstates V
-    # at every positive alpha and inflates WTP under Force B.
+    # at every positive alpha and inflates WTP under the narrow-framing
+    # channel.
     best_V = V_no_ann
     best_alpha = 0.0
     for alpha in g.alpha
@@ -593,7 +593,7 @@ function compute_wtp_health(
 end
 
 """
-Compute annuity ownership rate with health states (Phase 3).
+Compute annuity ownership rate with health states.
 
 For each individual, uses the value function at their health state
 to determine if annuity purchase is optimal.
@@ -626,19 +626,16 @@ function compute_ownership_rate_health(
         extrapolation_bc=Interpolations.Flat(),
     ))}()
 
-    # Track agents whose wealth exceeds the grid maximum. Earlier code dropped
-    # them from BOTH numerator and denominator, which biased the headline
-    # ownership rate because the top wealth quartile is precisely where
-    # bequest motives, LTC self-insurance, and full-annuitization arguments
-    # operate. Current behavior: cap wealth at W_max and evaluate the
-    # value function at the cap rather than excluding the agent.
-    # The cap is a known approximation (those agents are treated as if they
-    # had W_max instead of their true wealth, slightly understating their
+    # Agents whose wealth exceeds the grid maximum are capped at W_max and
+    # evaluated at the cap rather than excluded. The top wealth quartile is
+    # precisely where bequest motives, LTC self-insurance, and full-
+    # annuitization arguments operate, so dropping these agents would bias
+    # the headline ownership rate. The cap is a known approximation (capped
+    # agents are treated as if they had W_max, slightly understating their
     # optimal alpha if the high-wealth corner solution depends on the
     # specific level above W_max). Magnitude is small: at the production
     # W_max = $3M (covering p99.5 of HRS wealth), only ~0.5% of agents are
-    # affected. A future tightening would expand W_max and re-solve at higher
-    # grid resolution; for now, capping is preferred over the prior drop.
+    # affected.
     n_capped = 0
     for i in 1:n_individuals
         raw_W = population[i, 1]
@@ -705,10 +702,8 @@ function compute_ownership_rate_health(
             # is also in age-65 nominal dollars (the Bellman deflates via
             # A_real(s) = A * (1+π)^-(s-1) at each period s), so A_new = pi *
             # payout_rate is on the same scale as y_0 and the V interpolant.
-            # Earlier code grossed pi up by (1+π)^(t-1) before computing A_new
-            # and the narrow-framing penalty, which inflated both the lookup
-            # coordinate and the loss-aversion utility cost (whose c_ref is
-            # real). Mirrors the welfare.jl fix.
+            # The narrow-framing penalty uses the same real premium so its
+            # c_ref scale is consistent.
             premium = pi
             A_new = premium * payout_rate
             A_total = y_0 + A_new

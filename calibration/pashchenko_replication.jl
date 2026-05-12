@@ -27,7 +27,7 @@ println("=" ^ 70)
 # ===================================================================
 
 # Pashchenko's approximate parameterization
-const GAMMA       = 3.0           # Pashchenko's baseline (Phase 4 uses 2.5; not directly comparable)
+const GAMMA       = 3.0           # Pashchenko's baseline (production decomposition uses 2.5; not directly comparable)
 const BETA        = 0.97
 const R_RATE      = 0.02
 const AGE_START   = 65

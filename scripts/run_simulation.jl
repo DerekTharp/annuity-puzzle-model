@@ -1,4 +1,4 @@
-# Phase 4: Monte Carlo Simulation Validation
+# Monte Carlo Simulation Validation
 #
 # Simulates lifecycle trajectories under the full model (all channels on)
 # and compares aggregate moments to HRS data targets:
@@ -6,9 +6,9 @@
 #   - Bequest distribution
 #   - Survival curve
 #
-# Calibration aligned with Lockwood (2012) DFJ specification:
-#   gamma=2, age_end=110, c_floor=$6,180 (Lockwood sim code),
-#   DFJ bequests (theta=56.96, kappa=$272,628), hazard_mult=[0.50,1.0,3.0]
+# Bequest calibration follows the Lockwood (2012) DFJ specification:
+# theta=56.96, kappa=$272,628 (from config.jl). All other parameters are
+# taken from config.jl (gamma, c_floor, hazard_mult, etc.).
 
 using Printf
 include(joinpath(@__DIR__, "..", "src", "AnnuityPuzzle.jl"))
@@ -17,7 +17,7 @@ using .AnnuityPuzzle
 include(joinpath(@__DIR__, "config.jl"))
 
 println("=" ^ 70)
-println("  PHASE 4: MONTE CARLO SIMULATION VALIDATION")
+println("  MONTE CARLO SIMULATION VALIDATION")
 println("=" ^ 70)
 
 # ===================================================================

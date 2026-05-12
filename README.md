@@ -1,53 +1,47 @@
 # Quantifying the Annuity Puzzle: A Unified Lifecycle Decomposition
 
 Replication package for Tharp (working paper). A calibrated lifecycle model
-nests ten channels proposed to explain low voluntary annuity demand among
+nests eleven channels proposed to explain low voluntary annuity demand among
 US retirees, organized in three layers:
 
-- **Six rational channels:** pre-existing Social Security annuitization,
-  bequest motives, combined medical expenditure risk and health-mortality
-  correlation (Reichling-Smetters bundled with medical risk because the R-S
-  mechanism's quantitative bite operates through the interaction with
-  stochastic medical costs in this framework: without a competing use for
-  liquid wealth in sick states, a lower expected annuity NPV when sick does
-  not translate into a precautionary motive against annuitization),
-  subjective survival pessimism, pricing loads, and inflation erosion.
+- **Seven rational channels:** pre-existing Social Security annuitization,
+  bequest motives, medical expenditure risk, health-mortality correlation
+  (Reichling-Smetters), subjective survival pessimism, pricing loads, and
+  inflation erosion.
 - **Two preference channels:** age-varying consumption needs
   (Aguiar-Hurst 2013) and state-dependent utility (Finkelstein-Luttmer-
   Notowidigdo 2013).
-- **Two behavioral channels operating at distinct decision moments and pointing
-  in opposite directions:** source-dependent utility (Force A; Blanchett-Finke
-  2024, 2025) raises annuitization by converting portfolio wealth into
-  "spendable income"; a narrow-framing purchase-event disutility (Force B;
-  Barberis-Huang 2009 narrow framing under Tversky-Kahneman 1992 loss
+- **Two exploratory behavioral channels:** source-dependent utility
+  (Blanchett-Finke 2024, 2025) raises annuitization by converting portfolio
+  wealth into "spendable income"; a narrow-framing purchase-event disutility
+  (Barberis-Huang 2009 narrow framing under Tversky-Kahneman 1992 loss
   aversion) suppresses it through loss aversion over the unrecouped premium
-  until breakeven.
+  until breakeven. Behavioral parameters (lambda_W = 0.625, psi = 0.05) are
+  treated as exploratory literature-magnitude best guesses, not moment-matched
+  estimates.
 
-Under baseline parameters (gamma = 2.5, MWR = 0.87, modern Wettstein-2021
-pricing), the six rational channels predict 44.2% ownership relative to a
-frictionless population benchmark of 41.4%. Adding the two preference
-channels brings the prediction to 34.3%; adding Force A (source-dependent
-utility, lambda_W = 0.625) raises it to 79.3%. The Force B parameter
-psi_purchase is anchored to UK post-reform evidence (2015 pension freedoms),
-combining the conservative ABI aggregate (the 75 pp pre/post drop in DC-pot
-annuity ownership when the regulated default flipped from compulsory to
-opt-in, after stripping the rational tax-removal response; psi=0.0163;
-ABI quarterly contract volumes fell by a similar proportional magnitude,
-corroborating the level shift) and a descriptive ELSA microdata total drop
-in observed disposition (psi=0.0335). The corresponding bracket of predicted US voluntary ownership
-is [2.3%, 24.5%].
+The paper reports two complementary models:
+
+- **Model 1 (11-channel structural):** the full nested lifecycle model. Under
+  baseline parameters (gamma = 2.5, MWR = 0.87, modern Wettstein-2021
+  pricing), the nine non-behavioral channels predict 1.7% ownership.
+  Activating the two exploratory behavioral channels yields a Shapley
+  decomposition in which the purchase-event disutility (|PED|) contributes
+  44.4 percentage points and source-dependent utility (|SDU|) contributes
+  31.1 percentage points to the cumulative demand wedge.
+- **Model 2 (UK reduced-form transport):** scales the frictionless US
+  benchmark by the UK post-reform retention ratio (UK_post / UK_pre =
+  0.179), giving 41.85% x 0.179 = 7.5% predicted US voluntary ownership.
+  This serves as a transparent quasi-experimental cross-check independent
+  of the structural channel decomposition.
+
 Two HRS measures of US lifetime annuity ownership are reported in parallel
 as out-of-sample empirical targets: 2.02% (95% CI [1.68%, 2.43%], the
 cleaner fat-file q286 lifetime annuity contract indicator) and 3.34% (95% CI
-[2.89%, 3.85%], the conventional any-annuity income proxy). The conventional
-income-proxy measure lies inside the model's UK-anchored bracket; the
-cleaner lifetime-contract indicator overlaps only the bracket's lower edge.
+[2.89%, 3.85%], the conventional any-annuity income proxy).
 
-An exact Shapley decomposition over all 1,024 channel subsets attributes the
-demand reduction without order dependence. The narrow-framing purchase
-penalty has the largest single Shapley value; Force A enters with the
-opposite sign, a pattern consistent with operation on distinct decision
-margins rather than redundant parameterizations of the same wedge.
+An exact Shapley decomposition over all 2,048 channel subsets attributes the
+demand reduction without order dependence.
 
 **All headline numbers in the manuscript are auto-generated from analysis CSV
 outputs by `scripts/export_manuscript_numbers.jl` and locked by
@@ -89,11 +83,11 @@ Baseline parameters are defined in `scripts/config.jl`. Key values: gamma=2.5,
 beta=0.97, **MWR=0.87** (Wettstein 2021 modern-pricing), inflation=2%, DFJ
 bequests (theta=56.96, kappa=$272,628), hazard multipliers [0.50, 1.0, 3.0],
 survival pessimism psi=0.981, age-varying needs delta_c=0.02, health-utility
-weights [1.0, 0.90, 0.75] (FLN 2013 raw central), **lambda_W=0.625** (Force A,
-Blanchett-Finke 2024/2025 spending differential), **psi_purchase=0.0163**
-(Force B, UK 2015 pension-freedoms midpoint anchor; bracket [0.0142, 0.0281]
-across alternative SMM specifications), 9-node Gauss-Hermite quadrature,
-80x30x101 production grid (W x A x alpha).
+weights [1.0, 0.90, 0.75] (FLN 2013 raw central), **lambda_W=0.625**
+(source-dependent utility, Blanchett-Finke 2024/2025 spending differential
+point estimate; exploratory), **psi=0.05** (purchase-event disutility,
+literature-magnitude best guess; exploratory, not moment-matched), 9-node
+Gauss-Hermite quadrature, 80x30x101 production grid (W x A x alpha).
 
 ## Data
 

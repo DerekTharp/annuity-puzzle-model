@@ -197,7 +197,7 @@ function compute_euler_residuals(
 end
 
 """
-Compute Euler residuals for the non-health solution (Phase 1/2).
+Compute Euler residuals for the non-health solution.
 Simpler version without medical expenses or health transitions.
 """
 function compute_euler_residuals(

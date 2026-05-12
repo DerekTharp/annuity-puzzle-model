@@ -12,7 +12,7 @@
 # Parameter distributions (excluding gamma):
 #   hazard_poor ~ U(2.0, 3.5)    (HRS to R-S range)
 #   inflation   ~ U(0.01, 0.03)  (plausible Fed target range)
-#   MWR         ~ U(0.75, 0.89)  (recentered at 0.82; Mitchell 1999)
+#   MWR         ~ U(0.75, 0.89)  (Mitchell 1999 lower bound to Wettstein 2021)
 #
 # Output: tables/csv/implied_gamma.csv
 

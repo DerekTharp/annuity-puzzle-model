@@ -1,6 +1,8 @@
 # Smoke test: solve the full Model 1 (11-channel) model once on a coarse
 # grid and confirm the solver runs end-to-end with all rational, preference,
-# structural, and behavioral channels active.
+# structural, and behavioral channels active (including SDU lambda_w and
+# PED psi_purchase). The filename is historical; the test exercises the
+# current 11-channel configuration.
 
 using Test
 using DelimitedFiles

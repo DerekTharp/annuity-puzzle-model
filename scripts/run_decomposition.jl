@@ -1,11 +1,11 @@
-# Phase 4: Sequential Decomposition of Predicted Annuity Ownership
+# Sequential Decomposition of Predicted Annuity Ownership
 #
 # Generates Table 1 (the core result):
 #   Starting from Yaari's 100% benchmark, add channels one at a time
 #   and measure how each reduces predicted ownership.
 # Also computes multiplicative interaction analysis.
 #
-# Parameters loaded from scripts/config.jl (gamma=2.5, hazard_mult=[0.50,1.0,3.0])
+# Parameters loaded from scripts/config.jl.
 
 using Printf
 using DelimitedFiles
@@ -22,7 +22,7 @@ end
 include(joinpath(@__DIR__, "config.jl"))
 
 println("=" ^ 70)
-println("  PHASE 4: FULL MODEL AND DECOMPOSITION")
+println("  FULL MODEL AND DECOMPOSITION")
 println("  Sequential Channel Analysis — Table 1")
 println("=" ^ 70)
 

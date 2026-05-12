@@ -97,7 +97,8 @@ result = compute_ownership_rate_health(sol, pop_with_ss, loaded_pr)
 elapsed = time() - t0
 
 @printf("\n  Age-varying HRS (3 bands): %.1f%% ownership (%.0fs)\n", result.ownership_rate * 100, elapsed)
-@printf("  Compare baseline [0.50, 1.0, 3.0]: 18.3%%\n")
+@printf("  Baseline constant fallback [%.2f, %.1f, %.2f]: see robustness CSV\n",
+        HAZARD_MULT[1], HAZARD_MULT[2], HAZARD_MULT[3])
 flush(stdout)
 
 # Append to robustness CSV

@@ -55,11 +55,17 @@ const EXPECTED_TEX_FILES = Set([
 # Stale-number patterns to catch. Each entry is (pattern, description).
 # Allowlist patterns occur within explicit "ALLOWLIST:" lines or comments
 # documenting historical context.
-const STALE_PATTERNS = [
+const STALE_PATTERNS = [  # ALLOWLIST: this file defines the patterns themselves
     (r"vline!\s*\(\s*\[\s*3\.6\s*\]"      , "Stale figure-1 hardcode (3.6%); should pull from numbers.tex"),
-    (r"\bMWR\s*=\s*0\.82\b"               , "Stale MWR label (0.82); production is 0.87 or 0.88"),
+    (r"\bMWR\s*=\s*0\.82\b"               , "Stale MWR label (0.82); production is 0.87"),
     (r"\b89\.4\s*[mM]illion\b"            , "Arithmetic error: 89.4M operations (correct is ~8.94M)"),
-    (r"\bDissolving\s+the\s+Annuity\s+Puzzle\b" , "Stale title (Dissolving); current is Quantifying"),
+    (r"\bDissolving\s+the\s+Annuity\s+Puzzle\b" , "Stale title; current is Quantifying"),
+    (r"\bbundled\s+behavioral\s+wedge\b"  , "Stale framing; behavioral channels (SDU, PED) now structurally parameterized"),
+    (r"\bForce\s+C\b"                     , "Stale force label; replaced by direct structural channels"),
+    (r"\bOption\s+1\s+(?:a-strict|bundled)" , "Stale identification framing"),
+    (r"calibrate_psi_chalmers_reuter"      , "Reference to archived calibration script"),  # ALLOWLIST: pattern definition
+    (r"psi_(?:calibration|estimation)\.(?:toml|json)" , "Reference to archived psi calibration artifact"),
+    (r"LAMBDA_W\s*=\s*(?:0\.85|1\.0)\b"    , "Stale LAMBDA_W value; production is 0.625"),
 ]
 
 # Files exempt from the hardcode scan (acceptable contexts: companion

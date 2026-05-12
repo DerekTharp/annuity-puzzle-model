@@ -26,6 +26,18 @@
 % Auto-generated numeric macros shared with main.tex.
 \input{numbers.tex}
 
+% Defensive placeholders. \providecommand only defines a macro if it isn't
+% already defined in numbers.tex, so the appendix compiles cleanly during
+% the transition period before the pipeline regenerates numbers.tex.
+\providecommand{\ownNoBehavioralBaseline}{[pending]}
+\providecommand{\ownTenChannelSDU}{[pending]}
+\providecommand{\ownTenChannelFull}{\ownNoBehavioralBaseline}
+\providecommand{\ownTenChannelFullNum}{\ownNoBehavioralBaseline}
+\providecommand{\ownNineChannelSDU}{\ownTenChannelSDU}
+\providecommand{\pLambdaW}{0.625}
+\providecommand{\pPsiPurchase}{0.05}
+\providecommand{\pChiLTC}{0.7}
+
 \title{Online Appendix for ``Quantifying the Annuity Puzzle: A Unified Lifecycle Decomposition''}
 \author{Derek Tharp}
 \date{\today}
@@ -157,41 +169,14 @@ The health-utility weights $\varphi = [\pHealthUtilGood, \pHealthUtilFair, \pHea
 
 Under the raw FLN mapping the full eight-channel rational+preference model predicts \ownNineChannelFLN{} ownership; under the softer Reichling--Smetters mapping it predicts \ownNineChannelRS{}, a difference of \deltaNineChannelRSmFLN{} pp. The production calibration uses the raw FLN central values; the Reichling--Smetters mapping is reported as a robustness check. In the calibrated model, state-dependent utility has a negligible effect on predicted ownership (Shapley value of \shapStateUtil{} pp) in either calibration. This near-zero effect reflects the modest magnitude of the health-utility weights and the fact that poor-health states already receive low weight through the mortality channel: individuals in Poor health face high mortality, so their contribution to the annuity's expected value is small regardless of the utility weight.
 
-\subsection{Calibration anchor sensitivity for \texorpdfstring{$\psi_{\text{purchase}}$}{psi}}
-\label{app:psi_anchors}
+\subsection{Behavioral parameter sensitivity}
+\label{app:behavioral_sensitivity}
 
-The headline calibration bracket sets $\psi_{\text{purchase}} \in [\pPsiBracketLow, \pPsiBracketHigh]$, with the conservative bracket end ($\pPsiBracketLow$) anchored on the rational-corrected ABI sensitivity target---the 75 pp drop in DC-pot annuity ownership between the pre-reform compulsory regime and the post-reform voluntary regime, applied as a pp shift to the model's no-PED baseline, with about a quarter of that drop attributable to the simultaneous removal of a 55\% lump-sum tax penalty already represented in the model's rational pricing channels (\citealp{abi2020}). ABI quarterly contract volumes fell by a similar proportional magnitude over the same window, corroborating the ownership-rate evidence. The aggressive bracket end ($\pPsiBracketHigh$) is anchored on the descriptive ELSA microdata total drop in observed disposition (n=\nELSAPostLumpSum). The corresponding bracket of predicted US voluntary ownership is $[\ownBracketLow, \ownBracketHigh]$. This appendix reports the full sensitivity table across alternative single-moment SMM specifications. Two HRS measures of US lifetime annuity ownership are reported in parallel as out-of-sample empirical comparisons: $\pctHRSLifetime$ (95\% CI $[\pctHRSLifetimeCILow, \pctHRSLifetimeCIHigh]$, lifetime contract indicator) and $\pctHRSIannPooled$ (95\% CI $[\pctHRSIannCILow, \pctHRSIannCIHigh]$, conventional any-annuity income proxy). The income-proxy measure sits inside the bracket; the cleaner lifetime indicator's CI overlaps the bracket's lower edge.
+The behavioral parameters $\lambda_W$ and $\psi_{\text{purchase}}$ are not separately identified from a single bundling moment and are not moment-matched within the structural model. They are reported as \emph{exploratory} parameters anchored on literature magnitudes. The point values used for illustrative within-model robustness exercises are $\lambda_W = \pLambdaW$ (the Blanchett--Finke point estimate of the source-dependent utility spending differential between guaranteed income and portfolio wealth; \citealp{blanchett2024,blanchett2025}) and $\psi_{\text{purchase}} = \pPsiPurchase$ (a literature-magnitude best guess for narrow-framing purchase-event disutility consistent with the order of magnitudes documented in \citealp{barberishuang2009} and \citealp{brown2008framing}).
 
-\begin{table}[htbp]
-\centering
-\caption{Sensitivity of $\psi_{\text{purchase}}$ to UK 2015 calibration anchor}
-\label{tab:psi_anchors}
-\begin{threeparttable}
-\begin{tabular}{lcccl}
-\toprule
-Anchor & Identifying moment & $\hat{\psi}_{\text{purchase}}$ & Predicted US ownership & Notes \\
-\midrule
-\textbf{C}$_{\text{low}}$  & ABI rational-corrected target (low)  & \pPsiUKLow  & \ownPsiUKLow  & Tax-stripped (ABI aggregate) \\
-\textbf{C}$_{\text{mid}}$  & ABI rational-corrected target (mid)  & \textbf{\pPsiUKMid}  & \textbf{\ownPsiUKMid}  & \textbf{Conservative bracket end (ABI)} \\
-\textbf{C}$_{\text{high}}$ & ABI rational-corrected target (high) & \pPsiUKHigh & \ownPsiUKHigh & Tax-stripped (ABI aggregate) \\
-ELSA$_{\text{strip-low}}$  & ELSA strip-low (70 pp)               & \pPsiUKELSALow  & \ownPsiUKELSALow  & ELSA microdata, low strip \\
-ELSA$_{\text{strip-high}}$ & ELSA strip-high (74 pp)              & \pPsiUKELSAHigh & \ownPsiUKELSAHigh & ELSA microdata, high strip \\
-B$_{\text{low}}$           & UK total drop (75 pp, ABI aggregate) & \pPsiUKBLow & \ownPsiUKBLow  & No tax stripping \\
-\textbf{ELSA}$_{\text{total}}$ & ELSA microdata total drop (88 pp) & \textbf{\pPsiUKELSATotal} & \textbf{\ownPsiUKELSATotal} & \textbf{Aggressive bracket end (ELSA)} \\
-\midrule
-\multicolumn{2}{l}{\emph{No-PED baseline (Force B off)}} & 0.0000 & \ownPsiZero & Rational + SDU only \\
-\multicolumn{2}{l}{\emph{HRS lifetime contract indicator (q286)}} & --- & \pctHRSLifetime & Out-of-sample empirical target (cleaner) \\
-\multicolumn{2}{l}{\emph{HRS any-annuity income proxy (r\{w\}iann)}} & --- & \pctHRSIannPooled & Out-of-sample empirical target (conventional) \\
-\bottomrule
-\end{tabular}
-\begin{tablenotes}
-\small
-\item The headline calibration bracket is $\psi_{\text{purchase}} \in [\pPsiBracketLow, \pPsiBracketHigh]$, with the conservative bracket end (C-mid, UK pre/post pp drop in ownership rate after stripping the rational tax-removal response) and the aggressive bracket end (ELSA microdata, descriptive total drop in observed disposition with no rational stripping). The corresponding bracket of predicted US voluntary ownership is $[\ownBracketLow, \ownBracketHigh]$. Values shown for additional anchors are computed from the same single-moment SMM under alternative identifying targets and reported as a sensitivity range.
-\item The ABI aggregate-data anchors (rows C-low, C-mid, C-high) treat 15--25 pp of the raw 75 pp UK ownership drop as the rational tax-removal response (lump-sum 55\% tax penalty removal). The ELSA-microdata-strip anchors (ELSA-strip-low/high) instead use the household-level disposition-record drop after the same correction. The ELSA-total anchor adopts the raw 88 pp drop without any tax correction; this is the most aggressive specification and corresponds to the bracket's lower-ownership end.
-\item All US ownership predictions are out-of-sample: the calibration anchors use only UK data; observed US ownership is not used to discipline $\psi_{\text{purchase}}$.
-\end{tablenotes}
-\end{threeparttable}
-\end{table}
+Within-model sensitivity is reported over the ranges $\lambda_W \in \{0.5, 0.625, 0.75, 0.85\}$ and $\psi_{\text{purchase}} \in \{0.01, 0.05, 0.09\}$. These ranges are stated for transparency about the exploratory status of the parameters: any single combination within the grid is consistent with the available behavioral evidence at the literature's order of magnitude. The body of the paper does not rely on a specific point value of either parameter for its headline result. The headline US ownership prediction is generated by Model 2 (the reduced-form UK transport), in which the no-behavioral baseline of \ownNoBehavioralBaseline{} is multiplied by the proportional retention factor $\rho = $ post/pre $\approx 17/95$ to yield the production midpoint of \ownHeadline{} with sensitivity bracket $[\ownBracketLow, \ownBracketHigh]$ across UK retention anchors.
+
+The reduced-form transport in Model 2 does not estimate $\lambda_W$ or $\psi_{\text{purchase}}$ from UK data: the proportional retention factor is treated as country-invariant and applied directly to the no-behavioral baseline as multiplicative post-processing. The HRS empirical targets reported in the body for out-of-sample comparison are $\pctHRSLifetime$ (95\% CI $[\pctHRSLifetimeCILow, \pctHRSLifetimeCIHigh]$, lifetime contract indicator) and $\pctHRSIannPooled$ (95\% CI $[\pctHRSIannCILow, \pctHRSIannCIHigh]$, conventional any-annuity income proxy). Both fall within the wider UK sensitivity range.
 
 \subsection{Nominal annuity pricing derivation}
 \label{app:nominal_pricing}
@@ -295,7 +280,7 @@ Table~\ref{tab:bequest_recal} reports a forward simulation test at $\gamma = 2.0
 
 \citet{pashchenko2013} conducted a sequential decomposition with four channels: pre-existing annuitization (Social Security and DB pensions), bequest motives, minimum purchase requirements, and pricing loads. Her full model predicted approximately 20\% participation, roughly four times the observed rate of 5\%.
 
-Table~\ref{tab:pashchenko} evaluates her channel set within the present framework. This comparison differs from a replication in three respects: the present model uses DFJ luxury-good bequests rather than the homothetic specification she employed; a continuous annuitization fraction rather than a binary purchase decision; and no housing illiquidity. The six-channel rational model under the present 10-channel reformulation predicts \ownSixChannel{}, materially above Pashchenko's approximately 20\% prediction. The two are not directly comparable in level---her model omits the combined Med+R-S correlation, survival pessimism, age-varying needs, and inflation erosion; the present model omits her housing illiquidity and minimum purchase channels---but the qualitative finding is preserved: standard rational channels alone substantially overshoot observed US ownership. Adding the channels Pashchenko omitted reduces the present prediction to \ownEightChannelExt{}, still substantially above both empirical targets. Closing the residual to the empirical bracket requires the two behavioral additions documented in the body (Force A: source-dependent utility; Force B: UK-disciplined narrow-framing purchase-event disutility); see Section~\ref{M-sec:behavioral_results}.
+Table~\ref{tab:pashchenko} evaluates her channel set within the present framework. This comparison differs from a replication in three respects: the present model uses DFJ luxury-good bequests rather than the homothetic specification she employed; a continuous annuitization fraction rather than a binary purchase decision; and no housing illiquidity. The six-channel rational model under the present reformulation predicts \ownSixChannel{}, materially above Pashchenko's approximately 20\% prediction. The two are not directly comparable in level---her model omits the combined Med+R-S correlation, survival pessimism, age-varying needs, and inflation erosion; the present model omits her housing illiquidity and minimum purchase channels---but the qualitative finding is preserved: standard rational channels alone substantially overshoot observed US ownership. Adding the channels Pashchenko omitted reduces the present prediction to \ownEightChannelExt{}, and adding the structural public-care aversion channel yields the no-behavioral baseline of \ownNoBehavioralBaseline{}. The reduced-form UK transport then maps this baseline to the headline US prediction of \ownHeadline{} with sensitivity bracket $[\ownBracketLow, \ownBracketHigh]$; see the body of the paper for discussion of the transport.
 
 \input{../tables/tex/pashchenko_comparison.tex}
 
@@ -307,7 +292,7 @@ The model implementation is checked against three prior papers in the annuity-pu
 
 \textbf{\citet{lockwood2012}.} The repository's automated test suite (\texttt{test/test\_lockwood.jl}) exercises eight checks against Lockwood's published moments: (i) the SSA cumulative death probability life table reproduces Lockwood's Table-A1 conditional survival at age 65 to 1e-8 tolerance; (ii) the fair payout rate at $\gamma = 2$, $r = 0.03$ matches Lockwood's reported 7.16\% annual payout per dollar of premium; (iii) the willingness-to-pay (WTP) for a fair annuity without bequest motives reproduces Lockwood's $\approx$25\% of non-annuitized wealth; (iv) WTP declines monotonically with the pre-annuitized wealth fraction as Lockwood reports; (v) WTP collapses with bequest motives at the magnitudes Lockwood documents; (vi) loaded annuities reduce WTP consistent with Lockwood's loaded-pricing exhibits; (vii) the bequest-parameter calibration reproduces Lockwood's Table-1 estimates; (viii) the value function exhibits Lockwood's monotonicity and concavity properties. All checks pass under the present production grid.
 
-\textbf{\citet{pashchenko2013}.} The Pashchenko comparison is reported as Table~\ref{tab:pashchenko}. Levels are not directly comparable (channel sets and preference specifications differ), but the qualitative finding is preserved: standard rational channels alone substantially overshoot observed US ownership. The channels Pashchenko omits (the combined Med+R-S correlation, survival pessimism, age-varying needs, and inflation erosion) reduce the residual but do not close it on their own; the residual is closed only after the two behavioral additions documented in the body (Section~\ref{M-sec:behavioral_results}).
+\textbf{\citet{pashchenko2013}.} The Pashchenko comparison is reported as Table~\ref{tab:pashchenko}. Levels are not directly comparable (channel sets and preference specifications differ), but the qualitative finding is preserved: standard rational channels alone substantially overshoot observed US ownership. The channels Pashchenko omits (the combined Med+R-S correlation, survival pessimism, age-varying needs, and inflation erosion) reduce the residual but do not close it on their own; the no-behavioral baseline of \ownNoBehavioralBaseline{} is mapped to the headline US prediction by the reduced-form UK transport documented in the body.
 
 \textbf{\citet{reichlingsmetters2015}.} Their core mechanism---the health-mortality correlation that makes annuities ``valuation-risky'' precisely when liquid wealth is most valuable---is operationalized in this paper as the combined Med+R-S channel (Section~\ref{M-sec:results}). The bundling reflects a structural property of the present framework: the R-S mechanism's quantitative bite operates through the interaction with stochastic medical costs, since without competing demand for liquid wealth in sick states the lower expected annuity NPV does not translate into a precautionary motive against annuitization. Activating the combined channel reduces predicted ownership by \magDeltaMedRS{}~pp in the sequential decomposition, contributing \shapMedRS{}~pp in the order-independent Shapley attribution. The qualitative R-S sign-flip pattern (annuity demand falls when health-correlated medical risk is added on top of pure stochastic mortality) is reproduced by the present model under their parameter choices, verified in \texttt{test/test\_health.jl}.
 
@@ -381,7 +366,7 @@ Category & Specification & Ownership (\%) \\
 \end{tabular}
 \begin{tablenotes}
 \small
-\item Unless otherwise noted, all specifications use baseline parameters: $\gamma = \pGamma$, $\beta = \pBeta$, DFJ bequests ($\theta = \pThetaDFJ$, $\kappa = \pKappaDFJ$), survival pessimism $\psi = \pPessimism$, MWR $= \pMwrBaseline$, $F = \pFixedCost$, $\pi = \pInflation$, hazard multipliers $[\pHazardGood, \pHazardFair, \pHazardPoor]$, \pNQuad-node Gauss--Hermite quadrature, production grid ($\pNWealth \times \pNAnnuity \times \pNAlpha$). Production ten-channel model at the conservative (ABI-anchored) bracket end ($\psi_{\text{purchase}} = \pPsiBracketLow$).
+\item Unless otherwise noted, all specifications use baseline parameters: $\gamma = \pGamma$, $\beta = \pBeta$, DFJ bequests ($\theta = \pThetaDFJ$, $\kappa = \pKappaDFJ$), survival pessimism $\psi = \pPessimism$, MWR $= \pMwrBaseline$, $F = \pFixedCost$, $\pi = \pInflation$, hazard multipliers $[\pHazardGood, \pHazardFair, \pHazardPoor]$, \pNQuad-node Gauss--Hermite quadrature, production grid ($\pNWealth \times \pNAnnuity \times \pNAlpha$). Reported ownership corresponds to the no-behavioral baseline (Model 1); the headline US prediction in the body is obtained by applying the reduced-form UK transport (Model 2) to this baseline.
 \end{tablenotes}
 \end{threeparttable}
 \end{table}
@@ -473,7 +458,7 @@ For each draw, the model is solved repeatedly via bisection over $\gamma$ until 
 
 \input{../tables/tex/implied_gamma.tex}
 
-The median implied $\gamma$ of 2.77 sits inside the upper half of the \citet{chetty2006} range of 1--3, with an interquartile range of [2.19, 4.55] and 57\% of draws falling inside the Chetty interval (n = 300, all converged). The wide spread reflects the substantial sensitivity of predicted ownership to the nuisance parameters: the six-channel rational model can match Lockwood's reported 3.6\% rate only across a wide $\gamma$ range that includes values somewhat above empirically plausible bounds, and the precise $\gamma$ required is highly sensitive to assumptions about mortality, inflation, and pricing. This is informative about the limits of $\gamma$-tuning as an alternative to the channel structure adopted in the body of the paper. Adding the two preference channels brings the baseline-$\gamma$ prediction to \ownEightChannelExt{}, and adding the two behavioral channels yields the bracket prediction $[\ownBracketLow, \ownBracketHigh]$ across the empirically defensible UK behavioral anchor range.
+The median implied $\gamma$ of 2.77 sits inside the upper half of the \citet{chetty2006} range of 1--3, with an interquartile range of [2.19, 4.55] and 57\% of draws falling inside the Chetty interval (n = 300, all converged). The wide spread reflects the substantial sensitivity of predicted ownership to the nuisance parameters: the six-channel rational model can match Lockwood's reported 3.6\% rate only across a wide $\gamma$ range that includes values somewhat above empirically plausible bounds, and the precise $\gamma$ required is highly sensitive to assumptions about mortality, inflation, and pricing. This is informative about the limits of $\gamma$-tuning as an alternative to the channel structure adopted in the body of the paper. Adding the two preference channels brings the baseline-$\gamma$ prediction to \ownEightChannelExt{} and the no-behavioral baseline to \ownNoBehavioralBaseline{}; the reduced-form UK transport then maps this baseline to the headline US prediction with sensitivity bracket $[\ownBracketLow, \ownBracketHigh]$.
 
 For each draw, the full model is solved by backward induction on the production grid ($60 \times 20 \times 51$) and ownership is evaluated on the HRS population sample. The 300 bisection searches (each requiring 8--12 solves) are parallelized across available CPU cores.
 

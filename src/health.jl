@@ -1,11 +1,10 @@
 # Health dynamics and mortality.
-# Phase 1: deterministic survival with a single health state.
-# Phase 3: stochastic health with 3-state Markov process,
-# health-dependent mortality (Reichling-Smetters mechanism),
-# and lognormal medical expenditure shocks.
+# Provides deterministic survival (single health state) and stochastic health
+# with a 3-state Markov process, health-dependent mortality (Reichling-Smetters
+# mechanism), and lognormal medical expenditure shocks.
 
 # ===================================================================
-# Phase 1: Deterministic survival (no health states)
+# Deterministic survival (no health states)
 # ===================================================================
 
 """
@@ -59,7 +58,7 @@ end
 
 
 # ===================================================================
-# Phase 3: Gauss-Hermite Quadrature
+# Gauss-Hermite Quadrature
 # ===================================================================
 
 # Hardcoded GH nodes and weights for ∫ f(x) exp(-x^2) dx.
@@ -144,7 +143,7 @@ end
 
 
 # ===================================================================
-# Phase 3: Health Transition Matrices
+# Health Transition Matrices
 # ===================================================================
 
 # 3-state Markov health: 1=Good, 2=Fair, 3=Poor.
@@ -164,20 +163,6 @@ const HEALTH_TRANS_BANDS = Dict{String, Matrix{Float64}}(
 # Ordered list of band labels and their lower age bounds
 const HEALTH_BAND_ORDER = ["65-69", "70-74", "75-79", "80-84", "85-89", "90+"]
 const HEALTH_BAND_LOWER = [65, 70, 75, 80, 85, 90]
-
-# Previous two-anchor interpolation (superseded by age-band estimates):
-# const HEALTH_TRANS_65 = [0.88 0.10 0.02; 0.10 0.75 0.15; 0.02 0.13 0.85]
-# const HEALTH_TRANS_100 = [0.55 0.30 0.15; 0.03 0.50 0.47; 0.00 0.07 0.93]
-# function build_health_transition(age::Int)
-#     if age <= 65; return copy(HEALTH_TRANS_65)
-#     elseif age >= 100; return copy(HEALTH_TRANS_100)
-#     else
-#         frac = (age - 65) / (100 - 65)
-#         trans = (1.0 - frac) .* HEALTH_TRANS_65 .+ frac .* HEALTH_TRANS_100
-#         for i in 1:3; trans[i, :] ./= sum(trans[i, :]); end
-#         return trans
-#     end
-# end
 
 """
 Return the age-band label for a given age.
@@ -227,7 +212,7 @@ end
 
 
 # ===================================================================
-# Phase 3: Health-Dependent Survival
+# Health-Dependent Survival
 # ===================================================================
 
 """
@@ -325,7 +310,7 @@ end
 
 
 # ===================================================================
-# Phase 3: Medical Expenditure Process
+# Medical Expenditure Process
 # ===================================================================
 
 """

@@ -14,7 +14,7 @@ println("=" ^ 70)
 println("  BEQUEST ANOMALY DIAGNOSIS")
 println("=" ^ 70)
 
-# Common setup
+# Common setup (mirror production config.jl values)
 const AGE_START   = 65
 const AGE_END     = 110
 const C_FLOOR     = 6_180.0
@@ -27,10 +27,10 @@ const N_QUAD      = 9
 const GAMMA       = 2.5
 const BETA        = 0.97
 const R_RATE      = 0.02
-const MWR_LOADED  = 0.82
-const FIXED_COST  = 1_000.0
+const MWR_LOADED  = 0.87
+const FIXED_COST  = 2_500.0
 const INFLATION   = 0.02
-const HAZARD_MULT = [0.50, 1.0, 3.0]
+const HAZARD_MULT = [0.50, 1.0, 3.75]
 const MIN_WEALTH  = 5_000.0
 const THETA_DFJ   = 56.96
 const KAPPA_DFJ   = 272_628.0

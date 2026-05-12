@@ -1,4 +1,4 @@
-# Phase 5: Welfare Analysis — Heterogeneous CEV Map
+# Welfare Analysis — Heterogeneous CEV Map
 #
 # Computes consumption-equivalent variation (CEV) across household types.
 # CEV measures the % increase in consumption that makes an individual
@@ -24,7 +24,7 @@ end
 include(joinpath(@__DIR__, "config.jl"))
 
 println("=" ^ 70)
-println("  PHASE 5: WELFARE ANALYSIS")
+println("  WELFARE ANALYSIS")
 println("  Heterogeneous CEV Map — Who Benefits from Annuitization?")
 println("=" ^ 70)
 

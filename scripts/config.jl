@@ -19,8 +19,9 @@ const FIXED_COST = 2_500.0       # transaction + search cost. Lockwood (2012) us
                                   # $500-$2,000 for pure paperwork; the $2,500
                                   # production value accommodates a modest search
                                   # cost above pure transaction without absorbing
-                                  # variance the behavioral channels (Force B,
-                                  # public-care aversion) explain separately.
+                                  # variance the behavioral channels (PED narrow-
+                                  # framing, public-care aversion) explain
+                                  # separately.
 const MIN_PURCHASE = 10_000.0    # modal SPIA minimum across major issuers
                                   # (Pacific Life, NY Life, MassMutual, Lincoln,
                                   # Symetra, Mutual of Omaha, etc.); LIMRA modern
@@ -62,6 +63,10 @@ const HEALTH_UTILITY = [1.0, 0.92, 0.82]  # state-dep utility — FLN (2013) cen
                                            # empirically defensible range and
                                            # avoiding interaction with steeper
                                            # hazards / public-care aversion.
+# UK_RETENTION_*: inputs to the Model 2 reduced-form transport (see below).
+# The proportional retention factor (UK_post / UK_pre) is applied to the
+# frictionless Yaari baseline as a deterministic multiplicative
+# transformation in scripts/export_manuscript_numbers.jl.
 const UK_RETENTION_PRE   = 0.95   # UK pre-2015 reform: compulsory annuitization rate
 const UK_RETENTION_LOW   = 0.13   # UK post-2015 voluntary retention (low anchor; FCA)
 const UK_RETENTION_MID   = 0.17   # UK post-2015 voluntary retention (mid anchor; ABI/FCA central)
@@ -69,22 +74,22 @@ const UK_RETENTION_HIGH  = 0.25   # UK post-2015 voluntary retention (high ancho
 
 # Two-model architecture.
 #
-# Model 1 (structural multi-channel, US-anchored): rational + preference +
-# structural (chi_ltc) + behavioral (SDU + PED) channels parameterized
-# directly in the Bellman equation. Behavioral parameters (LAMBDA_W,
-# PSI_PURCHASE) are exploratory best guesses anchored to literature
-# magnitudes (Blanchett-Finke 2024-25 spending differential; Brown 2008 /
-# Chalmers-Reuter 2012 / Hu-Scott 2007 framing-effect magnitudes), not
-# moment-matched. Sensitivity ranges reported in manuscript.
+# Model 1 (structural multi-channel, US-anchored): all 11 channels —
+# rational + preference + structural (chi_ltc) + behavioral (SDU + PED) —
+# parameterized directly in the Bellman equation. Behavioral parameters
+# (LAMBDA_W, PSI_PURCHASE) are exploratory best guesses anchored to
+# literature magnitudes (Blanchett-Finke 2024-25 spending differential;
+# Brown 2008 / Chalmers-Reuter 2012 / Hu-Scott 2007 framing-effect
+# magnitudes), not moment-matched. Sensitivity ranges reported in
+# manuscript.
 #
 # Model 2 (UK reduced-form transport): apply the proportional retention
 # factor from the UK 2015 reform (UK_post / UK_pre) to the FRICTIONLESS
-# Yaari baseline as a deterministic multiplicative transformation in
-# scripts/export_manuscript_numbers.jl. The UK pre-reform 95% rate is a
-# COMPULSION equilibrium, so the wedge captures the bundle of behavioral
-# AND rational frictions that voluntary retirees express; the no-behavioral
-# baseline already absorbs most rational frictions, so this transport
-# bracket is interpreted as an upper bound on the friction wedge.
+# Yaari baseline (no channels active). Model 2 = frictionless ×
+# (UK_post / UK_pre). The UK pre-reform 95% rate is a compulsion
+# equilibrium and the UK post-reform rate is voluntary, so the ratio
+# captures the bundle of frictions that voluntary retirees express
+# relative to a no-friction counterfactual.
 #
 # Production Model 2 wedge factors (UK_post / UK_pre):
 #   low  factor = UK_RETENTION_LOW  / UK_RETENTION_PRE = 0.137
@@ -99,23 +104,23 @@ const UK_RETENTION_HIGH  = 0.25   # UK post-2015 voluntary retention (high ancho
 # These are best-guess literature-anchored values, not identified from a
 # moment match. Sensitivity ranges are reported across plausible spans.
 #
-# LAMBDA_W: source-dependent utility discount on portfolio drawdowns
-# (Force A; Blanchett-Finke 2024-25). Households consume income (SS,
-# annuity payouts) at full utility weight and portfolio drawdowns at a
-# discount lambda_w in (0, 1]. Production central value is the
-# Blanchett-Finke point estimate: retirees spend ~80% of income but only
-# ~50% of portfolio, so 50/80 = 0.625. Sensitivity reported across
-# {0.5, 0.625, 0.75, 0.85}.
+# LAMBDA_W: source-dependent utility (SDU) discount on portfolio drawdowns
+# (Blanchett-Finke 2024-25). Households consume income (SS, annuity
+# payouts) at full utility weight and portfolio drawdowns at a discount
+# lambda_w in (0, 1]. Production central value is the Blanchett-Finke
+# point estimate: retirees spend ~80% of income but only ~50% of
+# portfolio, so 50/80 = 0.625. Exploratory best guess (not moment-
+# matched); sensitivity reported across {0.5, 0.625, 0.75, 0.85}.
 const LAMBDA_W = 0.625
 
-# PSI_PURCHASE: narrow-framing at-purchase penalty intensity (Force B;
-# Barberis-Huang 2009 narrow framing; Tversky-Kahneman 1992 loss aversion).
-# No direct empirical identification — the parameter scales the NPV of the
-# loss-aversion stream over the underwater period of the SPIA. Chosen so
-# PED-alone produces an ownership shift in the magnitude range of
-# documented framing/default effects (Brown 2008 ~25 pp; Chalmers-Reuter
-# 2012 ~35 pp; Hu-Scott 2007 ~20-35% NPV discount). Sensitivity reported
-# across {0.01, 0.05, 0.09}.
+# PSI_PURCHASE: narrow-framing at-purchase penalty (PED) intensity
+# (Barberis-Huang 2009 narrow framing; Tversky-Kahneman 1992 loss aversion).
+# Exploratory best guess (not moment-matched) — the parameter scales the
+# NPV of the loss-aversion stream over the underwater period of the SPIA.
+# Chosen as a literature-magnitude anchor in the range of documented
+# framing/default effects (Brown 2008 ~25 pp; Chalmers-Reuter 2012 ~35 pp;
+# Hu-Scott 2007 ~20-35% NPV discount). Sensitivity reported across
+# {0.01, 0.05, 0.09}.
 const PSI_PURCHASE = 0.05
 
 # PSI_PURCHASE_C_REF: reference consumption used to express the at-purchase
@@ -138,15 +143,13 @@ const CHI_LTC = 0.7               # Upper bound of Ameriks (2020 ECMA) 95% CI fo
                                    # conservative choice than the central estimate,
                                    # avoiding overcalibration of this channel
                                    # relative to the model's other suppression
-                                   # mechanisms. The Phase 27 diagnostic showed
-                                   # CHI_LTC = 0.5 produces a pre-behavioral
-                                   # baseline of 1.4%, which is below any plausible
-                                   # behavioral-wedge identification target and
-                                   # creates a cliff in the at-purchase penalty
-                                   # mechanism. CHI_LTC = 0.7 is empirically
-                                   # defensible (within Ameriks CI) while leaving
-                                   # room for the bundled wedge to operate.
-                                   # 1.0 = channel off; 0.7 = production (May 2026).
+                                   # mechanisms. CHI_LTC = 0.5 produces a pre-
+                                   # behavioral baseline so low it leaves no room
+                                   # for the SDU/PED channels to operate
+                                   # quantitatively; 0.7 is empirically defensible
+                                   # (within Ameriks CI) while preserving
+                                   # identification of the behavioral channels.
+                                   # 1.0 = channel off; 0.7 = production.
 
 # HRS population data path
 const HRS_PATH = joinpath(@__DIR__, "..", "data", "processed", "lockwood_hrs_sample.csv")

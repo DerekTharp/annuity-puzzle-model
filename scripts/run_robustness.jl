@@ -14,7 +14,7 @@
 # Parallelism strategy: every sub-section that needs a full-model resolve is
 # flattened into a SINGLE master spec list and dispatched via one parallel_solve
 # call. Wall-clock time is therefore the longest single solve (~20-30 min for
-# the full 10-channel model), not the sum of sub-section times. Each sub-section
+# the full model), not the sum of sub-section times. Each sub-section
 # then filters the master results and renders its block of output in the format
 # the manuscript expects.
 #
@@ -131,10 +131,10 @@ end
 
 # § 2. Hazard multiplier variants (constant) + age-banded variant
 hazard_specs = [
-    ("[0.45, 1.0, 3.5] (R-S functional, age 65-75)", [0.45, 1.0, 3.5]),
-    ("[0.50, 1.0, 3.0] (baseline)",                  [0.50, 1.0, 3.0]),
-    ("[0.57, 1.0, 2.7] (HRS SRH empirical)",         [0.57, 1.0, 2.7]),
-    ("[0.60, 1.0, 2.0] (conservative SRH)",           [0.60, 1.0, 2.0]),
+    ("[0.45, 1.0, 3.5] (R-S functional, age 65-75)",                [0.45, 1.0, 3.5]),
+    (@sprintf("[%.2f, %.1f, %.2f] (baseline)", HAZARD_MULT...),     copy(HAZARD_MULT)),
+    ("[0.57, 1.0, 2.7] (HRS SRH empirical)",                        [0.57, 1.0, 2.7]),
+    ("[0.60, 1.0, 2.0] (conservative SRH)",                         [0.60, 1.0, 2.0]),
 ]
 for (label, hm) in hazard_specs
     push!(master_specs, (section=:hazard,
@@ -492,7 +492,8 @@ open(tex_path, "w") do f
     println(f, raw"\small")
     println(f, raw"\item Baseline: ", ds, raw"\gamma = 2.5", ds, ", ",
             ds, raw"\pi = 2\%", ds, ", DFJ bequests,")
-    @printf(f, "MWR = %.2f, hazard multipliers [0.50, 1.0, 3.0].\n", MWR_LOADED)
+    @printf(f, "MWR = %.2f, hazard multipliers [%.2f, %.1f, %.2f].\n",
+            MWR_LOADED, HAZARD_MULT[1], HAZARD_MULT[2], HAZARD_MULT[3])
     println(f, raw"\end{tablenotes}")
     println(f, raw"\end{table}")
 end

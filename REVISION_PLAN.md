@@ -1,5 +1,13 @@
 # Revision Plan — Synthesized from 20 Expert Reviews
 
+> **Status (Phase 30, May 2026):** Historical revision plan completed in
+> Phase ~5 (Apr 2026). All P0/P1 review items were addressed before the
+> `v0.4-presubmission` tag (Apr 19, 2026). Project state has since advanced
+> through Phases 25-30, including a reformulated behavioral wedge, the
+> Phase 28 SDU/PED removal-and-reintroduction, the Phase 29 two-model
+> architecture, and the Phase 30 reframing of behavioral parameters as
+> exploratory. For current state, see CLAUDE.md and project memory.
+
 **Date:** 2026-03-24 (updated 2026-04-02)
 **Reviews:** 10 economics reviewers (Round 1) + 10 code reviewers (Round 2)
 **Economics score:** 6.8/10 | **Code score:** 6.2/10

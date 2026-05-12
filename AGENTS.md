@@ -26,15 +26,15 @@ This project resolves their disagreement by building the model neither wrote —
 
 ### 1.3 The Intellectual Architecture
 
-A companion survey paper (Tharp, forthcoming at Journal of Economic Surveys, "Dissolving the Annuity Puzzle: A Critical Survey") argues qualitatively that the accumulated evidence dissolves the puzzle. The present modeling paper provides the quantitative proof. The survey identifies the channels; this paper demonstrates that they compound multiplicatively within a unified framework to generate predicted demand of 3–8%, matching observed data.
+A companion survey paper (Tharp, forthcoming at Journal of Economic Surveys, "Dissolving the Annuity Puzzle: A Critical Survey") argues qualitatively that the accumulated evidence dissolves the puzzle. The present modeling paper provides the quantitative proof. The survey identifies the channels; this paper demonstrates that they compound multiplicatively within a unified framework to generate predicted demand consistent with observed US data.
 
 ### 1.4 Target Contribution
 
-The paper delivers three novel results:
+The paper delivers three novel results via a two-model architecture (Model 1: 11-channel structural lifecycle decomposition; Model 2: UK reduced-form transport):
 
-1. **Sequential decomposition**: Starting from Yaari's 100% benchmark, show how adding each channel reduces predicted annuitization, and show that the channels interact multiplicatively (not additively).
+1. **Sequential decomposition (Model 1)**: Starting from Yaari's 100% benchmark, show how adding each channel reduces predicted annuitization, and show that the channels interact multiplicatively (not additively). The 9-channel non-behavioral structural baseline predicts 1.7% ownership; the 11-channel model adds two exploratory behavioral channels (source-dependent utility, purchase-event disutility) whose Shapley contributions (|PED|=44.4 pp, |SDU|=31.1 pp) are reported as exploratory rather than moment-matched.
 
-2. **Unified quantitative match**: The full model with all channels generates predicted voluntary annuity ownership of 3–8% across reasonable parameterizations, matching observed US data.
+2. **Reduced-form transport (Model 2)**: Scale the frictionless US benchmark by the UK post-2015-reform retention ratio (UK_post/UK_pre = 0.179), giving 41.85% × 0.179 = 7.5% predicted US voluntary ownership. This provides a transparent quasi-experimental cross-check independent of the structural channel decomposition.
 
 3. **Heterogeneous welfare map**: Identify which household types (by wealth, marital status, health, bequest motives) would benefit from additional annuitization, and quantify the welfare stakes in consumption-equivalent units.
 
@@ -1058,8 +1058,17 @@ The project uses version numbers for manuscript revisions. When a draft is super
 - Intermediate outputs (`.aux`, `.log`, `.blg`, `.out` files) do not need to be archived
 - The `archive/` directory is append-only; never delete or modify archived versions
 
-**Current version:** v0.2 (revision addressing internal peer review)
-**Archived:** v0.1 (initial draft, Feb 28, 2026)
+**Current version:** Phase 30 (May 11, 2026). Most recent tagged release is `v0.4-presubmission` (Apr 19, 2026); subsequent work is tracked by phase commits (Phase 25 onward).
+**Archived:** v0.1 (initial draft, Feb 28, 2026), Phase 29 (Chalmers-Reuter calibration found infeasible).
+
+**Phase 30 current state (lock in):**
+- Architecture: two-model (Model 1 = 11-channel structural; Model 2 = UK reduced-form transport, frictionless × UK_post/UK_pre = 41.85% × 0.179 = 7.5%)
+- 9-channel structural baseline: 1.7% predicted ownership
+- 11-channel Shapley: |PED| = 44.4 pp, |SDU| = 31.1 pp (over 2048 subsets)
+- Behavioral parameters lambda_W = 0.625 and psi = 0.05 are EXPLORATORY literature-magnitude best guesses, NOT moment-matched
+- AWS pipeline: 17 stages (no Stage 9b); Stage 10 is the 2048-subset Shapley
+- Tests: 187 total (186 pass / 1 broken status)
+- All 11 channels active in the full model
 
 ---
 

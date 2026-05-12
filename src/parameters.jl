@@ -12,24 +12,25 @@ using TOML
     kappa::Float64 = 0.0          # bequest shifter (Lockwood 2018)
     consumption_decline::Float64 = 0.0  # age-varying consumption needs (Aguiar-Hurst)
     health_utility::Vector{Float64} = [1.0, 1.0, 1.0]  # state-dependent utility [G,F,P] (FLN 2013)
-    # Model 1 (structural) parameters: behavioral mechanisms parameterized in the
-    # Bellman equation. Model 2 (UK reduced-form transport) is computed as
-    # multiplicative post-processing on the frictionless baseline in
-    # scripts/export_manuscript_numbers.jl and does not require model parameters.
-    psi_purchase::Float64 = 0.0       # narrow-framing at-purchase disutility (Force B)
-                                       # Calibrated from Chalmers-Reuter (2012) Oregon
-                                       # PERS 35 pp default-vs-opt-in elasticity.
+    # Behavioral and structural mechanisms parameterized in the Bellman
+    # equation. Magnitudes drawn from the empirical literature
+    # (Blanchett-Finke 2024-25; Chalmers-Reuter 2012; Brown 2008;
+    # Hu-Scott 2007; Ameriks 2011 QJE / 2020 ECMA). Defaults set each
+    # channel to its off state so callers opt in explicitly.
+    psi_purchase::Float64 = 0.0       # narrow-framing at-purchase disutility
+                                       # (Barberis-Huang 2009; Tversky-Kahneman 1992).
+                                       # Magnitude consistent with Chalmers-Reuter (2012)
+                                       # Oregon PERS 35 pp default-vs-opt-in elasticity.
     psi_purchase_c_ref::Float64 = 18_000.0  # reference consumption for utility units
-    lambda_w::Float64 = 1.0           # source-dependent utility (Force A)
-                                       # Calibrated to Blanchett-Finke (2024-25)
-                                       # spending differential (~0.85 partialled).
+    lambda_w::Float64 = 1.0           # source-dependent utility
+                                       # (Shefrin-Thaler 1988 mental accounting;
+                                       # Blanchett-Finke 2024-25 spending differential).
                                        # Implementation: c_eff = c_income + lambda_w * c_portfolio
-    chi_ltc::Float64 = 1.0            # public-care aversion (Ameriks 2011 QJE; 2020 ECMA)
-                                       # 1.0 = channel off
-                                       # 0.5 = production: utility multiplied by chi_ltc when
-                                       #       consumption floor binds AND health = Poor
-                                       #       (Medicaid-LTC binding state). Captures retiree
-                                       #       aversion to publicly-financed long-term care.
+    chi_ltc::Float64 = 1.0            # public-care aversion (Ameriks 2011 QJE; 2020 ECMA).
+                                       # 1.0 = channel off; values below 1.0 multiply
+                                       # flow utility by chi_ltc when the consumption
+                                       # floor binds AND health = Poor (Medicaid-LTC
+                                       # binding state).
 
     # Demographics
     age_start::Int = 65
@@ -49,7 +50,7 @@ using TOML
     deferral_start_period::Int = 1 # period when annuity payments begin (1=SPIA)
     dia_mwr::Float64 = 0.50       # DIA money's worth ratio (Wettstein et al. 2021)
 
-    # Medical expenditures (Phase 3)
+    # Medical expenditures
     medical_enabled::Bool = false
     medical_mu_base::Float64 = 7.037      # log mean OOP at age 65 (Fair health)
     medical_mu_growth::Float64 = 0.0652   # annual growth in log mean
@@ -57,7 +58,7 @@ using TOML
     medical_cost_shift::Vector{Float64} = [-0.5, 0.0, 0.7]  # log shift by health [G,F,P]
     medical_sigma_shift::Vector{Float64} = [-0.2, 0.0, 0.2] # sigma shift by health [G,F,P]
 
-    # Health dynamics (Phase 3)
+    # Health dynamics
     stochastic_health::Bool = false
     n_health_states::Int = 1
     health_mortality_corr::Bool = false    # survival depends on health (R-S mechanism)

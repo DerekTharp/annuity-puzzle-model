@@ -1,8 +1,8 @@
 #!/bin/bash
 # Resume the pipeline from Stage 12. Used after a partial-failure run where
-# Stages 0-11 already wrote their CSVs. Re-running Stages 12-16 picks up the
-# fresh outputs from disk; later stages (15, 16) read those CSVs to generate
-# the manuscript macros and validate.
+# Stages 0-11 already wrote their CSVs. Re-running Stages 12-17 picks up the
+# fresh outputs from disk; later stages (15, 16, 17) read those CSVs to
+# generate the manuscript macros and validate.
 #
 # Run via:  nohup bash scripts/aws/resume_pipeline_remote.sh > /tmp/run_resume.log 2>&1 &
 #
@@ -60,14 +60,8 @@ run_stage "12. Robustness and Sensitivity Analysis" scripts/run_robustness.jl pa
 # Stage 13 — implied gamma (Monte Carlo bisection)
 [ "$OVERALL_RC" = "0" ] && { run_stage "13. Implied Risk Aversion" scripts/run_implied_gamma.jl parallel || OVERALL_RC=$?; }
 
-# Stage 13b — psi-purchase sensitivity
-[ "$OVERALL_RC" = "0" ] && { run_stage "13b. Behavioral psi-purchase Sensitivity" scripts/run_psi_sensitivity.jl parallel || OVERALL_RC=$?; }
-
 # Stage 13c — Monte Carlo joint parameter uncertainty
 [ "$OVERALL_RC" = "0" ] && { run_stage "13c. Monte Carlo Parameter Uncertainty" scripts/run_monte_carlo_uncertainty.jl parallel || OVERALL_RC=$?; }
-
-# Stage 13d — UK-anchored psi estimation (single-moment SMM)
-[ "$OVERALL_RC" = "0" ] && { run_stage "13d. UK-anchored psi estimation" scripts/estimate_psi.jl parallel || OVERALL_RC=$?; }
 
 # Stage 14 — figure generation (reads fresh CSVs)
 [ "$OVERALL_RC" = "0" ] && { run_stage "14. Figure Generation" scripts/generate_figures.jl || OVERALL_RC=$?; }
@@ -80,6 +74,9 @@ run_stage "12. Robustness and Sensitivity Analysis" scripts/run_robustness.jl pa
 
 # Stage 16 — post-run validation
 [ "$OVERALL_RC" = "0" ] && { run_stage "16. Post-run Validation" test/test_manuscript_numbers.jl || OVERALL_RC=$?; }
+
+# Stage 17 — pipeline validation gates
+[ "$OVERALL_RC" = "0" ] && { run_stage "17. Pipeline Validation Gates" scripts/validate_pipeline.jl || OVERALL_RC=$?; }
 
 # Bundle whatever results exist (always — even on partial failure, having
 # the partial bundle aids diagnosis). Mirrors the bundle gate in

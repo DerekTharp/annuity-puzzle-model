@@ -50,10 +50,10 @@ function solve_and_report(label, category, base_surv, population; kw...)
     wmax = get(kw_dict, :W_max, 3_000_000.0)
     agp = get(kw_dict, :annuity_grid_power, 3.0)
     nq = get(kw_dict, :n_quad, 5)
-    mwr_loaded = get(kw_dict, :mwr_loaded, 0.82)
+    mwr_loaded = get(kw_dict, :mwr_loaded, 0.87)
     inflation = get(kw_dict, :inflation_val, 0.02)
-    psi = get(kw_dict, :survival_pessimism, 0.981)
-    hm = get(kw_dict, :hazard_mult, [0.50, 1.0, 3.0])
+    psi = get(kw_dict, :survival_pessimism, 0.96)
+    hm = get(kw_dict, :hazard_mult, [0.50, 1.0, 3.75])
     min_wealth = get(kw_dict, :min_wealth, 5000.0)
 
     grid_kw = (n_wealth=nw, n_annuity=na, n_alpha=nalpha,
@@ -75,7 +75,7 @@ function solve_and_report(label, category, base_surv, population; kw...)
         theta=THETA_DFJ, kappa=KAPPA_DFJ,
         stochastic_health=true, n_health_states=3, n_quad=nq,
         c_floor=6180.0, hazard_mult=hm,
-        mwr=mwr_loaded, fixed_cost=1000.0, inflation_rate=inflation,
+        mwr=mwr_loaded, fixed_cost=2500.0, inflation_rate=inflation,
         medical_enabled=true, health_mortality_corr=true,
         survival_pessimism=psi,
         grid_kw...)

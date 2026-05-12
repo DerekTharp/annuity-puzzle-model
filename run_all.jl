@@ -6,12 +6,12 @@
 #   julia --project=. run_all.jl --tests-only # run tests only
 #
 # Expected runtime on AWS c7a.48xlarge (192 vCPU): ~3 hours.
-# Single-thread:  ~50 hours (1024 Shapley + 10 psi + 1000 MC + everything else).
-# 20 stages total; expects all subset/Shapley/MC stages parallelized.
+# Single-thread:  ~50 hours (2048 Shapley + 1000 MC + everything else).
+# Expects all subset/Shapley/MC stages parallelized.
 # For faster development runs, use --skip-tests and comment out Stage 12.
 #
 # Output:
-#   tables/tex/*.tex   — LaTeX tables for paper (13 files)
+#   tables/tex/*.tex   — LaTeX tables for paper (15 expected files)
 #   tables/csv/*.csv   — machine-readable results
 #   figures/pdf/*.pdf  — publication-quality figures
 #   figures/png/*.png  — quick-inspection rasters
@@ -223,12 +223,11 @@ function main()
         joinpath(CALIB_DIR, "recalibrate_bequests.jl"))
     push!(timings, "Bequests" => t)
 
-    # NOTE: Stage 9b (Chalmers-Reuter psi calibration) was removed in Phase 30.
-    # The behavioral parameters lambda_w and psi_purchase are now exploratory
-    # best guesses (literature-anchored magnitudes, not moment-matched), set
-    # directly in scripts/config.jl. Sensitivity ranges are reported in the
-    # manuscript across plausible spans. The CR 35 pp default-vs-opt-in gap
-    # remains a literature reference but is not used as a calibration target.
+    # The behavioral parameters lambda_w (SDU) and psi_purchase (PED) are set
+    # directly in scripts/config.jl as literature-anchored magnitudes
+    # (Blanchett-Finke for lambda_w; exploratory magnitude for psi_purchase),
+    # not moment-matched. Sensitivity ranges are reported in the manuscript
+    # across plausible spans.
 
     # --- Stage 10: Exact Shapley decomposition (2048 subsets, 11 channels) ---
     # Produces: shapley_exact.tex/.csv
@@ -258,17 +257,17 @@ function main()
         joinpath(SCRIPTS_DIR, "run_implied_gamma.jl"); parallel=true)
     push!(timings, "Implied gamma" => t)
 
-    # NOTE: Stage 13b (psi-purchase sensitivity sweep) has been removed.
-    # Under Option 1 bundled identification, the psi_purchase parameter no
-    # longer exists in the model. The bundled wedge is applied as
-    # multiplicative transport in scripts/export_manuscript_numbers.jl, and
-    # its sensitivity range is reported via the UK retention bracket
-    # [13%, 25%] mapped multiplicatively to the no-behavioral baseline.
+    # The Model 2 UK reduced-form transport (multiplicative wedge applied to
+    # the frictionless baseline) is computed inside
+    # scripts/export_manuscript_numbers.jl. Its sensitivity range is reported
+    # via the UK retention bracket [13%, 25%] mapped to the frictionless
+    # baseline; no separate pipeline stage is needed.
 
     # --- Stage 13c: Monte Carlo parameter uncertainty ---
     # Produces: monte_carlo_ownership.csv, monte_carlo_summary.tex.
     # 1000 joint draws over (gamma fixed) hazard_poor, inflation, MWR,
-    # pessimism, delta_c. Yields 90% CI bands on the no-behavioral baseline.
+    # pessimism, delta_c. Yields 90% CI bands on the rational-stack
+    # ownership prediction (behavioral parameters held at production values).
     t = run_stage(
         "13c. Monte Carlo Parameter Uncertainty",
         joinpath(SCRIPTS_DIR, "run_monte_carlo_uncertainty.jl"); parallel=true)
@@ -285,17 +284,13 @@ function main()
     push!(timings, "Figures" => t)
 
     # --- Stage 14b: State-dependent utility sensitivity ---
-    # Produces: state_utility_sensitivity.csv. Two full 9-channel solves under
-    # the FLN and Reichling-Smetters mappings of Finkelstein-Luttmer (2013).
+    # Produces: state_utility_sensitivity.csv. Two full rational-stack solves
+    # (behavioral parameters at neutral values) under the FLN and
+    # Reichling-Smetters mappings of Finkelstein-Luttmer (2013).
     t = run_stage(
         "14b. State-dependent Utility Sensitivity (FLN vs R-S)",
         joinpath(SCRIPTS_DIR, "run_state_utility_sensitivity.jl"); parallel=true)
     push!(timings, "State-util sensitivity" => t)
-
-    # NOTE: Stage 14c (lambda_W sensitivity) has been removed. Under Option 1
-    # bundled identification, lambda_w is no longer a model parameter. The
-    # bundled wedge sensitivity is reported via the UK retention bracket
-    # in scripts/export_manuscript_numbers.jl.
 
     # --- Stage 15: Export manuscript numbers (must run AFTER all CSVs exist) ---
     # Produces: paper/numbers.tex — single source of truth for every numeric

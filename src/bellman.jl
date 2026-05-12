@@ -1,5 +1,7 @@
-# Bellman equation for the lifecycle annuitization model.
-# Phase 1: no health states, no medical expenditure shocks.
+# One-period Bellman equation for the lifecycle annuitization model.
+# This file defines the no-health, no-medical-shock building block used by
+# solve_lifecycle; solve_lifecycle_health composes it with health transitions
+# and Gauss-Hermite quadrature over medical shocks in src/solve.jl.
 #
 # V(W, A, t) = max_c { U(c) + β s(t) V(W', A, t+1)
 #                       + β (1-s(t)) V_bequest(W') }

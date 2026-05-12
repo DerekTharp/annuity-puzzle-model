@@ -1,5 +1,5 @@
-# State-dependent utility sensitivity: solve the full 9-channel model under both
-# candidate φ(H) mappings and save the ownership predictions.
+# State-dependent utility sensitivity: solve the full structural model under
+# both candidate φ(H) mappings and save the ownership predictions.
 #
 # Motivation: Finkelstein-Luttmer-Notowidigdo (2013) estimate that marginal utility
 # of consumption is 10–25% lower in poor health. The literature uses two mappings:
@@ -7,8 +7,9 @@
 #   Raw FLN central:            φ = [1.0, 0.90, 0.75]   (10%/25% reductions)
 #   Reichling-Smetters (2015):  φ = [1.0, 0.95, 0.85]   (5%/15% reductions)
 #
-# Both are defensible. This script solves the full 9-channel model under each so
-# the manuscript can report the sensitivity.
+# Both are defensible. This script solves the structural rational-stack model
+# (behavioral SDU/PED parameters held at neutral values) under each mapping so
+# the manuscript can report the φ-sensitivity isolated from behavioral channels.
 #
 # Output: tables/csv/state_utility_sensitivity.csv
 # Runtime: ~2–5 minutes (2 full-model solves).
@@ -101,7 +102,7 @@ end
 @printf("  Eligible (W >= \$%d): %d\n", round(Int, MIN_WEALTH), size(pop, 1))
 
 # ---------------------------------------------------------------------------
-# Solve full 9-channel model under each mapping
+# Solve structural rational-stack model under each mapping
 # ---------------------------------------------------------------------------
 
 common_kw = (gamma=GAMMA, beta=BETA, r=R_RATE,
@@ -126,9 +127,11 @@ flush(stdout)
 t0_dispatch = time()
 
 results_raw = parallel_solve(MAPPINGS) do (label, phi)
-    # Nine-channel solve: rational stack + age-varying needs + state-dependent
-    # utility under each mapping. The two behavioral channels (lambda_w, psi_purchase)
-    # are intentionally OFF so the output is a true nine-channel ownership.
+    # Structural rational-stack solve: SS, bequests, medical+R-S, pessimism,
+    # age-varying needs, state-dependent utility under each phi mapping, loads,
+    # inflation, and public-care aversion (chi_LTC). The behavioral channels
+    # (LAMBDA_W, PSI_PURCHASE) are held at neutral values so this sensitivity
+    # isolates phi without the additional SDU/PED interactions.
     p_model = ModelParams(; _su_common_kw...,
         theta=THETA_DFJ, kappa=KAPPA_DFJ,
         mwr=MWR_FOR_RUN, fixed_cost=FIXED_COST,

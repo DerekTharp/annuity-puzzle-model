@@ -1,4 +1,4 @@
-# Full subset enumeration of annuity ownership channels.
+# Full subset enumeration of annuity ownership channels (Model 1).
 #
 # Precomputes the ownership rate for every combination of 11 channels
 # (2^11 = 2048 subsets), then reconstructs any decomposition ordering,
@@ -14,11 +14,12 @@
 #   7. Loads         — realistic pricing (MWR < 1, fixed cost)
 #   8. Inflation     — nominal annuity erosion
 #   9. LTC           — public-care aversion (Ameriks 2011, 2020)
-#  10. SDU           — source-dependent utility (Force A; Blanchett-Finke
-#                       2024-25; lambda_w discount on portfolio drawdowns)
-#  11. PED           — narrow-framing at-purchase penalty (Force B;
-#                       Chalmers-Reuter 2012; psi_purchase loss-aversion
-#                       NPV over the underwater period of the SPIA)
+#  10. SDU           — source-dependent utility (Blanchett-Finke 2024-25;
+#                       lambda_w discount on portfolio drawdowns)
+#  11. PED           — narrow-framing at-purchase penalty (Barberis-Huang
+#                       2009 narrow framing; Tversky-Kahneman 1992 loss
+#                       aversion; psi_purchase NPV over the underwater
+#                       period of the SPIA)
 #
 # Usage: julia --project=. -p 90 scripts/run_subset_enumeration.jl
 
@@ -63,11 +64,12 @@ include(joinpath(@__DIR__, "config.jl"))
 # floor binds (Medicaid-LTC binding state). Sourced from config.jl.
 const CHI_LTC_VAL = CHI_LTC
 
-# LAMBDA_W_VAL / PSI_PURCHASE_VAL / PSI_PURCHASE_C_REF_VAL: behavioral channel
-# parameters sourced from config.jl. Both are exploratory best guesses
-# anchored to literature magnitudes (SDU: Blanchett-Finke 2024-25 50/80
-# spending differential; PED: Brown 2008 / Chalmers-Reuter 2012 framing
-# effects); not moment-matched. Sensitivity ranges reported in manuscript.
+# LAMBDA_W_VAL / PSI_PURCHASE_VAL / PSI_PURCHASE_C_REF_VAL: behavioral
+# channel parameters sourced from config.jl. Both LAMBDA_W (SDU) and
+# PSI_PURCHASE (PED) are exploratory best guesses anchored to literature
+# magnitudes (SDU: Blanchett-Finke 2024-25 50/80 spending differential;
+# PED: Brown 2008 / Chalmers-Reuter 2012 framing effects); not moment-
+# matched. Sensitivity ranges reported in manuscript.
 const LAMBDA_W_VAL = LAMBDA_W
 const PSI_PURCHASE_VAL = PSI_PURCHASE
 const PSI_PURCHASE_C_REF_VAL = PSI_PURCHASE_C_REF
@@ -94,8 +96,8 @@ const PSI_PURCHASE_C_REF_VAL = PSI_PURCHASE_C_REF
 @everywhere const CH_LOADS         = 7
 @everywhere const CH_INFLATION     = 8
 @everywhere const CH_LTC           = 9   # Public-care aversion (Ameriks 2011, 2020)
-@everywhere const CH_SDU           = 10  # Source-dependent utility (Force A)
-@everywhere const CH_PED           = 11  # Narrow-framing at-purchase penalty (Force B)
+@everywhere const CH_SDU           = 10  # Source-dependent utility (lambda_w)
+@everywhere const CH_PED           = 11  # Narrow-framing at-purchase penalty (psi_purchase)
 
 const N_CHANNELS = 11
 const N_SUBSETS = 2^N_CHANNELS  # 2048
@@ -256,7 +258,7 @@ end
 end
 
 # ===================================================================
-# Solve all 1024 subsets
+# Solve all 2048 subsets
 # ===================================================================
 println("\nSolving all $N_SUBSETS channel subsets...")
 flush(stdout)
@@ -451,8 +453,8 @@ println("=" ^ 70)
 #   Layer 3 (behavioral): SDU, PED
 # Public-care aversion (LTC) is grouped with the rational channels because the
 # Ameriks et al. (2011, 2020) identification is via strategic-survey wealth
-# equivalents — a structural preference parameter. SDU (Force A) and PED
-# (Force B) close the decomposition as Model 1's behavioral channels.
+# equivalents — a structural preference parameter. SDU (lambda_w) and PED
+# (psi_purchase) close the decomposition as Model 1's behavioral channels.
 default_order = [CH_SS, CH_BEQUESTS, CH_MED_RS, CH_PESSIMISM, CH_LTC,
                  CH_LOADS, CH_INFLATION,
                  CH_AGE_NEEDS, CH_STATE_UTIL,

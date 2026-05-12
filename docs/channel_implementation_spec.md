@@ -1,5 +1,7 @@
 # Implementation Spec: Two New Channels
 
+> **Status (Phase 30, May 2026):** Historical implementation spec. Both channels described below (PED age-varying needs and SDU state-dependent utility) have since been implemented as channels 8 and 9 of the current 11-channel model. The "18.3% ownership" baseline cited in the original Context section reflects the pre-implementation state (Phase ~15); current 9-channel structural ownership is 1.7%. The mathematical specifications, code-entry points, and calibration values below remain accurate as a record of the design rationale.
+
 ## Context
 
 The model currently predicts 18.3% ownership with age-band health transitions and W_MAX=$3M. Observed ownership is 3-6%. Two novel channels are proposed to close the gap.

@@ -150,12 +150,11 @@ Run the sequential decomposition from the Yaari benchmark to the full model.
 
 When `ss_levels` is provided (non-empty), SS enters through the Bellman equation
 via ss_func (COLA-protected, not inflation-eroded) and is included as Step 1.
-Population column 2 should be zero in this mode. Produces up to 10 steps.
+Population column 2 should be zero in this mode.
 
-When `ss_levels` is empty (default), SS stays on the A grid via population[:,2]
-for backward compatibility. Produces up to 9 steps.
+When `ss_levels` is empty (default), SS stays on the A grid via population[:,2].
 
-Steps (with ss_levels):
+Steps (with ss_levels, up to 12 channels):
   0. True Yaari benchmark (no SS, no bequests, fair pricing, no medical)
   1. + Social Security pre-annuitization
   2. + Bequest motives
@@ -166,8 +165,8 @@ Steps (with ss_levels):
   7. + Age-varying consumption needs (Aguiar-Hurst, optional)
   8. + Realistic pricing loads (MWR < 1, fixed cost)
   9. + Inflation erosion (nominal annuity)
- 10. + Source-dependent utility (Force A; Blanchett-Finke 2024-25, optional)
- 11. + Narrow-framing at-purchase penalty (Force B; Chalmers-Reuter 2012, optional)
+ 10. + Source-dependent utility (Blanchett-Finke 2024-25, optional)
+ 11. + Narrow-framing at-purchase penalty (Chalmers-Reuter 2012, optional)
 
 Steps 6, 7, 10, and 11 are skipped when their parameters are at neutral
 defaults (health_utility=[1,1,1], consumption_decline=0.0, lambda_w=1.0,
@@ -461,7 +460,7 @@ function run_decomposition(
     cur_lambda_w = 1.0
     cur_psi_purchase = 0.0
 
-    # --- + Source-dependent utility (Force A; Blanchett-Finke 2024-25, optional) ---
+    # --- + Source-dependent utility (Blanchett-Finke 2024-25, optional) ---
     sdu_active = lambda_w_val < 1.0
     if sdu_active
         cur_lambda_w = lambda_w_val
@@ -485,7 +484,7 @@ function run_decomposition(
         step_num += 1
     end
 
-    # --- + Narrow-framing at-purchase penalty (Force B; Chalmers-Reuter 2012, optional) ---
+    # --- + Narrow-framing at-purchase penalty (Chalmers-Reuter 2012, optional) ---
     ped_active = psi_purchase_val > 0.0
     if ped_active
         cur_psi_purchase = psi_purchase_val
@@ -527,7 +526,7 @@ Solves each channel in ISOLATION (only that channel active, all others off)
 and compares the sum of individual ownership drops to the combined drop.
 
 When ss_levels is provided, SS is included as a channel and the baseline
-has no SS. Otherwise SS stays on the A grid (backward compat).
+has no SS. Otherwise SS stays on the A grid via population[:,2].
 """
 function run_multiplicative_analysis(
     base_surv::Vector{Float64},
@@ -710,7 +709,7 @@ function run_multiplicative_analysis(
         grid_kw...)
     _eval_channel("Inflation erosion", p_infl_ch, fair_pr_nom, ss_arg_off)
 
-    # Source-dependent utility (Force A) only
+    # Source-dependent utility only
     if lambda_w_val < 1.0
         p_sdu_ch = ModelParams(; common_kw...,
             theta=0.0, kappa=0.0, mwr=1.0, fixed_cost=0.0, inflation_rate=0.0,
@@ -720,7 +719,7 @@ function run_multiplicative_analysis(
         _eval_channel("Source-dependent utility", p_sdu_ch, fair_pr, ss_arg_off)
     end
 
-    # Narrow-framing at-purchase penalty (Force B) only
+    # Narrow-framing at-purchase penalty only
     if psi_purchase_val > 0.0
         p_ped_ch = ModelParams(; common_kw...,
             theta=0.0, kappa=0.0, mwr=1.0, fixed_cost=0.0, inflation_rate=0.0,
@@ -922,7 +921,7 @@ function run_pairwise_interactions(
              fair_pr, false))
     end
 
-    # SDU (Force A) — source-dependent utility from Blanchett-Finke 2024-25.
+    # SDU — source-dependent utility from Blanchett-Finke 2024-25.
     if lambda_w_val < 1.0
         push!(channel_specs,
             ("SDU",
@@ -932,7 +931,7 @@ function run_pairwise_interactions(
              fair_pr, false))
     end
 
-    # PED (Force B) — narrow-framing at-purchase penalty (Chalmers-Reuter 2012).
+    # PED — narrow-framing at-purchase penalty (Chalmers-Reuter 2012).
     if psi_purchase_val > 0.0
         push!(channel_specs,
             ("PED",

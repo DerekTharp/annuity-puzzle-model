@@ -87,8 +87,8 @@ function flow_utility(c::Float64, gamma::Float64, t::Int, ih::Int, p::ModelParam
 end
 
 """
-Source-dependent flow utility (Force A; Blanchett-Finke 2024-25; Shefrin-Thaler
-1988 mental accounting).
+Source-dependent flow utility (Shefrin-Thaler 1988 mental accounting;
+Blanchett-Finke 2024-25 spending differential).
 
 Households consume income (SS, annuity payouts) at full utility weight and
 portfolio drawdowns at a discount lambda_w in (0, 1]. The discount applies at
@@ -120,8 +120,8 @@ function flow_utility_sdu(c::Float64, inc::Float64, gamma::Float64, t::Int,
 end
 
 """
-Narrow-framing at-purchase penalty NPV (Force B; Barberis-Huang 2009 narrow
-framing; Tversky-Kahneman 1992 loss aversion).
+Narrow-framing at-purchase penalty NPV (Barberis-Huang 2009 narrow framing;
+Tversky-Kahneman 1992 loss aversion).
 
 The household evaluates the SPIA as a stand-alone investment with its own
 gain/loss tally. While cumulative payouts are below the premium ("underwater"),

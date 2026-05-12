@@ -1,4 +1,4 @@
-# Multi-gamma decomposition: run the full 8-step decomposition at
+# Multi-gamma decomposition: run the sequential decomposition at
 # gamma = 2.0, 2.5, 3.0 side-by-side. Shows which channels are
 # gamma-sensitive and which are not.
 #
@@ -190,7 +190,7 @@ open(tex_path, "w") do f
     println(f, raw"\begin{tablenotes}")
     println(f, raw"\small")
     println(f, raw"\item Own.\ = predicted ownership rate (\%). Ret.\ = retention rate relative to previous step (\%).")
-    @printf(f, "\\item All other parameters at production values (DFJ bequests, MWR \$= %.2f\$, \$\\pi = 2\\%%\$, \$\\psi = %.3f\$). The bundled behavioral wedge is applied as multiplicative transport in scripts/export_manuscript_numbers.jl.\n",
+    @printf(f, "\\item All other parameters at production values (DFJ bequests, MWR \$= %.2f\$, \$\\pi = 2\\%%\$, \$\\psi = %.3f\$). The Model 2 UK reduced-form transport multiplier is applied separately in scripts/export_manuscript_numbers.jl.\n",
             MWR_LOADED, SURVIVAL_PESSIMISM)
     println(f, raw"\end{tablenotes}")
     println(f, raw"\end{threeparttable}")

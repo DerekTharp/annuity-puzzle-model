@@ -3,7 +3,8 @@
 #
 # This script generates the comparison table matching Lockwood's key results.
 # WTP results match his exact setup (no health states, representative agent).
-# Ownership rates use deterministic mortality; health states are added in Phase 3.
+# Ownership rates here use deterministic mortality; full health dynamics are
+# in the production decomposition (scripts/run_decomposition.jl).
 
 using Printf
 include(joinpath(@__DIR__, "..", "src", "AnnuityPuzzle.jl"))
@@ -158,5 +159,5 @@ println("\n  Notes:")
 println("  - WTP at b*/N=0.0 matches Lockwood to within 0.1pp")
 println("  - WTP at b*/N=0.20 is within ±5pp tolerance (grid/interpolation effects)")
 println("  - Qualitative pattern (dramatic WTP collapse with bequests) confirmed")
-println("  - Ownership rates require health states (Phase 3) for exact match")
+println("  - Ownership rates require health states (full production model) for exact match")
 println("  - Our model uses deterministic mortality; Lockwood's sim uses 5 health states")

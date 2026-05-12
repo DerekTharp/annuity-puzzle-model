@@ -1,8 +1,9 @@
-# Conditional Monte Carlo: Robustness of Baseline Prediction (10-channel model)
+# Conditional Monte Carlo: Robustness of Baseline Prediction (Model 1 structural)
 #
-# Fixes gamma at the baseline and draws all empirically uncertain parameters
-# from plausible distributions to show that the headline ownership result
-# is robust to joint calibration uncertainty.
+# Fixes gamma at the baseline and draws empirically uncertain rational +
+# preference parameters from plausible distributions to show that the headline
+# ownership result is robust to joint calibration uncertainty in those
+# channels.
 #
 # Parameter distributions (gamma FIXED at baseline):
 #   hazard_poor   ~ U(2.0, 3.5)       (HRS to R-S range)
@@ -11,9 +12,11 @@
 #   pessimism psi ~ U(0.97, 1.0)      (O'Dea-Sturrock CI)
 #   delta_c       ~ U(0.01, 0.03)     (Aguiar-Hurst sensitivity)
 #
-# Note: the bundled behavioral wedge is identified externally and applied
-# as multiplicative transport (export_manuscript_numbers.jl); it is not a
-# parameter that varies in this MC.
+# Note: behavioral channels (SDU lambda_w, PED psi_purchase) are held at
+# their production exploratory values (config.jl). Their sensitivity is
+# reported separately in the manuscript robustness section; bundling them
+# into the joint draw here would conflate the rational-channel uncertainty
+# this script is designed to characterize.
 #
 # Output: tables/csv/monte_carlo_ownership.csv
 #         tables/tex/monte_carlo_summary.tex
@@ -37,8 +40,8 @@ end
 include(joinpath(@__DIR__, "config.jl"))
 
 println("=" ^ 70)
-println("  CONDITIONAL MONTE CARLO: CALIBRATION ROBUSTNESS (10-channel)")
-println("  gamma fixed at $GAMMA, joint draws over six nuisance parameters")
+println("  CONDITIONAL MONTE CARLO: CALIBRATION ROBUSTNESS")
+println("  gamma fixed at $GAMMA, joint draws over rational/preference nuisance parameters")
 println("=" ^ 70)
 flush(stdout)
 
@@ -152,9 +155,10 @@ results = parallel_solve(draws) do d
     fair_pr = compute_payout_rate(p_fair, _bs)
     grids = build_grids(p_fair, max(fair_pr, fair_pr_nom))
 
-    # Full model: rational + preferences + structural (chi_LTC).
-    # Bundled behavioral wedge is applied as multiplicative transport
-    # downstream, not as a model parameter.
+    # Full Model 1 structural specification: rational + preferences +
+    # structural (chi_LTC) + behavioral (SDU lambda_w, PED psi_purchase) at
+    # their production exploratory values. Only rational/preference
+    # parameters vary in this Monte Carlo.
     p_full = ModelParams(; common_kw...,
         theta=_theta, kappa=_kappa,
         mwr=d.mwr, fixed_cost=_fixed_cost, min_purchase=_min_purchase,
@@ -164,6 +168,9 @@ results = parallel_solve(draws) do d
         consumption_decline=d.delta_c,
         health_utility=[1.0, 0.90, 0.75],
         chi_ltc=CHI_LTC,
+        lambda_w=LAMBDA_W,
+        psi_purchase=PSI_PURCHASE,
+        psi_purchase_c_ref=PSI_PURCHASE_C_REF,
         grid_kw...)
 
     sol = solve_lifecycle_health(p_full, grids, _bs, ss_mean_func)
@@ -246,10 +253,11 @@ open(tex_path, "w") do f
     println(f, raw"\end{tabular}")
     println(f, raw"\begin{tablenotes}")
     println(f, raw"\small")
-    println(f, "\\item Risk aversion fixed at $(ds)\\gamma = $(GAMMA_FIXED)$(ds). Joint draws over six")
-    println(f, raw"calibration-uncertain parameters: $\mu_P \sim U(2.0, 3.5)$, $\pi \sim U(0.015, 0.025)$,")
-    println(f, raw"MWR $\sim U(0.83, 0.91)$, $\psi \sim U(0.97, 1.0)$, $\delta_c \sim U(0.01, 0.03)$,")
-    println(f, raw"$\psi_{\text{purchase}} \sim U(0.005, 0.030)$. Full ten-channel model.")
+    println(f, "\\item Risk aversion fixed at $(ds)\\gamma = $(GAMMA_FIXED)$(ds). Joint draws over five")
+    println(f, raw"calibration-uncertain rational/preference parameters: $\mu_P \sim U(2.0, 3.5)$,")
+    println(f, raw"$\pi \sim U(0.015, 0.025)$, MWR $\sim U(0.83, 0.91)$, $\psi \sim U(0.97, 1.0)$,")
+    println(f, raw"$\delta_c \sim U(0.01, 0.03)$. Behavioral channels (SDU $\lambda_w$,")
+    println(f, raw"PED $\psi_{\text{purchase}}$) held at production values.")
     println(f, raw"\end{tablenotes}")
     println(f, raw"\end{table}")
 end

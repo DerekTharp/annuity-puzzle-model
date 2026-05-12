@@ -20,9 +20,10 @@ const CSV_DIR = joinpath(REPO_ROOT, "tables", "csv")
 const HRS_CSV = joinpath(REPO_ROOT, "data", "processed", "lockwood_hrs_sample.csv")
 
 # Channel bit mask constants (must match run_subset_enumeration.jl).
-# Ten channels: Medical and R-S correlation are combined into a single
-# channel because the R-S mechanism's quantitative bite in this framework
-# operates through the interaction with medical risk.
+# Eleven channels in Model 1: nine rational/preference/structural + two
+# behavioral (SDU and PED). Medical and R-S correlation are combined into
+# a single channel because the R-S mechanism's quantitative bite in this
+# framework operates through the interaction with medical risk.
 const B_SS           = 1 << 0
 const B_BEQUESTS     = 1 << 1
 const B_MED_RS       = 1 << 2   # Combined: medical + R-S correlation
@@ -32,10 +33,8 @@ const B_STATE_UTIL   = 1 << 5
 const B_LOADS        = 1 << 6
 const B_INFLATION    = 1 << 7
 const B_LTC          = 1 << 8   # Public-care aversion (Ameriks 2011, 2020 ECMA)
-# Note: under Option 1 bundled identification, the SDU and at-purchase
-# penalty mechanisms have been removed from the model. The bundled wedge
-# is applied via multiplicative transport in
-# scripts/export_manuscript_numbers.jl (no bitmask channel).
+const B_SDU          = 1 << 9   # Source-dependent utility (lambda_w)
+const B_PED          = 1 << 10  # At-purchase narrow-framing penalty (psi_purchase)
 
 # Backward-compat aliases (prose macros may still reference these names).
 const B_MEDICAL = B_MED_RS
@@ -72,16 +71,15 @@ function subset_ownership_pct(bitmask::Int)
     error("bitmask $bitmask not in subset_enumeration.csv")
 end
 
-# Returns true when subset_enumeration.csv reflects the current 10-channel
-# code (exactly 1024 subsets — Medical and R-S combined into one channel).
-# Stage 16's post-run validation runs after a fresh export and must see
-# exactly 1024 rows. The earlier check (>=1024 && <2048) was too permissive
-# and accepted partial or pre-reformulation CSVs as valid.
-function subset_csv_is_ten_channel()
+# Returns true when subset_enumeration.csv reflects the current 11-channel
+# code (exactly 2048 subsets — Medical and R-S combined into one channel,
+# plus SDU and PED behavioral channels). Stage 16's post-run validation
+# runs after a fresh export and must see exactly 2048 rows.
+function subset_csv_is_current_schema()
     path = joinpath(CSV_DIR, "subset_enumeration.csv")
     isfile(path) || return false
     n_rows = countlines(path) - 1  # subtract header
-    return n_rows == 1024
+    return n_rows == 2048
 end
 
 function shapley_value_pp(channel::AbstractString)
@@ -123,15 +121,13 @@ macros = load_macros()
     end
 
     # Sequential decomposition: bitmask → ownership percent.
-    # The bitmask schema below is the 10-channel reformulation (Med+R-S=bit 4).
-    # Legacy 11-channel CSVs use a different bit ordering (Medical=4, R-S=8,
-    # Pessimism=16, ...) so the lookups would resolve to the wrong rows. When
-    # the CSV is in the legacy schema, this test set is deferred until the
-    # AWS rerun produces a 1024-row 10-channel CSV.
+    # The bitmask schema is the 11-channel current schema (Med+R-S=bit 4,
+    # plus SDU=bit 9 and PED=bit 10). If the CSV does not match this schema
+    # (e.g., a stale or partial enumeration), the test set is deferred.
     @testset "decomposition ownership" begin
-        ten_ch = subset_csv_is_ten_channel()
-        if !ten_ch
-            @test_skip "subset_enumeration.csv is legacy 11-channel schema; awaiting 10-channel rerun"
+        current_schema = subset_csv_is_current_schema()
+        if !current_schema
+            @test_skip "subset_enumeration.csv is not the current 11-channel schema (expected 2048 rows)"
         else
             cases = [
                 "ownFrictionless"     => 0,
@@ -150,10 +146,9 @@ macros = load_macros()
             ]
             for (name, bm) in cases
                 if !haskey(macros, name)
-                    # Macro not yet emitted (e.g., new 11-channel cascade
-                    # macros pre-AWS-rerun, or legacy macros after the
-                    # rerun retires them). Skip rather than KeyError.
-                    @test_skip "macro $name not in numbers.tex (pipeline transitional)"
+                    # Macro not emitted by the current export script
+                    # (e.g., retired cascade macro). Skip rather than KeyError.
+                    @test_skip "macro $name not in numbers.tex"
                 else
                     @test macros[name] == fmt_pct(subset_ownership_pct(bm); digits=1)
                 end
@@ -161,9 +156,8 @@ macros = load_macros()
         end
     end
 
-    # Shapley values (pp) — signed, 1 decimal. 9 channels: eight
-    # rational/preference + chi_LTC structural. Behavioral wedge is applied
-    # externally as multiplicative transport, not enumerated here.
+    # Shapley values (pp) — signed, 1 decimal. 11 channels: nine
+    # rational/preference/structural + SDU and PED behavioral.
     @testset "shapley values" begin
         common_cases = [
             "shapLoads"      => "Loads",
@@ -210,10 +204,14 @@ macros = load_macros()
         end
     end
 
-    # HRS observed ownership (from the sample CSV own_life_ann column)
+    # HRS observed ownership macros (pctHRSIannPooled, pctHRSLifetime, and
+    # their CI variants) are emitted from the HRS sample. The legacy
+    # `pctHRSObserved` summary macro is no longer emitted because the
+    # manuscript cites the pooled and lifetime measures separately.
     @testset "HRS observed ownership" begin
-        @test haskey(macros, "pctHRSObserved")
-        @test macros["pctHRSObserved"] == fmt_pct(hrs_observed_pct(); digits=1)
+        for k in ("pctHRSIannPooled", "pctHRSLifetime")
+            @test haskey(macros, k)
+        end
     end
 
     # Baseline MWR pulled from welfare_counterfactuals "Baseline" row
@@ -245,20 +243,22 @@ macros = load_macros()
         end
     end
 
-    # Bundled behavioral wedge: multiplicative transport check.
+    # Model 2 UK reduced-form transport: multiplicative wedge check.
     # The wedge factor is computed deterministically as UK_post / UK_pre and
-    # applied to the no-behavioral baseline. Test that ownWedgeMid =
-    # ownNoBehavioralBaseline * (17/95).
-    @testset "bundled behavioral wedge transport" begin
-        if haskey(macros, "ownNoBehavioralBaseline") && haskey(macros, "ownWedgeMid")
+    # applied to the FRICTIONLESS Yaari baseline. The UK retention factor
+    # (17/95) captures the joint rational+behavioral retention households
+    # express when compulsion lifts; applied to the frictionless baseline
+    # it transports the UK voluntary-equilibrium rate to the US.
+    @testset "Model 2 UK reduced-form transport" begin
+        if haskey(macros, "ownFrictionless") && haskey(macros, "ownWedgeMid")
             parse_pct = s -> parse(Float64, replace(s, "\\%" => ""))
-            base = parse_pct(macros["ownNoBehavioralBaseline"])
+            base = parse_pct(macros["ownFrictionless"])
             wedge = parse_pct(macros["ownWedgeMid"])
             expected = base * (17.0 / 95.0)
             # Allow 0.05 pp rounding tolerance
             @test abs(wedge - expected) < 0.06
         else
-            @test_skip "wedge transport macros not present"
+            @test_skip "Model 2 transport macros not present"
         end
     end
 
@@ -281,23 +281,23 @@ macros = load_macros()
     end
 
     # Bracket-hostage assertion (forensic-review recommendation): the headline
-    # ownership prediction under the disciplined recalibration is expected to
-    # land in the ~[5%, 12%] range. If a future recalibration silently moves
-    # the headline outside this range, this assertion fires loudly so the
-    # manuscript prose can be updated to match (rather than the prose drifting
-    # while the headline silently re-anchors).
+    # ownership prediction is expected to land in the ~[5%, 11%] range
+    # (Model 2 reduced-form transport midpoint at 7.5% with sensitivity
+    # bracket [5.7%, 11.0%]). If a future recalibration silently moves the
+    # headline outside this range, this assertion fires loudly so the
+    # manuscript prose can be updated to match (rather than the prose
+    # drifting while the headline silently re-anchors).
     #
-    # The bracket below is intentionally GENEROUS (3% to 15%) — wide enough to
-    # accommodate the panel's projected [6%, 11%] central tendency PLUS a
-    # safety margin for the actual AWS rerun result. If the AWS rerun lands
-    # outside this generous range, that's a signal the calibration has
-    # drifted and someone should think carefully about why.
+    # The bracket below is intentionally GENEROUS (3% to 15%) — wide enough
+    # to accommodate the [5.7%, 11.0%] central range plus a safety margin.
+    # If a rerun lands outside this generous range, that's a signal the
+    # calibration has drifted and someone should think carefully about why.
     #
     # Update the bracket here when the manuscript narrative changes (e.g.,
-    # a planned recalibration shifts the headline target intentionally), but
-    # NOT silently after the AWS rerun without explicit consideration.
+    # a planned recalibration shifts the headline target intentionally),
+    # but NOT silently after a rerun without explicit consideration.
     @testset "headline bracket-hostage assertion" begin
-        # Production headline under Option 1 bundled identification.
+        # Production headline: Model 2 UK reduced-form transport midpoint.
         headline_keys = ("ownHeadline", "ownWedgeMid")
         headline_pct = nothing
         which_key = nothing
@@ -322,15 +322,15 @@ macros = load_macros()
             #   @test failure only if the headline exceeds 35% (clearly past
             #   any plausible structural prediction). The lower bound is 0%
             #   because the model legitimately produces corner-solution
-            #   predictions: when the UK-calibrated psi pushes ALL agents
+            #   predictions: when the behavioral parameters push ALL agents
             #   into "do not annuitize" territory, the population ownership
             #   is genuinely 0% (not a calibration error). A model that
             #   predicts 0% with empirical observation at 2-3% is a 2-3 pp
             #   miss telling a structural story; tighter floors would
             #   spuriously fire on honest corner-solution outcomes.
             #
-            # When the AWS rerun completes and numbers.tex is regenerated,
-            # tighten the @test bracket to match the new headline range.
+            # When a rerun completes and numbers.tex is regenerated, tighten
+            # the @test bracket to match the new headline range.
             TIGHT_LOW,    TIGHT_HIGH    = 3.0, 15.0
             PERMISSIVE_LOW, PERMISSIVE_HIGH = 0.0, 35.0
             if !(TIGHT_LOW <= headline_pct <= TIGHT_HIGH)

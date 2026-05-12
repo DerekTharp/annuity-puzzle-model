@@ -1,13 +1,14 @@
 # Full backward induction solver for the lifecycle model.
 # Solves V(W, A, t) for t = T down to 1 (age 65).
-# Phase 1: no health dimension.
-# Phase 3: V(W, A, H, t) with 3-state health, medical expenses, GH quadrature.
+# Two solver variants:
+#   - solve_lifecycle:        V(W, A, t)    (no health dimension)
+#   - solve_lifecycle_health: V(W, A, H, t) (3-state health, medical expenses,
+#                                            GH quadrature over medical shocks)
 
 using Interpolations
 
 """
-Container for the solution: value and policy functions on the grid.
-Phase 1/2: no health dimension.
+Container for the no-health solution: value and policy functions on the grid.
 """
 struct Solution
     V::Array{Float64, 3}       # V[w, a, t]: value function
@@ -20,7 +21,7 @@ end
 
 """
 Container for the health-aware solution: value and policy functions.
-Phase 3: 3-state health dimension added.
+3-state health (Good, Fair, Poor) enters as a fourth state variable.
 """
 struct HealthSolution
     V::Array{Float64, 4}        # V[w, a, h, t]: value function
@@ -32,7 +33,7 @@ struct HealthSolution
 end
 
 """
-Solve the lifecycle problem by backward induction (Phase 1/2, no health).
+Solve the lifecycle problem by backward induction (no health dimension).
 Returns a Solution struct with value and policy functions.
 
 `ss_func(age, p)` returns Social Security income at age `age`.
@@ -91,7 +92,7 @@ function solve_lifecycle(
 end
 
 """
-Solve the lifecycle problem with stochastic health (Phase 3).
+Solve the lifecycle problem with stochastic health.
 
 State space: V(W, A, H, t) where H ∈ {1=Good, 2=Fair, 3=Poor}.
 
@@ -235,10 +236,11 @@ function solve_lifecycle_health(
                     # case (m > inc_gross) still triggers forced portfolio
                     # drawdown via the (m - inc_gross) branch below, capturing
                     # the involuntary nature of the LTC liquidation. The
-                    # income-first convention mechanically inflates Force A's
-                    # contribution (it shrinks the high-utility income envelope
-                    # in high-medical states); a portfolio-first robustness
-                    # specification is reported in the manuscript appendix.
+                    # income-first convention mechanically inflates the
+                    # source-dependent utility channel's contribution (it
+                    # shrinks the high-utility income envelope in high-medical
+                    # states); a portfolio-first robustness specification is
+                    # reported in the manuscript appendix.
                     mu_m, sigma_m = medical_expense_params(age, ih, p)
                     inc_gross = ss_val + A_real
                     V_total = 0.0
@@ -293,7 +295,7 @@ function solve_lifecycle_health(
 end
 
 """
-Solve the age-65 annuitization decision (Phase 1/2, no health).
+Solve the age-65 annuitization decision (no health dimension).
 For each (W_0, alpha), compute V(W_remaining, A(alpha), t=1) and find alpha*.
 
 Returns:
@@ -305,12 +307,12 @@ function solve_annuitization(
     payout_rate::Float64,
 )
     # The age-65 alpha decision is the only purchase moment in this solver.
-    # For purchases at age > 65 (e.g., delayed-purchase robustness), the
-    # bridge fix in welfare.jl/wtp.jl converts the real premium pi*W_0 into
-    # a nominal premium nominal_premium = pi * (1+inflation_rate)^(t-1) before
-    # multiplying by the payout rate. Here t = 1 by construction, so the
-    # inflation factor is 1.0 and pi == nominal_premium. Adding A_new = pi *
-    # payout_rate is therefore correct without an explicit gross-up.
+    # For purchases at age > 65 (handled in welfare.jl / wtp.jl), the real
+    # premium pi*W_0 is converted into a nominal premium nominal_premium = pi *
+    # (1+inflation_rate)^(t-1) before multiplying by the payout rate. Here
+    # t = 1 by construction, so the inflation factor is 1.0 and pi ==
+    # nominal_premium. Adding A_new = pi * payout_rate is therefore correct
+    # without an explicit gross-up.
     p = sol.params
     g = sol.grids
     nW = length(g.W)
@@ -342,7 +344,7 @@ function solve_annuitization(
 
             V_val = V_interp(W_clamped, A_clamped)
 
-            # Narrow-framing at-purchase penalty (Force B; Barberis-Huang 2009).
+            # Narrow-framing at-purchase penalty (Barberis-Huang 2009).
             # Subtract NPV of mental-accounting loss-aversion stream from the
             # underwater period of the SPIA. Channel inactive when
             # psi_purchase = 0.
@@ -368,7 +370,7 @@ function solve_annuitization(
 end
 
 """
-Solve the age-65 annuitization decision with health states (Phase 3).
+Solve the age-65 annuitization decision with health states.
 For a given initial health state, find optimal alpha.
 
 Returns:
@@ -380,8 +382,8 @@ function solve_annuitization_health(
     payout_rate::Float64;
     initial_health::Int=1,  # 1=Good, 2=Fair, 3=Poor
 )
-    # See solve_annuitization for the bridge-fix argument: t = 1 here, so
-    # nominal_premium = pi * (1+pi)^0 = pi and no gross-up is needed.
+    # See solve_annuitization for the inflation-factor argument: t = 1 here,
+    # so nominal_premium = pi * (1+pi)^0 = pi and no gross-up is needed.
     p = sol.params
     g = sol.grids
     nW = length(g.W)
@@ -413,7 +415,7 @@ function solve_annuitization_health(
 
             V_val = V_interp(W_clamped, A_clamped)
 
-            # Narrow-framing at-purchase penalty (Force B; Barberis-Huang 2009).
+            # Narrow-framing at-purchase penalty (Barberis-Huang 2009).
             # Subtract NPV of mental-accounting loss-aversion stream from the
             # underwater period of the SPIA. Channel inactive when
             # psi_purchase = 0.

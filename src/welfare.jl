@@ -138,21 +138,21 @@ function compute_cev(
     # NOTE: This is an APPROXIMATION when the model includes non-CRRA value
     # contributions — specifically the bequest shifter kappa (V_bequest is
     # CRRA in (b + kappa), not CRRA in c), the consumption floor c_floor (a
-    # kink), source-dependent utility (lambda_W reweights consumption by
-    # source), and the Force B purchase-event disutility (additive
-    # adjustment to V at the purchase moment, not a flow). The exact CEV
-    # would solve V_no_access(c * (1 + lambda)) = V_access for lambda. The
-    # closed-form ratio is exact only in the pure CRRA + Yaari special case
-    # and is reported here as a tractable approximation; see appendix
-    # discussion of welfare interpretation. The ranking of CEV across
-    # scenarios (and signs) is preserved by the approximation.
+    # kink), source-dependent utility (lambda_w reweights consumption by
+    # source), and the narrow-framing purchase penalty (additive adjustment
+    # to V at the purchase moment, not a flow). The exact CEV would solve
+    # V_no_access(c * (1 + lambda)) = V_access for lambda. The closed-form
+    # ratio is exact only in the pure CRRA + Yaari special case and is
+    # reported here as a tractable approximation; see appendix discussion of
+    # welfare interpretation. The ranking of CEV across scenarios (and
+    # signs) is preserved by the approximation.
     gamma = p.gamma
     if gamma == 1.0
         # Log utility: V(c*(1+lambda)) = V(c) + log(1+lambda) * D where
         # D = sum_t beta^(t-1) * S(t). Solving V(c*(1+lambda)) = V_with for
         # lambda: log(1+lambda) = (V_with - V_no)/D, so lambda = exp(.../D) - 1.
-        # The earlier formulation cev = exp(V_with - V_no) - 1 omitted the D
-        # divisor and overstated CEV by a factor of D in log-space.
+        # Omitting the D divisor would overstate CEV by a factor of D in
+        # log-space.
         D = discounted_survival_horizon(p.beta, sol.base_surv)
         cev = exp((V_with_ann - V_no_ann) / D) - 1.0
     else
@@ -342,9 +342,9 @@ end
 """
 Compute CEV across a wealth x bequest x health grid.
 
-This produces the "heterogeneous welfare map" — the key Phase 5 output.
-For each bequest specification, solves the full model (all channels on)
-then evaluates CEV at each (wealth, health) point.
+This produces the heterogeneous welfare map across the (wealth, bequest,
+health) cross-product. For each bequest specification, solves the full model
+(all channels on) then evaluates CEV at each (wealth, health) point.
 
 Returns a NamedTuple with:
 - grid: 3D array (n_wealth x n_bequest x n_health) of CEVResult
@@ -396,9 +396,9 @@ function compute_cev_grid(
     # SS function for the welfare model. The production decomposition solves
     # per quartile and aggregates; here we solve once with a representative
     # level (median across quartiles, $18,500). This aligns the welfare CEV's
-    # baseline with production rather than treating retirees as having zero
-    # SS, which previously inflated the marginal value of annuitization. A
-    # per-quartile dispatch is left as a future tightening.
+    # baseline with the production solve rather than treating retirees as
+    # having zero SS, which would inflate the marginal value of annuitization.
+    # A per-quartile dispatch is left as a future tightening.
     ss_func_welfare(age, p) = 18_500.0
 
     grid_kw = (n_wealth=n_wealth, n_annuity=n_annuity, n_alpha=n_alpha,
@@ -406,9 +406,7 @@ function compute_cev_grid(
                annuity_grid_power=annuity_grid_power)
 
     # Common keyword args: include preference + structural channels so the
-    # CEV computation uses the same model the production solve uses. Without
-    # these the CEV table would silently report six-channel values while
-    # the rest of the pipeline is full.
+    # CEV computation uses the same model the production solve uses.
     common_kw = (gamma=gamma, beta=beta, r=r,
                  stochastic_health=true, n_health_states=3, n_quad=n_quad,
                  c_floor=c_floor, hazard_mult=hazard_mult,

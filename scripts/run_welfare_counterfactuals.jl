@@ -107,23 +107,24 @@ struct CounterfactualConfig
     psi::Float64
     c_floor::Float64
     ss_scale::Float64       # multiplier on SS_QUARTILE_LEVELS (1.0 = baseline)
-    apply_wedge::Bool       # true = apply UK proportional wedge to model output;
-                            # false = report no-behavioral baseline (default-
-                            # architecture interpretation: bundled wedge absent)
+    apply_wedge::Bool       # true = apply Model 2 UK reduced-form transport
+                            # multiplier in export_manuscript_numbers.jl;
+                            # false = report Model 1 structural ownership only
+                            # (default-architecture interpretation)
     description::String
 end
 
-# Note: under Option 1 bundled identification, the bundled wedge is applied
-# as multiplicative transport in scripts/export_manuscript_numbers.jl. The
-# "Default architecture" counterfactual corresponds to NOT applying the wedge
-# (apply_wedge=false), since removing the choice architecture restores the
-# pre-behavioral level. Other counterfactuals apply the wedge as in the
-# production headline.
+# Note: the Model 2 UK reduced-form transport multiplier is applied as
+# multiplicative transport in scripts/export_manuscript_numbers.jl. The
+# "Default architecture" counterfactual corresponds to NOT applying the
+# multiplier (apply_wedge=false), interpreting annuitization as the default
+# choice architecture. Other counterfactuals apply it as in the production
+# Model 2 headline.
 
 configs = [
     CounterfactualConfig(
         "Baseline", MWR_LOADED, INFLATION, SURVIVAL_PESSIMISM, C_FLOOR, 1.0, true,
-        "Full model with bundled wedge applied"),
+        "Full Model 1 structural with Model 2 transport multiplier applied"),
     CounterfactualConfig(
         "Group pricing (MWR=0.90)", 0.90, INFLATION, SURVIVAL_PESSIMISM, C_FLOOR, 1.0, true,
         "TSP/employer plan annuity pricing (James et al. 2006)"),
@@ -157,10 +158,10 @@ configs = [
         "Double the public consumption floor (c_floor); proxy for SSI/Medicaid expansion"),
     CounterfactualConfig(
         "Best feasible package", 0.90, 0.0, 1.0, C_FLOOR, 1.0, false,
-        "Group pricing + real annuity + correct pessimism + default architecture (no wedge)"),
+        "Group pricing + real annuity + correct pessimism + default architecture (no transport)"),
     CounterfactualConfig(
-        "Default architecture (no wedge)", MWR_LOADED, INFLATION, SURVIVAL_PESSIMISM, C_FLOOR, 1.0, false,
-        "Annuitization as default; bundled wedge does not apply (Chalmers-Reuter 2012)"),
+        "Default architecture (no transport)", MWR_LOADED, INFLATION, SURVIVAL_PESSIMISM, C_FLOOR, 1.0, false,
+        "Annuitization as default; Model 2 transport does not apply"),
     CounterfactualConfig(
         "Default + group pricing", 0.90, INFLATION, SURVIVAL_PESSIMISM, C_FLOOR, 1.0, false,
         "Default architecture combined with group pricing"),
@@ -202,9 +203,9 @@ for (i, cfg) in enumerate(configs)
         payout = cfg.mwr * fair_pr
     end
 
-    # Build ModelParams with all model-internal channels on (rational +
-    # preferences + structural). The bundled behavioral wedge is applied
-    # post-hoc as multiplicative transport (apply_wedge=true) or omitted
+    # Build ModelParams with all Model 1 structural channels on (rational +
+    # preferences + structural + behavioral). The Model 2 UK reduced-form
+    # transport multiplier is applied post-hoc (apply_wedge=true) or omitted
     # (apply_wedge=false, default-architecture interpretation).
     model_common = (gamma=GAMMA, beta=BETA, r=R_RATE,
                     stochastic_health=true, n_health_states=3, n_quad=N_QUAD,
@@ -270,12 +271,12 @@ println("=" ^ 70)
 flush(stdout)
 
 # CEV configs: baseline + top 3 counterfactuals.
-# Each row: (label, mwr, infl, surv_pessimism). The bundled behavioral
-# wedge does not enter the within-model welfare computation under Option 1
-# (it's a post-hoc multiplicative reduction applied to ownership rates,
-# not a structural parameter affecting agent decisions). Welfare effects
-# of removing the bundled wedge are reported separately as the
-# "Default architecture" lever in Section 5.
+# Each row: (label, mwr, infl, surv_pessimism). The Model 2 UK reduced-form
+# transport multiplier does not enter the within-model welfare computation
+# (it's a post-hoc multiplicative reduction applied to ownership rates, not
+# a structural parameter affecting agent decisions). Welfare effects of
+# removing the transport are reported separately as the "Default architecture"
+# lever in Section 5.
 cev_configs = [
     ("Baseline",      MWR_LOADED, INFLATION, SURVIVAL_PESSIMISM),
     ("Group pricing", 0.90,       INFLATION, SURVIVAL_PESSIMISM),
