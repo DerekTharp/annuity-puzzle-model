@@ -983,6 +983,73 @@ write_extension_path_table()
 
 
 # ---------------------------------------------------------------------------
+# Auto-generate the nine-channel Shapley table. This is the headline
+# attribution displayed in main.tex Section 5.6; the eleven-channel table
+# (shapley_exact.tex, written by run_subset_enumeration.jl) is the
+# exploratory extension reported alongside.
+# ---------------------------------------------------------------------------
+
+function write_shapley_nine_table()
+    sh9 = try
+        shapley_nine_channel()
+    catch
+        return  # subset enumeration incomplete; skip
+    end
+
+    # Order channels by signed Shapley value (most-suppressing first, then
+    # boosters at the end). Matches the structural narrative: Loads and
+    # Medical+R-S as the two largest suppressors; SS as the dominant booster.
+    ordered = sort(collect(sh9); by = kv -> -kv[2].value_pp)
+
+    own_frictionless_pct = try
+        subset_ownership(0)
+    catch
+        return
+    end
+    full_mask_9 = (1 << 9) - 1
+    own_full_pct = try
+        subset_ownership(full_mask_9)
+    catch
+        return
+    end
+    total_drop_pp = own_frictionless_pct - own_full_pct
+
+    out = joinpath(REPO_ROOT, "tables", "tex", "shapley_nine.tex")
+    open(out, "w") do f
+        println(f, raw"\begin{table}[htbp]")
+        println(f, raw"\centering")
+        println(f, raw"\caption{Nine-Channel Structural Shapley Decomposition (Headline)}")
+        println(f, raw"\label{tab:shapley_nine}")
+        println(f, raw"\begin{threeparttable}")
+        println(f, raw"\begin{tabular}{lcc}")
+        println(f, raw"\toprule")
+        println(f, "Channel & Shapley (pp) & Share (\\%) \\\\")
+        println(f, raw"\midrule")
+        for (name, val) in ordered
+            @printf(f, "%s & %+.2f & %+.1f \\\\\n",
+                    name, val.value_pp, val.share_pct)
+        end
+        println(f, raw"\midrule")
+        @printf(f, "Total demand drop & %+.2f & 100.0 \\\\\n", total_drop_pp)
+        println(f, raw"\bottomrule")
+        println(f, raw"\end{tabular}")
+        println(f, raw"\begin{tablenotes}")
+        println(f, raw"\small")
+        @printf(f, "\\item Exact Shapley values over all \$2^9 = 512\$ subsets of the nine structural channels (SDU and PED held off). Positive values are demand-suppressing contributions; negative values are demand-boosting (Social Security raises annuitization at the margin by providing the income floor).\n")
+        @printf(f, "\\item Frictionless baseline: %.1f\\%%. Nine-channel structural prediction: %.1f\\%%. Total demand drop: %.1f pp.\n",
+                own_frictionless_pct, own_full_pct, total_drop_pp)
+        println(f, raw"\item The eleven-channel exploratory Shapley (Table~\ref{tab:shapley_exact}) layers the two behavioral channels (SDU, PED) and is reported as a sensitivity exercise rather than the disciplined attribution.")
+        println(f, raw"\end{tablenotes}")
+        println(f, raw"\end{threeparttable}")
+        println(f, raw"\end{table}")
+    end
+    println("Wrote $(out)")
+end
+
+write_shapley_nine_table()
+
+
+# ---------------------------------------------------------------------------
 # Submission-grade strict mode (default): every expected macro must come from
 # a real CSV value. Set ANNUITY_ALLOW_TBD_FALLBACKS=1 in the environment to
 # emit red TBD placeholders for missing values during partial pipeline runs;

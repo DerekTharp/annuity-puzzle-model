@@ -78,6 +78,15 @@ echo
 echo "Validating paper/numbers.tex against pulled CSVs..."
 julia --project=. test/test_manuscript_numbers.jl
 
+# Run the same Stage 17 validation gates that the remote pipeline ran. We
+# regenerated numbers.tex locally above, so the freshness gate's mtime
+# comparison is meaningful here and will catch any drift between the
+# pulled tables and the local re-export. Failure aborts before LaTeX so
+# the operator sees the diagnostic.
+echo
+echo "Running Stage 17 validation gates against pulled tables..."
+julia --project=. scripts/validate_pipeline.jl
+
 # Recompile manuscripts
 echo
 echo "Recompiling paper..."

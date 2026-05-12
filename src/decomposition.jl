@@ -282,12 +282,12 @@ function run_decomposition(
         grid_kw...)
     if ss_enabled
         res0 = solve_and_evaluate(p0, grids, base_surv, ss_levels_zero,
-            pop, fair_pr; step_name="$step_num. Yaari benchmark (no SS)", verbose=verbose)
+            pop, fair_pr; step_name="$step_num. Frictionless population baseline (no SS)", verbose=verbose)
     else
         res0 = solve_and_evaluate(p0, grids, base_surv, ss_zero,
-            pop, fair_pr; step_name="$step_num. Yaari benchmark (SS on)", verbose=verbose)
+            pop, fair_pr; step_name="$step_num. Frictionless population baseline (SS on)", verbose=verbose)
     end
-    push!(steps, DecompositionStep("Yaari benchmark", res0.ownership,
+    push!(steps, DecompositionStep("Frictionless population baseline", res0.ownership,
         res0.mean_alpha, res0.ownership - prev_rate, res0.solve_time))
     prev_rate = res0.ownership
     step_num += 1

@@ -123,13 +123,9 @@ s^{\text{subj}}(t, H) = \psi \cdot s(t, H), \quad \psi \in (0, 1].
 \]
 Annuity pricing uses objective survival $s(t, H)$, creating a wedge: the agent perceives annuities as less valuable than they are because she overweights the probability of dying before collecting.
 
-\citet{odeasturrock2023} estimate that subjective 10-year survival probability $P^{\text{subj}}(75 \mid 65)$ falls roughly 15 percentage points below actuarial $P(75 \mid 65)$---approximately 71\% subjective vs.\ 86\% actuarial. The per-year factor that matches this cumulative gap is
-\[
-\psi = \left(\frac{0.71}{0.86}\right)^{1/10} \approx 0.981.
-\]
-At this calibration, subjective 20-year survival is $0.981^{20} \approx 0.68$ times objective survival, generating a substantial perceived shortening of life horizon without the extreme compounding that a larger per-year factor (e.g., $\psi = 0.85$, which implies $0.85^{10} = 0.20$ at 10 years) would produce.
+\citet{odeasturrock2023} estimate that subjective survival probabilities fall meaningfully below actuarial values. The production calibration sets $\psi = \pPessimism$, sourced from \citet{heimer2019} and \citet{payne2013} and broadly consistent with the O'Dea--Sturrock evidence. At this calibration, subjective 10-year survival is $\psi^{10} \approx 0.66$ times objective survival and 20-year survival is $\psi^{20} \approx 0.44$ times objective, generating a substantial perceived shortening of life horizon. The choice avoids the extreme compounding a larger per-year factor would produce (e.g., $\psi = 0.85$ implies $0.85^{10} = 0.20$ at 10 years).
 
-Robustness exercises in Section~\ref{M-sec:robustness} vary $\psi$ from 0.970 to 0.990.
+Robustness exercises in Section~\ref{M-sec:robustness} vary $\psi$ from 0.95 to 1.0.
 
 \subsection{Age-varying consumption needs}
 \label{app:age_needs}

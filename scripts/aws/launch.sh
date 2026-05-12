@@ -45,12 +45,34 @@ aws --version >/dev/null || { echo "ERROR: aws CLI not found"; exit 1; }
 # operator explicitly opts out via ANNUITY_ALLOW_DIRTY=1. Without this,
 # AWS could rsync uncommitted local mutations or stale generated outputs
 # and produce an unreproducible results bundle.
+#
+# Checks BOTH (a) modifications to tracked files and (b) untracked files
+# in directories that the rsync will ship (src/, scripts/, calibration/,
+# test/, paper/, run_all.jl). Untracked source files are a known failure
+# mode: a new analysis script lives only in the working tree, the AWS
+# tree gets a copy that nobody can reproduce, and the .aws-launch-
+# provenance.txt commit hash misses it entirely.
 if [ "${ANNUITY_ALLOW_DIRTY:-0}" != "1" ]; then
     if ! git diff --quiet || ! git diff --cached --quiet; then
         echo "ERROR: Working tree has uncommitted changes. Commit or stash first," >&2
         echo "       or set ANNUITY_ALLOW_DIRTY=1 to override (not recommended for" >&2
         echo "       any run whose outputs will be cited in the manuscript)." >&2
         git status --short >&2
+        exit 1
+    fi
+    # Check for untracked files in shipped source directories. The rsync
+    # exclude list (further down) ships .git-ignored but NOT untracked
+    # source files; this gate catches the missing-in-git provenance gap.
+    SHIPPED_DIRS=(src scripts calibration test paper)
+    UNTRACKED=$(git ls-files --others --exclude-standard "${SHIPPED_DIRS[@]}" run_all.jl Project.toml Manifest.toml 2>/dev/null)
+    if [ -n "$UNTRACKED" ]; then
+        echo "ERROR: Untracked files in shipped source directories:" >&2
+        echo "$UNTRACKED" | sed 's/^/       /' >&2
+        echo "" >&2
+        echo "Either git add them or move them out of these directories before" >&2
+        echo "launching. Untracked source files break run-provenance because the" >&2
+        echo "commit hash in .aws-launch-provenance.txt won't reference them." >&2
+        echo "Set ANNUITY_ALLOW_DIRTY=1 to override (NOT recommended)." >&2
         exit 1
     fi
 fi

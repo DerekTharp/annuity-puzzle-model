@@ -22,26 +22,35 @@ US retirees, organized in three layers:
 
 The paper reports two complementary models:
 
-- **Model 1 (11-channel structural):** the full nested lifecycle model. Under
-  baseline parameters (gamma = 2.5, MWR = 0.87, modern Wettstein-2021
-  pricing), the nine non-behavioral channels predict 1.7% ownership.
-  Activating the two exploratory behavioral channels yields a Shapley
-  decomposition in which the purchase-event disutility (|PED|) contributes
-  44.4 percentage points and source-dependent utility (|SDU|) contributes
-  31.1 percentage points to the cumulative demand wedge.
+- **Model 1 (structural lifecycle decomposition):** the nine-channel
+  structural baseline (six rational + two preference + one structural-LTC
+  channel) predicts 2.0% US voluntary annuity ownership under baseline
+  parameters (gamma = 2.5, MWR = 0.87, modern Wettstein-2021 pricing).
+  An eleven-channel exploratory extension layers two literature-magnitude
+  behavioral channels (source-dependent utility, narrow-framing at-purchase
+  penalty); under that parameterization the behavioral channels carry
+  large but offsetting Shapley contributions, and the eleven-channel
+  prediction saturates near zero. The nine-channel structural baseline is
+  the disciplined Model 1 reading.
 - **Model 2 (UK reduced-form transport):** scales the frictionless US
   benchmark by the UK post-reform retention ratio (UK_post / UK_pre =
-  0.179), giving 41.85% x 0.179 = 7.5% predicted US voluntary ownership.
-  This serves as a transparent quasi-experimental cross-check independent
-  of the structural channel decomposition.
+  0.179), giving 41.85% x 0.179 = 7.5% predicted US voluntary ownership
+  (sensitivity bracket [5.7%, 11.0%] across UK retention anchors). This
+  serves as an external market-design sensitivity check independent of
+  the structural channel decomposition; it is not a clean structural
+  identification.
 
-Two HRS measures of US lifetime annuity ownership are reported in parallel
-as out-of-sample empirical targets: 2.02% (95% CI [1.68%, 2.43%], the
-cleaner fat-file q286 lifetime annuity contract indicator) and 3.34% (95% CI
-[2.89%, 3.85%], the conventional any-annuity income proxy).
+Two HRS measures of US lifetime annuity ownership (computed on the same
+wealth-restricted analysis sample as the model predictions) are reported
+in parallel as out-of-sample empirical comparators: 3.11% (95% CI
+[2.54%, 3.81%], the cleaner fat-file q286 lifetime annuity contract
+indicator) and 5.21% (95% CI [4.45%, 6.09%], the conventional any-annuity
+income proxy).
 
-An exact Shapley decomposition over all 2,048 channel subsets attributes the
-demand reduction without order dependence.
+An exact nine-channel Shapley decomposition over all 512 subsets of the
+structural channels provides the disciplined order-independent
+attribution. An exploratory eleven-channel Shapley over 2,048 subsets
+extends the analysis to include the behavioral parameters.
 
 **All headline numbers in the manuscript are auto-generated from analysis CSV
 outputs by `scripts/export_manuscript_numbers.jl` and locked by

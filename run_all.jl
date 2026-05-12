@@ -378,6 +378,7 @@ function main()
         "retention_rates.tex",
         "robustness_gamma_inflation.tex",
         "shapley_exact.tex",
+        "shapley_nine.tex",
         "ss_cut_robustness.tex",
         "welfare_cev_grid.tex",
         "welfare_counterfactuals.tex",

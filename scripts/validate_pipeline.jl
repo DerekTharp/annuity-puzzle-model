@@ -47,6 +47,7 @@ const EXPECTED_TEX_FILES = Set([
     "retention_rates.tex",
     "robustness_gamma_inflation.tex",
     "shapley_exact.tex",
+    "shapley_nine.tex",
     "ss_cut_robustness.tex",
     "welfare_cev_grid.tex",
     "welfare_counterfactuals.tex",
@@ -146,8 +147,29 @@ function gate_manifest()
 end
 
 """
-Gate 2: every consumed .tex must be at least as new as numbers.tex.
+Gate 2: tables consumed by the manuscript must have been generated within
+the current pipeline run. `paper/numbers.tex` is the LAST artifact written
+by a clean run (Stage 15 = export_manuscript_numbers.jl, after every
+table-generating stage), so in a healthy run every table .tex will be
+slightly OLDER than numbers.tex but only by the time it took the
+intervening stages to finish (typically < 6 hours).
+
+The gate fires when a table is older than numbers.tex by MORE than
+FRESHNESS_WINDOW_SECONDS, which signals one of two real bug patterns:
+  - A downstream stage was re-run without re-generating the upstream
+    tables (e.g., someone ran export_manuscript_numbers.jl by itself
+    after editing one table, but never re-ran the script that produced
+    the OTHER tables, so those other tables are now stale relative to
+    the new numbers.tex).
+  - A pull from AWS overwrote numbers.tex with a newer version but the
+    table .tex files were left from an older bundle.
+
+The 6-hour window is generous enough to cover any single pipeline run
+(production wall time is ~4 hours on c7a.48xlarge) but tight enough to
+catch the day-old or week-old stale-table failure modes.
 """
+const FRESHNESS_WINDOW_SECONDS = 6 * 60 * 60  # 6 hours
+
 function gate_freshness()
     isfile(NUMBERS_TEX) || begin
         println("\n[GATE 2: FRESHNESS] SKIP (numbers.tex does not exist yet)")
@@ -159,23 +181,24 @@ function gate_freshness()
     for f in EXPECTED_TEX_FILES
         path = joinpath(TEX_DIR, f)
         isfile(path) || continue  # missing files caught by Gate 1
-        if mtime(path) < numbers_mtime - 1.0  # 1-sec tolerance
-            age_diff = numbers_mtime - mtime(path)
-            push!(stale, "$(f) (older than numbers.tex by $(round(age_diff, digits=1))s)")
+        age_diff = numbers_mtime - mtime(path)
+        if age_diff > FRESHNESS_WINDOW_SECONDS
+            push!(stale, "$(f) (older than numbers.tex by $(round(age_diff / 3600, digits=1)) hours)")
         end
     end
 
     if !isempty(stale)
         println("\n[GATE 2: FRESHNESS] FAIL")
         println("  The following manuscript-input .tex files are STALE relative to")
-        println("  numbers.tex (suggesting downstream stages were re-run without")
-        println("  re-generating these tables):")
+        println("  numbers.tex by more than $(FRESHNESS_WINDOW_SECONDS / 3600) hours,")
+        println("  suggesting downstream stages were re-run without re-generating")
+        println("  these tables, or a stale partial bundle was restored:")
         for s in stale
             println("    - $s")
         end
         return false
     end
-    println("[GATE 2: FRESHNESS] OK ($(length(EXPECTED_TEX_FILES)) tables newer than numbers.tex)")
+    println("[GATE 2: FRESHNESS] OK ($(length(EXPECTED_TEX_FILES)) tables fresh within $(FRESHNESS_WINDOW_SECONDS / 3600)h of numbers.tex)")
     return true
 end
 

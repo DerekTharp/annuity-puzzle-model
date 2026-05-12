@@ -265,21 +265,29 @@ function compute_cev_population(
             end
             W_rem < 0.0 && continue
 
-            # Premium is in real (= age-65 nominal) dollars throughout.
-            premium = pi
-            A_new = premium * payout_rate
+            # Premium pi is in real (age-65 nominal) dollars. Convert to the
+            # age-of-purchase nominal premium, then to A_state: for an age-t
+            # purchase, the insurer pays pi*(1+pi_inf)^(t-1)*payout_rate per
+            # year in age-t nominal dollars; the model's A_state stores the
+            # constant nominal payment in age-65 dollars (deflated by the
+            # Bellman via A_real(s) = A_state * (1+pi_inf)^-(s-1)), so
+            # A_state = pi * payout_rate * (1+pi_inf)^(t-1). For t=1 this
+            # reduces to A_state = pi * payout_rate.
+            inflation_factor = (1.0 + p.inflation_rate)^(t - 1)
+            nominal_premium = pi * inflation_factor
+            A_new = nominal_premium * payout_rate
             A_total = y_0 + A_new
             W_rc = clamp(W_rem, g.W[1], g.W[end])
             A_tc = clamp(A_total, g.A[1], g.A[end])
             V_val = V_interp(W_rc, A_tc)
 
             # Mirror solver: subtract narrow-framing at-purchase penalty NPV.
-            # Use age-specific purchase_period to align cumulative-survival
-            # weights with the effective purchase moment.
+            # The penalty's c_ref is in real dollars, so pass the real
+            # premium pi (not the nominal-grossed-up amount).
             if p.psi_purchase > 0.0
                 surv_for_penalty = base_surv === nothing ? sol.base_surv : base_surv
                 V_val -= purchase_penalty(
-                    premium, payout_rate, p.gamma, p.psi_purchase,
+                    pi, payout_rate, p.gamma, p.psi_purchase,
                     p.psi_purchase_c_ref, p.beta, surv_for_penalty;
                     purchase_period=t,
                 )

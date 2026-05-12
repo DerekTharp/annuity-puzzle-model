@@ -12,11 +12,16 @@
 #   pessimism psi ~ U(0.97, 1.0)      (O'Dea-Sturrock CI)
 #   delta_c       ~ U(0.01, 0.03)     (Aguiar-Hurst sensitivity)
 #
-# Note: behavioral channels (SDU lambda_w, PED psi_purchase) are held at
-# their production exploratory values (config.jl). Their sensitivity is
-# reported separately in the manuscript robustness section; bundling them
-# into the joint draw here would conflate the rational-channel uncertainty
-# this script is designed to characterize.
+# Note: this Monte Carlo characterizes uncertainty in the nine-channel
+# structural baseline (the disciplined Model 1 reading). Both behavioral
+# channels (SDU lambda_w, PED psi_purchase) are held OFF (lambda_w=1.0,
+# psi_purchase=0.0) so the interval reflects only rational/preference
+# parameter uncertainty conditional on the structural specification.
+# Holding the behavioral channels at their production exploratory values
+# instead would degenerate the interval to zero (PED saturates
+# participation at psi=0.05 regardless of the nuisance draws) and conflate
+# behavioral sensitivity into the structural-baseline interval. Behavioral
+# sensitivity is reported separately in the manuscript robustness section.
 #
 # Output: tables/csv/monte_carlo_ownership.csv
 #         tables/tex/monte_carlo_summary.tex
@@ -155,10 +160,11 @@ results = parallel_solve(draws) do d
     fair_pr = compute_payout_rate(p_fair, _bs)
     grids = build_grids(p_fair, max(fair_pr, fair_pr_nom))
 
-    # Full Model 1 structural specification: rational + preferences +
-    # structural (chi_LTC) + behavioral (SDU lambda_w, PED psi_purchase) at
-    # their production exploratory values. Only rational/preference
-    # parameters vary in this Monte Carlo.
+    # Nine-channel structural specification: rational + preferences +
+    # structural (chi_LTC). Both behavioral channels (SDU lambda_w, PED
+    # psi_purchase) are held OFF so the resulting interval is a
+    # structural-baseline uncertainty band, not a mixed structural-plus-
+    # behavioral band. See script header for the rationale.
     p_full = ModelParams(; common_kw...,
         theta=_theta, kappa=_kappa,
         mwr=d.mwr, fixed_cost=_fixed_cost, min_purchase=_min_purchase,
@@ -168,8 +174,8 @@ results = parallel_solve(draws) do d
         consumption_decline=d.delta_c,
         health_utility=[1.0, 0.90, 0.75],
         chi_ltc=CHI_LTC,
-        lambda_w=LAMBDA_W,
-        psi_purchase=PSI_PURCHASE,
+        lambda_w=1.0,
+        psi_purchase=0.0,
         psi_purchase_c_ref=PSI_PURCHASE_C_REF,
         grid_kw...)
 

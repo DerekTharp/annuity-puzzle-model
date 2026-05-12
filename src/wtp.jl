@@ -698,26 +698,33 @@ function compute_ownership_rate_health(
             end
             W_rem < 0.0 && continue
 
-            # Premium is real / age-65-nominal throughout. The model's A grid
-            # is also in age-65 nominal dollars (the Bellman deflates via
-            # A_real(s) = A * (1+π)^-(s-1) at each period s), so A_new = pi *
-            # payout_rate is on the same scale as y_0 and the V interpolant.
-            # The narrow-framing penalty uses the same real premium so its
-            # c_ref scale is consistent.
-            premium = pi
-            A_new = premium * payout_rate
+            # Premium pi is in real (age-65 nominal) dollars. For an age-t
+            # purchase, the insurer pays pi*(1+pi_inf)^(t-1)*payout_rate per
+            # year in age-t nominal dollars (constant going forward), and
+            # the model's A_state stores the constant nominal payment in
+            # age-65 dollars (deflated by the Bellman via
+            # A_real(s) = A_state * (1+pi_inf)^-(s-1)). Setting
+            # A_state = pi * payout_rate * (1+pi_inf)^(t-1) reproduces
+            # A_real(t) = pi * payout_rate at the purchase year and the
+            # correct real decline thereafter. For t=1 this collapses to
+            # A_state = pi * payout_rate.
+            inflation_factor = (1.0 + p.inflation_rate)^(t - 1)
+            nominal_premium = pi * inflation_factor
+            A_new = nominal_premium * payout_rate
             A_total = y_0 + A_new
             W_c = clamp(W_rem, g.W[1], g.W[end])
             A_c = clamp(A_total, g.A[1], g.A[end])
             V_val = V_interp(W_c, A_c)
 
             # Mirror solver: subtract narrow-framing at-purchase penalty NPV.
+            # The penalty's c_ref is in real (age-65) dollars, so pass the
+            # real premium pi (not the nominal-grossed-up amount).
             # purchase_period=t aligns cumulative-survival weighting with the
             # actual purchase moment.
             if p.psi_purchase > 0.0
                 surv_for_penalty = base_surv === nothing ? sol.base_surv : base_surv
                 V_val -= purchase_penalty(
-                    premium, payout_rate, p.gamma, p.psi_purchase,
+                    pi, payout_rate, p.gamma, p.psi_purchase,
                     p.psi_purchase_c_ref, p.beta, surv_for_penalty;
                     purchase_period=t,
                 )
