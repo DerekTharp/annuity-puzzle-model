@@ -5,12 +5,23 @@
 # ownership result is robust to joint calibration uncertainty in those
 # channels.
 #
-# Parameter distributions (gamma FIXED at baseline):
-#   hazard_poor   ~ U(2.0, 3.5)       (HRS to R-S range)
-#   inflation     ~ U(0.015, 0.025)   (near-term CPI uncertainty)
-#   MWR           ~ U(0.83, 0.91)     (Mitchell 1999 / Wettstein 2021 range)
-#   pessimism psi ~ U(0.97, 1.0)      (O'Dea-Sturrock CI)
-#   delta_c       ~ U(0.01, 0.03)     (Aguiar-Hurst sensitivity)
+# Parameter distributions (gamma FIXED at baseline). Ranges are chosen to
+# bracket the production calibration symmetrically so the MC characterizes
+# joint uncertainty AROUND the central calibration (which is the natural
+# question for "is the structural baseline robust to parameter perturbation
+# within literature-defensible ranges?").
+#
+#   hazard_poor   ~ U(2.5, 5.0)       (production 3.75 = midpoint; spans
+#                                       HRS [2.7] to R-S [5.0] anchors)
+#   inflation     ~ U(0.015, 0.025)   (production 0.02 = midpoint; near-term
+#                                       CPI uncertainty)
+#   MWR           ~ U(0.83, 0.91)     (production 0.87 = midpoint; Mitchell
+#                                       1999 to Wettstein 2021 modern range)
+#   pessimism psi ~ U(0.92, 1.00)     (production 0.96 = midpoint; spans
+#                                       stronger Heimer-Payne pessimism to
+#                                       no-pessimism boundary)
+#   delta_c       ~ U(0.01, 0.03)     (production 0.02 = midpoint; Aguiar-
+#                                       Hurst sensitivity)
 #
 # Note: this Monte Carlo characterizes uncertainty in the nine-channel
 # structural baseline (the disciplined Model 1 reading). Both behavioral
@@ -81,10 +92,10 @@ rng = Random.MersenneTwister(12345)
 
 draws = Vector{NamedTuple{(:hazard_poor, :inflation, :mwr, :pessimism, :delta_c), NTuple{5, Float64}}}(undef, N_DRAWS)
 for i in 1:N_DRAWS
-    hp     = 2.0   + (3.5   - 2.0  ) * rand(rng)
+    hp     = 2.5   + (5.0   - 2.5  ) * rand(rng)
     pi_    = 0.015 + (0.025 - 0.015) * rand(rng)
     m      = 0.83  + (0.91  - 0.83 ) * rand(rng)
-    psi    = 0.97  + (1.00  - 0.97 ) * rand(rng)
+    psi    = 0.92  + (1.00  - 0.92 ) * rand(rng)
     dc     = 0.01  + (0.03  - 0.01 ) * rand(rng)
     draws[i] = (hazard_poor=hp, inflation=pi_, mwr=m,
                 pessimism=psi, delta_c=dc)
