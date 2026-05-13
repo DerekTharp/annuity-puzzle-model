@@ -24,7 +24,7 @@ The paper reports two complementary models:
 
 - **Model 1 (structural lifecycle decomposition):** the nine-channel
   structural baseline (six rational + two preference + one structural-LTC
-  channel) predicts 2.0% US voluntary annuity ownership under baseline
+  channel) predicts 6.8% US voluntary annuity ownership under baseline
   parameters (gamma = 2.5, MWR = 0.87, modern Wettstein-2021 pricing).
   An eleven-channel exploratory extension layers two literature-magnitude
   behavioral channels (source-dependent utility, narrow-framing at-purchase
