@@ -153,106 +153,11 @@ fair_pr_nom = INFLATION > 0 ? compute_payout_rate(p_fair_nom, base_surv) : fair_
 flush(stdout)
 
 # ===================================================================
-# Build channel config from bitmask
+# Channel config + Shapley machinery
 # ===================================================================
-# Convert an integer bitmask (0 to 2047) to the set of active channel indices.
-# Bit i (0-indexed) corresponds to channel i+1. Eleven channels: bits 0-10.
-@everywhere function bitmask_to_channels(mask::Int)
-    active = Set{Int}()
-    for i in 0:10  # 11 channels: bits 0-10
-        if (mask >> i) & 1 == 1
-            push!(active, i + 1)
-        end
-    end
-    return active
-end
-
-# Build ModelParams overrides for a given set of active channels.
-@everywhere function build_subset_config(active::Set{Int};
-        theta_dfj, kappa_dfj, mwr_loaded, fixed_cost, min_purchase, inflation_val,
-        survival_pessimism, ss_quartile_levels,
-        consumption_decline, health_utility, chi_ltc_val,
-        lambda_w_val, psi_purchase_val, psi_purchase_c_ref_val)
-
-    ss_levels = [0.0, 0.0, 0.0, 0.0]
-    theta = 0.0
-    kappa = 0.0
-    medical_enabled = false
-    health_mortality_corr = false
-    psi = 1.0
-    mwr = 1.0
-    fc = 0.0
-    min_p = 0.0
-    infl = 0.0
-    cd = 0.0
-    hu = [1.0, 1.0, 1.0]
-    chi_l = 1.0
-    lw = 1.0
-    psi_p = 0.0
-    psi_p_cref = 18_000.0
-
-    if CH_SS in active
-        ss_levels = copy(ss_quartile_levels)
-    end
-    if CH_BEQUESTS in active
-        theta = theta_dfj
-        kappa = kappa_dfj
-    end
-    # Combined R-S + Medical channel: setting it activates both stochastic
-    # medical-expense risk AND the health-mortality correlation. R-S's
-    # quantitative bite in this framework operates through the interaction
-    # with medical risk, so the two are not separately switchable.
-    if CH_MED_RS in active
-        medical_enabled = true
-        health_mortality_corr = true
-    end
-    if CH_PESSIMISM in active
-        psi = survival_pessimism
-    end
-    if CH_AGE_NEEDS in active
-        cd = consumption_decline
-    end
-    if CH_STATE_UTIL in active
-        hu = copy(health_utility)
-    end
-    if CH_LOADS in active
-        mwr = mwr_loaded
-        fc = fixed_cost
-        min_p = min_purchase
-    end
-    if CH_INFLATION in active
-        infl = inflation_val
-    end
-    # Public-care aversion (Ameriks 2011 JF; 2020 JPE): activates the
-    # chi_ltc utility multiplier when the consumption floor binds AND health
-    # is Poor (Medicaid-LTC binding). Operationally meaningful only when
-    # medical risk is also active; if CH_MED_RS is off, the consumption floor
-    # is rarely hit and the channel contributes ~0.
-    if CH_LTC in active
-        chi_l = chi_ltc_val
-    end
-    if CH_SDU in active
-        lw = lambda_w_val
-    end
-    if CH_PED in active
-        psi_p = psi_purchase_val
-        psi_p_cref = psi_purchase_c_ref_val
-    end
-
-    return (ss_levels=ss_levels,
-            theta=theta, kappa=kappa,
-            medical_enabled=medical_enabled,
-            health_mortality_corr=health_mortality_corr,
-            survival_pessimism=psi,
-            consumption_decline=cd,
-            health_utility=hu,
-            mwr=mwr, fixed_cost=fc, min_purchase=min_p,
-            inflation_rate=infl,
-            chi_ltc=chi_l,
-            lambda_w=lw,
-            psi_purchase=psi_p,
-            psi_purchase_c_ref=psi_p_cref)
-end
+# bitmask_to_channels, build_subset_config, and exact_shapley are defined in
+# src/subset_enum.jl (shared with scripts/run_shapley_gamma_stability.jl) and
+# reach this script and its workers through the AnnuityPuzzle module.
 
 # ===================================================================
 # Solve all 2048 subsets
@@ -509,48 +414,7 @@ flush(stdout)
 # Using the cooperative game convention: v maps subsets to the total demand
 # reduction they produce. Shapley decomposes the total drop across channels.
 
-function exact_shapley(n::Int, lookup::Dict{Int, Float64})
-    yaari = lookup[0]
-    shapley = zeros(n)
-
-    # Precompute factorials
-    fact = zeros(Int, n + 1)
-    fact[1] = 1  # 0! = 1
-    for k in 1:n
-        fact[k + 1] = fact[k] * k
-    end
-
-    for i in 1:n
-        bit_i = 1 << (i - 1)
-        phi_i = 0.0
-
-        # Sum over all subsets S that do NOT contain channel i.
-        # Standard Shapley over the full power set 2^n with no coupling;
-        # the prior R-S/Medical special case is no longer needed because
-        # they are now a single combined channel (CH_MED_RS).
-        for s_mask in 0:((1 << n) - 1)
-            (s_mask & bit_i) != 0 && continue  # skip if i is in S
-
-            s_size = count_ones(s_mask)
-            s_union_i = s_mask | bit_i
-
-            # Marginal contribution of channel i to coalition S:
-            # v(S ∪ {i}) - v(S) where v(S) = yaari - ownership(S)
-            # = (yaari - ownership(S ∪ {i})) - (yaari - ownership(S))
-            # = ownership(S) - ownership(S ∪ {i})
-            mc = lookup[s_mask] - lookup[s_union_i]
-
-            # Shapley weight: |S|! * (N - |S| - 1)! / N!
-            weight = Float64(fact[s_size + 1]) * Float64(fact[n - s_size]) / Float64(fact[n + 1])
-            phi_i += weight * mc
-        end
-
-        shapley[i] = phi_i
-    end
-
-    return shapley
-end
-
+# exact_shapley(n, lookup) is defined in src/subset_enum.jl (AnnuityPuzzle module).
 shapley = exact_shapley(N_CHANNELS, ownership_lookup)
 
 @printf("\n  %-15s  %12s  %10s\n", "Channel", "Shapley (pp)", "Share (%)")

@@ -21,6 +21,7 @@ include("lockwood_lifetable.jl")
 include("wtp.jl")
 include("simulation.jl")
 include("decomposition.jl")
+include("subset_enum.jl")
 include("welfare.jl")
 include("diagnostics.jl")
 
@@ -50,6 +51,7 @@ export DecompositionStep, DecompositionResult
 export solve_and_evaluate, run_decomposition, run_multiplicative_analysis
 export run_pairwise_interactions
 export SS_QUARTILE_LEVELS, SS_QUARTILE_BREAKS, SS_OBS, DB_OBS
+export bitmask_to_channels, build_subset_config, exact_shapley
 export CEVResult, compute_cev, compute_cev_population, compute_cev_grid
 export simulate_welfare_comparison
 export parallel_solve
