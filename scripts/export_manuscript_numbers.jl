@@ -44,7 +44,7 @@ const B_AGE_NEEDS    = 1 << 4
 const B_STATE_UTIL   = 1 << 5
 const B_LOADS        = 1 << 6
 const B_INFLATION    = 1 << 7
-const B_LTC          = 1 << 8   # Public-care aversion (Ameriks 2011, 2020 ECMA)
+const B_LTC          = 1 << 8   # Public-care aversion (Ameriks 2011 JF, 2020 JPE)
 const B_SDU          = 1 << 9   # Source-dependent utility
 const B_PED          = 1 << 10  # Narrow-framing at-purchase penalty
 

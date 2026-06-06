@@ -106,7 +106,7 @@ end
 Flow utility with the chi_LTC public-care aversion discount applied as a
 consumption-equivalent transformation in the Medicaid-binding Poor state.
 
-Ameriks et al. (2020 ECMA) identify a preference for self-financed over
+Ameriks et al. (2020 JPE) identify a preference for self-financed over
 publicly-financed long-term care from strategic-survey wealth equivalents.
 The operationalization here: when the consumption floor binds AND health is
 Poor, the household's effective consumption is chi_LTC * c (the

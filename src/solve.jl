@@ -269,7 +269,7 @@ function solve_lifecycle_health(
                             W_after, 0.0, inc_after,
                             V_hw_interp, s_t_h, p, t, ih,
                         )
-                        # Public-care aversion (Ameriks 2011 QJE; 2020 ECMA):
+                        # Public-care aversion (Ameriks 2011 JF; 2020 JPE):
                         # when the agent must rely on Medicaid AND is in Poor
                         # health (proxy for LTC need), the realized consumption
                         # is Medicaid-financed and yields lower utility than

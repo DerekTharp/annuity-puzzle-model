@@ -226,7 +226,7 @@ end
     if CH_INFLATION in active
         infl = inflation_val
     end
-    # Public-care aversion (Ameriks 2011 QJE; 2020 ECMA): activates the
+    # Public-care aversion (Ameriks 2011 JF; 2020 JPE): activates the
     # chi_ltc utility multiplier when the consumption floor binds AND health
     # is Poor (Medicaid-LTC binding). Operationally meaningful only when
     # medical risk is also active; if CH_MED_RS is off, the consumption floor

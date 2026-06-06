@@ -17,8 +17,16 @@ struct DecompositionResult
     steps::Vector{DecompositionStep}
 end
 
-# Default SS levels by wealth quartile (income.jl breakpoints)
-const SS_QUARTILE_LEVELS = [14_000.0, 17_000.0, 20_000.0, 25_000.0]
+# Pre-existing annuitized income by wealth quartile (observed, RAND HRS).
+# SS_QUARTILE_LEVELS is the combined floor (SS retirement + DB pension), the
+# baseline pre-existing annuitization in the decomposition. SS_OBS and DB_OBS
+# split that floor so an SS trust-fund cut (run_ss_robustness.jl) hits only the
+# SS component while DB pension income survives. Defined once as SS_OBS + DB_OBS.
+# Source: calibration/build_ss_profile.jl (vars r{w}isret, r{w}ipena), single
+# retirees 65-69, waves 5-9, 2014 dollars.
+const SS_OBS = [9_160.0, 9_657.0, 9_989.0, 10_388.0]
+const DB_OBS = [3_757.0, 6_090.0, 9_309.0, 8_947.0]
+const SS_QUARTILE_LEVELS = SS_OBS .+ DB_OBS   # [12917, 15747, 19298, 19335]
 const SS_QUARTILE_BREAKS = [30_000.0, 120_000.0, 350_000.0]
 
 """

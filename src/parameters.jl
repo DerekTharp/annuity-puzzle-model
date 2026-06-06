@@ -15,7 +15,7 @@ using TOML
     # Behavioral and structural mechanisms parameterized in the Bellman
     # equation. Magnitudes drawn from the empirical literature
     # (Blanchett-Finke 2024-25; Chalmers-Reuter 2012; Brown 2008;
-    # Hu-Scott 2007; Ameriks 2011 QJE / 2020 ECMA). Defaults set each
+    # Hu-Scott 2007; Ameriks 2011 JF / 2020 JPE). Defaults set each
     # channel to its off state so callers opt in explicitly.
     psi_purchase::Float64 = 0.0       # narrow-framing at-purchase disutility
                                        # (Barberis-Huang 2009; Tversky-Kahneman 1992).
@@ -26,7 +26,7 @@ using TOML
                                        # (Shefrin-Thaler 1988 mental accounting;
                                        # Blanchett-Finke 2024-25 spending differential).
                                        # Implementation: c_eff = c_income + lambda_w * c_portfolio
-    chi_ltc::Float64 = 1.0            # public-care aversion (Ameriks 2011 QJE; 2020 ECMA).
+    chi_ltc::Float64 = 1.0            # public-care aversion (Ameriks 2011 JF; 2020 JPE).
                                        # 1.0 = channel off; values below 1.0 multiply
                                        # flow utility by chi_ltc when the consumption
                                        # floor binds AND health = Poor (Medicaid-LTC

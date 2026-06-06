@@ -49,7 +49,7 @@ export SimulationResult, simulate_lifecycle, simulate_batch
 export DecompositionStep, DecompositionResult
 export solve_and_evaluate, run_decomposition, run_multiplicative_analysis
 export run_pairwise_interactions
-export SS_QUARTILE_LEVELS, SS_QUARTILE_BREAKS
+export SS_QUARTILE_LEVELS, SS_QUARTILE_BREAKS, SS_OBS, DB_OBS
 export CEVResult, compute_cev, compute_cev_population, compute_cev_grid
 export simulate_welfare_comparison
 export parallel_solve

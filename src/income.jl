@@ -15,10 +15,11 @@ reflecting the progressive benefit formula.
 Benefits in 2014 dollars.
 """
 function ss_benefit(quartile::Int, p::ModelParams)
-    # Approximate SSA benefit schedule by quartile.
-    # Mean benefit ~$18K; bottom quartile ~$14K, top quartile ~$25K.
-    # Progressive formula: replacement rate falls with earnings.
-    quartile_benefits = [14_000.0, 17_000.0, 20_000.0, 25_000.0]
+    # Legacy helper. The live decomposition path passes ss_levels vectors
+    # directly (SS_QUARTILE_LEVELS); these values must mirror that constant.
+    # Observed combined pre-existing annuitized income (SS + DB) by wealth
+    # quartile from RAND HRS (calibration/build_ss_profile.jl), 2014 dollars.
+    quartile_benefits = [12_917.0, 15_747.0, 19_298.0, 19_335.0]
     return quartile_benefits[quartile]
 end
 
