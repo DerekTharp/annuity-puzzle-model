@@ -257,12 +257,6 @@ function main()
         joinpath(SCRIPTS_DIR, "run_implied_gamma.jl"); parallel=true)
     push!(timings, "Implied gamma" => t)
 
-    # The Model 2 UK reduced-form transport (multiplicative wedge applied to
-    # the frictionless baseline) is computed inside
-    # scripts/export_manuscript_numbers.jl. Its sensitivity range is reported
-    # via the UK retention bracket [13%, 25%] mapped to the frictionless
-    # baseline; no separate pipeline stage is needed.
-
     # --- Stage 13c: Monte Carlo parameter uncertainty ---
     # Produces: monte_carlo_ownership.csv, monte_carlo_summary.tex.
     # 1000 joint draws over (gamma fixed) hazard_poor, inflation, MWR,

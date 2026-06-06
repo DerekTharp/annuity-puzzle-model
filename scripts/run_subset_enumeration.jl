@@ -51,13 +51,10 @@ include(joinpath(@__DIR__, "config.jl"))
 # (CONSUMPTION_DECLINE and HEALTH_UTILITY reach this script via config.jl;
 #  they are not redefined locally.)
 
-# Two-model architecture:
-# Model 1 (this script) is the structural multi-channel decomposition with all
-# 11 channels — rational + preference + structural (chi_ltc) + behavioral (SDU
-# + PED) — anchored on US data and US calibrations. Model 2 (UK reduced-form
-# transport) is computed in scripts/export_manuscript_numbers.jl as a
-# multiplicative wedge against the no-behavioral baseline; the two models are
-# reported alongside the HRS empirical for triangulation.
+# Structural multi-channel decomposition with all 11 channels — rational +
+# preference + structural (chi_ltc) + behavioral (SDU + PED) — anchored on US
+# data and US calibrations. Predictions are reported alongside the HRS
+# empirical ownership rate.
 
 # CHI_LTC_VAL: public-care aversion utility multiplier, applied only when the
 # LTC channel is active AND the agent is in Poor health AND the consumption

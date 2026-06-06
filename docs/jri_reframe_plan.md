@@ -102,5 +102,26 @@ note. The Stage 3 local diagnostic settles this BEFORE the AWS spend.
 
 ## Stage status
 
-- Stage 0 (this doc): headline + decisions recorded. DONE.
-- Stage 1 (config lock): in progress (audit running).
+- Stage 0 (decisions doc): DONE (commit bfc148f).
+- Stage 1 (config lock): DONE.
+  - Calibration lock (chi_LTC 0.49, observed SS+DB floor, citation fixes,
+    test_config_consistency.jl 27/27): commit bfc148f.
+  - Model 2 (UK reduced-form transport) excised entirely (7 files): this commit.
+
+### Stage-1 deviations from the master plan (verified, intentional)
+- Struct defaults (parameters.jl: c_floor=3000, health_utility=[1,1,1]) were NOT
+  changed. Every production solve path passes c_floor/health_utility explicitly
+  via config constants; the only bare-constructor callers are survival/grid
+  builders and the Lockwood/Pashchenko replications, which must inherit the
+  neutral defaults to reproduce published numbers. test_config_consistency.jl
+  guards the neutral defaults.
+- Two welfare counterfactuals ("Default architecture (no transport)",
+  "Default + group pricing") were dropped during the Model-2 excision: they
+  existed only to express the wedge-vs-no-wedge contrast, which no longer exists,
+  and were not referenced by name in code. Welfare set is now 12 configs.
+
+## Next: Stage 2 (results-mover code edits)
+frac_at_kink instrumentation; theta-recalibration at theta callsites; new scripts
+(run_shapley_gamma_stability.jl, run_ss_cut_by_wealth.jl,
+diagnose_gamma_oscillation.jl); run_ss_robustness.jl chi_ltc/lambda_w/psi kwarg
+fix; src/subset_enum.jl refactor.

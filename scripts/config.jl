@@ -63,43 +63,13 @@ const HEALTH_UTILITY = [1.0, 0.92, 0.82]  # state-dep utility — FLN (2013) cen
                                            # empirically defensible range and
                                            # avoiding interaction with steeper
                                            # hazards / public-care aversion.
-# UK_RETENTION_*: inputs to the Model 2 reduced-form transport (see below).
-# The proportional retention factor (UK_post / UK_pre) is applied to the
-# frictionless Yaari baseline as a deterministic multiplicative
-# transformation in scripts/export_manuscript_numbers.jl.
-const UK_RETENTION_PRE   = 0.95   # UK pre-2015 reform: compulsory annuitization rate
-const UK_RETENTION_LOW   = 0.13   # UK post-2015 voluntary retention (low anchor; FCA)
-const UK_RETENTION_MID   = 0.17   # UK post-2015 voluntary retention (mid anchor; ABI/FCA central)
-const UK_RETENTION_HIGH  = 0.25   # UK post-2015 voluntary retention (high anchor; ABI)
+# The structural multi-channel model: all 11 channels (rational + preference
+# + structural chi_ltc + behavioral SDU/PED) are parameterized directly in the
+# Bellman equation. The two behavioral parameters (LAMBDA_W, PSI_PURCHASE) are
+# exploratory, literature-anchored values, not moment-matched, reported as a
+# robustness extension with within-model sensitivity ranges.
 
-# Two-model architecture.
-#
-# Model 1 (structural multi-channel, US-anchored): all 11 channels —
-# rational + preference + structural (chi_ltc) + behavioral (SDU + PED) —
-# parameterized directly in the Bellman equation. Behavioral parameters
-# (LAMBDA_W, PSI_PURCHASE) are exploratory best guesses anchored to
-# literature magnitudes (Blanchett-Finke 2024-25 spending differential;
-# Brown 2008 / Chalmers-Reuter 2012 / Hu-Scott 2007 framing-effect
-# magnitudes), not moment-matched. Sensitivity ranges reported in
-# manuscript.
-#
-# Model 2 (UK reduced-form transport): apply the proportional retention
-# factor from the UK 2015 reform (UK_post / UK_pre) to the FRICTIONLESS
-# Yaari baseline (no channels active). Model 2 = frictionless ×
-# (UK_post / UK_pre). The UK pre-reform 95% rate is a compulsion
-# equilibrium and the UK post-reform rate is voluntary, so the ratio
-# captures the bundle of frictions that voluntary retirees express
-# relative to a no-friction counterfactual.
-#
-# Production Model 2 wedge factors (UK_post / UK_pre):
-#   low  factor = UK_RETENTION_LOW  / UK_RETENTION_PRE = 0.137
-#   mid  factor = UK_RETENTION_MID  / UK_RETENTION_PRE = 0.179  (production)
-#   high factor = UK_RETENTION_HIGH / UK_RETENTION_PRE = 0.263
-#
-# Both Model 1 and Model 2 predictions are reported alongside the HRS
-# empirical (2.0-3.3%) for triangulation.
-
-# Behavioral channel calibrations for Model 1 (exploratory parameters).
+# Behavioral channel calibrations (exploratory parameters).
 #
 # These are best-guess literature-anchored values, not identified from a
 # moment match. Sensitivity ranges are reported across plausible spans.

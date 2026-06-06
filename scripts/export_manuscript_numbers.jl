@@ -165,7 +165,7 @@ function welfare_counterfactual(scenario::AbstractString)
         toks = split(tail, ',')
         length(toks) >= 7 || error("malformed row for $(repr(scenario)): $line")
         # Schema: mwr, inflation, psi, c_floor, ss_scale, ownership_pct,
-        # mean_alpha, apply_wedge, description.
+        # mean_alpha, description.
         return (mwr=parse(Float64, toks[1]),
                 inflation=parse(Float64, toks[2]),
                 psi=parse(Float64, toks[3]),
@@ -539,66 +539,6 @@ function build_macros!()
         @warn "Skipping ownElevenChannelFull / ownModelOne" exception=e
     end
 
-    # ===================================================================
-    # MODEL 2 — UK reduced-form transport
-    # ===================================================================
-    # Model 2 prediction = ownFrictionless × (UK_post / UK_pre).
-    # The frictionless baseline is the HRS-population Yaari ownership rate
-    # with no channels active; the UK retention factor transports the
-    # post/pre ratio from the 2015 pension-freedoms reform.
-    #
-    # Production midpoint: UK_post = 17%, UK_pre = 95%, factor = 17/95.
-    # Sensitivity range: UK_post in {13%, 17%, 25%}.
-    # ===================================================================
-    own_frictionless_pct = NaN
-    try
-        own_frictionless_pct = subset_ownership(0)
-    catch e
-        @warn "Could not load frictionless baseline for Model 2" exception=e
-    end
-    if !isnan(own_frictionless_pct)
-        # Source UK retention constants from config.jl (single source of truth)
-        wedge_pre  = UK_RETENTION_PRE
-        wedge_low  = UK_RETENTION_LOW  / wedge_pre   # 13/95 = 0.137
-        wedge_mid  = UK_RETENTION_MID  / wedge_pre   # 17/95 = 0.179
-        wedge_high = UK_RETENTION_HIGH / wedge_pre   # 25/95 = 0.263
-
-        ownNum_low  = own_frictionless_pct * wedge_low
-        ownNum_mid  = own_frictionless_pct * wedge_mid
-        ownNum_high = own_frictionless_pct * wedge_high
-
-        # Wedge factor macros (for display in the manuscript)
-        def!("pWedgeFactorLow",  fmt_num(wedge_low;  digits=3))
-        def!("pWedgeFactorMid",  fmt_num(wedge_mid;  digits=3))
-        def!("pWedgeFactorHigh", fmt_num(wedge_high; digits=3))
-        def!("pUKRetentionPre",  fmt_pct(UK_RETENTION_PRE  * 100; digits=0))
-        def!("pUKRetentionLow",  fmt_pct(UK_RETENTION_LOW  * 100; digits=0))
-        def!("pUKRetentionMid",  fmt_pct(UK_RETENTION_MID  * 100; digits=0))
-        def!("pUKRetentionHigh", fmt_pct(UK_RETENTION_HIGH * 100; digits=0))
-
-        # ownFrictionless is defined earlier; emit the Num variant once so
-        # the backfill pass doesn't double-define.
-        macro_exists("ownFrictionlessNum") || def!("ownFrictionlessNum", fmt_num(own_frictionless_pct; digits=1))
-
-        # Model 2 wedge-multiplied US ownership predictions
-        def!("ownWedgeLow",  fmt_pct(ownNum_low;  digits=1))
-        def!("ownWedgeMid",  fmt_pct(ownNum_mid;  digits=1))
-        def!("ownWedgeHigh", fmt_pct(ownNum_high; digits=1))
-
-        # Model 2 named aliases — used in prose alongside Model 1 macros
-        def!("ownModelTwoLow",  fmt_pct(ownNum_low;  digits=1))
-        def!("ownModelTwoMid",  fmt_pct(ownNum_mid;  digits=1))
-        def!("ownModelTwoHigh", fmt_pct(ownNum_high; digits=1))
-        def!("ownModelTwo",     fmt_pct(ownNum_mid;  digits=1))
-
-        # Headline = Model 2 mid-anchor.
-        def!("ownHeadline",  fmt_pct(ownNum_mid;  digits=1))
-
-        # Bracket macros for prose convenience
-        def!("ownBracketLow",  fmt_pct(ownNum_low;  digits=1))
-        def!("ownBracketHigh", fmt_pct(ownNum_high; digits=1))
-    end
-
     # Retention rate for SS step (complement as percent)
     own_friction = subset_ownership(0)
     own_ss = subset_ownership(B_SS)
@@ -901,12 +841,10 @@ backfill_num_variants!()
 # ---------------------------------------------------------------------------
 
 function write_extension_path_table()
-    # Two-model decomposition.
-    #   Model 1 layers:
-    #     Layer 1 (rational): SS, Bequests, Medical+R-S, Pessimism, Loads, Inflation
-    #     Layer 2 (preference): Age needs, State-dependent utility, chi_LTC
-    #     Layer 3 (behavioral): SDU (Force A), PED (Force B)
-    #   Model 2: frictionless baseline x UK_post / UK_pre.
+    # Sequential channel decomposition.
+    #   Layer 1 (rational): SS, Bequests, Medical+R-S, Pessimism, Loads, Inflation
+    #   Layer 2 (preference): Age needs, State-dependent utility, chi_LTC
+    #   Layer 3 (behavioral): SDU (Force A), PED (Force B)
     bm0 = 0                                  # frictionless Yaari baseline
     bm7 = B_SS | B_BEQUESTS | B_MED_RS | B_PESSIMISM | B_LOADS | B_INFLATION
     bm8 = bm7 | B_AGE_NEEDS
@@ -924,22 +862,11 @@ function write_extension_path_table()
         end
     end
 
-    # Model 2: UK reduced-form wedge applied to the FRICTIONLESS baseline.
-    # The wedge captures the joint rational+behavioral retention that
-    # voluntary households express when compulsion lifts, so it should
-    # operate on a baseline with no frictions of any kind.
-    wedge_factor_mid = 0.17 / 0.95
-    wedge_factor_low = 0.13 / 0.95
-    wedge_factor_high = 0.25 / 0.95
-    own_wedge_mid  = own[bm0] * wedge_factor_mid
-    own_wedge_low  = own[bm0] * wedge_factor_low
-    own_wedge_high = own[bm0] * wedge_factor_high
-
     out = joinpath(REPO_ROOT, "tables", "tex", "extension_path.tex")
     open(out, "w") do f
         println(f, raw"\begin{table}[htbp]")
         println(f, raw"\centering")
-        println(f, raw"\caption{Two-Model Decomposition: Structural Channels and UK Reduced-Form Transport}")
+        println(f, raw"\caption{Sequential Channel Decomposition}")
         println(f, raw"\label{tab:extension_path}")
         println(f, raw"\begin{threeparttable}")
         println(f, raw"\begin{tabular}{lcc}")
@@ -957,21 +884,14 @@ function write_extension_path_table()
                 own[bm10_sdu], own[bm10_sdu] - own[bm9_ltc])
         @printf(f, "+ Narrow-framing penalty (Force B; Model 1) & %.1f & %+.1f \\\\\n",
                 own[bm11_full], own[bm11_full] - own[bm10_sdu])
-        println(f, raw"\midrule")
-        @printf(f, "Model 2: frictionless baseline (%.1f) \$\\times\$ UK 17/95 & %.1f & --- \\\\\n",
-                own[bm0], own_wedge_mid)
         println(f, raw"\bottomrule")
         println(f, raw"\end{tabular}")
         println(f, raw"\begin{tablenotes}")
         println(f, raw"\small")
-        println(f, raw"\item Model 1 (top block) is the structural multi-channel decomposition.")
+        println(f, raw"\item The table is the structural multi-channel decomposition.")
         println(f, raw"Layer 1 covers rational frictions; Layer 2 adds preference and structural")
-        println(f, raw"channels; the two behavioral channels (SDU and PED) close the model under")
-        println(f, raw"exploratory parameter values reported with within-model sensitivity ranges.")
-        println(f, raw"\item Model 2 (bottom row) applies the UK 2015 pension-freedoms")
-        @printf(f, "\\item retention factor (UK post / UK pre = %.2f at the production midpoint) to the\n", wedge_factor_mid)
-        @printf(f, "\\item frictionless Yaari baseline. The UK retention range [13\\%%, 25\\%%] maps to a Model~2 prediction bracket of [%.1f\\%%, %.1f\\%%].\n",
-                own_wedge_low, own_wedge_high)
+        println(f, raw"channels; the two behavioral channels (SDU and PED) are an exploratory")
+        println(f, raw"extension reported with within-model sensitivity ranges.")
         println(f, raw"\end{tablenotes}")
         println(f, raw"\end{threeparttable}")
         println(f, raw"\end{table}")
@@ -1058,20 +978,12 @@ write_shapley_nine_table()
 # ---------------------------------------------------------------------------
 
 const FALLBACKS = String[
-    # Production headline macros for the two-model architecture.
-    # Model 1: ownModelOne / ownElevenChannelFull (full structural).
-    # Model 2: ownFrictionless x (UK_post / UK_pre); the bracket
-    # is reported via ownWedge* / ownModelTwo* / ownHeadline.
+    # Production headline macros for the structural decomposition
+    # (ownModelOne / ownElevenChannelFull = full structural model).
     "ownNoBehavioralBaseline",
     "ownTenChannelSDU",
     "ownElevenChannelFull",
     "ownModelOne", "ownModelOneStructural",
-    "ownWedgeLow", "ownWedgeMid", "ownWedgeHigh",
-    "ownModelTwoLow", "ownModelTwoMid", "ownModelTwoHigh", "ownModelTwo",
-    "ownHeadline",
-    "ownBracketLow", "ownBracketHigh",
-    "pWedgeFactorLow", "pWedgeFactorMid", "pWedgeFactorHigh",
-    "pUKRetentionPre", "pUKRetentionLow", "pUKRetentionMid", "pUKRetentionHigh",
     "mcMedianOwnership", "mcMeanOwnership",
     "mcLowCIOwnership", "mcHighCIOwnership",
     "mcLowIQROwnership", "mcHighIQROwnership",

@@ -107,64 +107,47 @@ struct CounterfactualConfig
     psi::Float64
     c_floor::Float64
     ss_scale::Float64       # multiplier on SS_QUARTILE_LEVELS (1.0 = baseline)
-    apply_wedge::Bool       # true = apply Model 2 UK reduced-form transport
-                            # multiplier in export_manuscript_numbers.jl;
-                            # false = report Model 1 structural ownership only
-                            # (default-architecture interpretation)
     description::String
 end
 
-# Note: the Model 2 UK reduced-form transport multiplier is applied as
-# multiplicative transport in scripts/export_manuscript_numbers.jl. The
-# "Default architecture" counterfactual corresponds to NOT applying the
-# multiplier (apply_wedge=false), interpreting annuitization as the default
-# choice architecture. Other counterfactuals apply it as in the production
-# Model 2 headline.
-
 configs = [
     CounterfactualConfig(
-        "Baseline", MWR_LOADED, INFLATION, SURVIVAL_PESSIMISM, C_FLOOR, 1.0, true,
-        "Full Model 1 structural with Model 2 transport multiplier applied"),
+        "Baseline", MWR_LOADED, INFLATION, SURVIVAL_PESSIMISM, C_FLOOR, 1.0,
+        "Full structural model at production calibration"),
     CounterfactualConfig(
-        "Group pricing (MWR=0.90)", 0.90, INFLATION, SURVIVAL_PESSIMISM, C_FLOOR, 1.0, true,
+        "Group pricing (MWR=0.90)", 0.90, INFLATION, SURVIVAL_PESSIMISM, C_FLOOR, 1.0,
         "TSP/employer plan annuity pricing (James et al. 2006)"),
     CounterfactualConfig(
-        "Public option (MWR=0.95)", 0.95, INFLATION, SURVIVAL_PESSIMISM, C_FLOOR, 1.0, true,
+        "Public option (MWR=0.95)", 0.95, INFLATION, SURVIVAL_PESSIMISM, C_FLOOR, 1.0,
         "Government-offered annuity at administrative cost"),
     CounterfactualConfig(
-        "Actuarially fair (MWR=1.0)", 1.0, INFLATION, SURVIVAL_PESSIMISM, C_FLOOR, 1.0, true,
+        "Actuarially fair (MWR=1.0)", 1.0, INFLATION, SURVIVAL_PESSIMISM, C_FLOOR, 1.0,
         "Eliminate all pricing loads (theoretical benchmark)"),
     CounterfactualConfig(
-        "Real annuity, TIPS-backed", 0.78, 0.0, SURVIVAL_PESSIMISM, C_FLOOR, 1.0, true,
+        "Real annuity, TIPS-backed", 0.78, 0.0, SURVIVAL_PESSIMISM, C_FLOOR, 1.0,
         "Inflation-indexed annuity at TIPS-backed pricing (Brown et al. 2002)"),
     CounterfactualConfig(
-        "Real annuity, nominal-equiv", MWR_LOADED, 0.0, SURVIVAL_PESSIMISM, C_FLOOR, 1.0, true,
+        "Real annuity, nominal-equiv", MWR_LOADED, 0.0, SURVIVAL_PESSIMISM, C_FLOOR, 1.0,
         "Inflation-indexed at production MWR — isolates pure inflation channel"),
     CounterfactualConfig(
-        "Fair + real", 1.0, 0.0, SURVIVAL_PESSIMISM, C_FLOOR, 1.0, true,
+        "Fair + real", 1.0, 0.0, SURVIVAL_PESSIMISM, C_FLOOR, 1.0,
         "Eliminate both loads and inflation (supply-side upper bound)"),
     CounterfactualConfig(
-        "SS cut 23%", MWR_LOADED, INFLATION, SURVIVAL_PESSIMISM, C_FLOOR, 0.77, true,
+        "SS cut 23%", MWR_LOADED, INFLATION, SURVIVAL_PESSIMISM, C_FLOOR, 0.77,
         "Trust fund exhaustion ~2033 (current-law default)"),
     CounterfactualConfig(
-        "Correct pessimism (psi=1.0)", MWR_LOADED, INFLATION, 1.0, C_FLOOR, 1.0, true,
+        "Correct pessimism (psi=1.0)", MWR_LOADED, INFLATION, 1.0, C_FLOOR, 1.0,
         "Eliminate survival pessimism (information/disclosure intervention)"),
     CounterfactualConfig(
-        "Group + correct pessimism", 0.90, INFLATION, 1.0, C_FLOOR, 1.0, true,
+        "Group + correct pessimism", 0.90, INFLATION, 1.0, C_FLOOR, 1.0,
         "MWR=0.90 + veridical survival beliefs — test interaction"),
     CounterfactualConfig(
         "Public consumption floor doubled", MWR_LOADED, INFLATION, SURVIVAL_PESSIMISM,
-        C_FLOOR * 2.0, 1.0, true,
+        C_FLOOR * 2.0, 1.0,
         "Double the public consumption floor (c_floor); proxy for SSI/Medicaid expansion"),
     CounterfactualConfig(
-        "Best feasible package", 0.90, 0.0, 1.0, C_FLOOR, 1.0, false,
-        "Group pricing + real annuity + correct pessimism + default architecture (no transport)"),
-    CounterfactualConfig(
-        "Default architecture (no transport)", MWR_LOADED, INFLATION, SURVIVAL_PESSIMISM, C_FLOOR, 1.0, false,
-        "Annuitization as default; Model 2 transport does not apply"),
-    CounterfactualConfig(
-        "Default + group pricing", 0.90, INFLATION, SURVIVAL_PESSIMISM, C_FLOOR, 1.0, false,
-        "Default architecture combined with group pricing"),
+        "Best feasible package", 0.90, 0.0, 1.0, C_FLOOR, 1.0,
+        "Group pricing + real annuity + correct pessimism (supply + information package)"),
 ]
 
 # ===================================================================
@@ -203,10 +186,9 @@ for (i, cfg) in enumerate(configs)
         payout = cfg.mwr * fair_pr
     end
 
-    # Build ModelParams with all Model 1 structural channels on (rational +
-    # preferences + structural + behavioral). The Model 2 UK reduced-form
-    # transport multiplier is applied post-hoc (apply_wedge=true) or omitted
-    # (apply_wedge=false, default-architecture interpretation).
+    # Build ModelParams with the rational + preference + structural channels on.
+    # The two behavioral channels (SDU lambda_w, PED psi_purchase) are left off
+    # in the welfare counterfactuals; they are exercised separately as robustness.
     model_common = (gamma=GAMMA, beta=BETA, r=R_RATE,
                     stochastic_health=true, n_health_states=3, n_quad=N_QUAD,
                     c_floor=cfg.c_floor, hazard_mult=HAZARD_MULT)
@@ -271,12 +253,7 @@ println("=" ^ 70)
 flush(stdout)
 
 # CEV configs: baseline + top 3 counterfactuals.
-# Each row: (label, mwr, infl, surv_pessimism). The Model 2 UK reduced-form
-# transport multiplier does not enter the within-model welfare computation
-# (it's a post-hoc multiplicative reduction applied to ownership rates, not
-# a structural parameter affecting agent decisions). Welfare effects of
-# removing the transport are reported separately as the "Default architecture"
-# lever in Section 5.
+# Each row: (label, mwr, infl, surv_pessimism).
 cev_configs = [
     ("Baseline",      MWR_LOADED, INFLATION, SURVIVAL_PESSIMISM),
     ("Group pricing", 0.90,       INFLATION, SURVIVAL_PESSIMISM),
@@ -439,12 +416,12 @@ mkpath(joinpath(tables_dir, "tex"))
 # the parser when changing schema.
 csv_path = joinpath(tables_dir, "csv", "welfare_counterfactuals.csv")
 open(csv_path, "w") do f
-    println(f, "scenario,mwr,inflation,psi,c_floor,ss_scale,ownership_pct,mean_alpha,apply_wedge,description")
+    println(f, "scenario,mwr,inflation,psi,c_floor,ss_scale,ownership_pct,mean_alpha,description")
     for (i, r) in enumerate(results)
         cfg = configs[i]
-        @printf(f, "%s,%.2f,%.3f,%.3f,%.0f,%.2f,%.2f,%.4f,%.3f,%s\n",
+        @printf(f, "%s,%.2f,%.3f,%.3f,%.0f,%.2f,%.2f,%.4f,%s\n",
             r.label, cfg.mwr, cfg.inflation, cfg.psi, cfg.c_floor, cfg.ss_scale,
-            r.ownership * 100, r.mean_alpha, cfg.apply_wedge, r.description)
+            r.ownership * 100, r.mean_alpha, r.description)
     end
 end
 println("\n  Ownership CSV saved: ", csv_path)

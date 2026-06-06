@@ -243,25 +243,6 @@ macros = load_macros()
         end
     end
 
-    # Model 2 UK reduced-form transport: multiplicative wedge check.
-    # The wedge factor is computed deterministically as UK_post / UK_pre and
-    # applied to the FRICTIONLESS Yaari baseline. The UK retention factor
-    # (17/95) captures the joint rational+behavioral retention households
-    # express when compulsion lifts; applied to the frictionless baseline
-    # it transports the UK voluntary-equilibrium rate to the US.
-    @testset "Model 2 UK reduced-form transport" begin
-        if haskey(macros, "ownFrictionless") && haskey(macros, "ownWedgeMid")
-            parse_pct = s -> parse(Float64, replace(s, "\\%" => ""))
-            base = parse_pct(macros["ownFrictionless"])
-            wedge = parse_pct(macros["ownWedgeMid"])
-            expected = base * (17.0 / 95.0)
-            # Allow 0.05 pp rounding tolerance
-            @test abs(wedge - expected) < 0.06
-        else
-            @test_skip "Model 2 transport macros not present"
-        end
-    end
-
     # Monte Carlo CI macros — present iff the MC stage has run.
     @testset "Monte Carlo CI" begin
         path = joinpath(CSV_DIR, "monte_carlo_ownership.csv")
@@ -280,25 +261,19 @@ macros = load_macros()
         end
     end
 
-    # Bracket-hostage assertion (forensic-review recommendation): the headline
-    # ownership prediction is expected to land in the ~[5%, 11%] range
-    # (Model 2 reduced-form transport midpoint at 7.5% with sensitivity
-    # bracket [5.7%, 11.0%]). If a future recalibration silently moves the
-    # headline outside this range, this assertion fires loudly so the
-    # manuscript prose can be updated to match (rather than the prose
-    # drifting while the headline silently re-anchors).
+    # Bracket-hostage assertion: the JRI headline ownership prediction (the
+    # 9-channel structural baseline, ownNoBehavioralBaseline) is expected to land
+    # in a plausible range. If a future recalibration silently moves it outside
+    # the range, this fires loudly so the manuscript prose can be updated to match
+    # (rather than the prose drifting while the headline silently re-anchors).
     #
-    # The bracket below is intentionally GENEROUS (3% to 15%) — wide enough
-    # to accommodate the [5.7%, 11.0%] central range plus a safety margin.
-    # If a rerun lands outside this generous range, that's a signal the
-    # calibration has drifted and someone should think carefully about why.
-    #
-    # Update the bracket here when the manuscript narrative changes (e.g.,
-    # a planned recalibration shifts the headline target intentionally),
-    # but NOT silently after a rerun without explicit consideration.
+    # NOTE (Stage 5): the bracket below is provisional, keyed to the pre-re-solve
+    # 9-channel structural baseline (~6.8%). Re-tighten to the re-solved
+    # structural ownership after the production AWS run.
     @testset "headline bracket-hostage assertion" begin
-        # Production headline: Model 2 UK reduced-form transport midpoint.
-        headline_keys = ("ownHeadline", "ownWedgeMid")
+        # JRI headline: 9-channel structural baseline (no behavioral channels).
+        # NOT ownModelOne (the 11-channel full model is ~0% under PED annihilation).
+        headline_keys = ("ownNoBehavioralBaseline",)
         headline_pct = nothing
         which_key = nothing
         for k in headline_keys
