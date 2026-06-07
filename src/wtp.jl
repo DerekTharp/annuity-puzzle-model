@@ -619,6 +619,7 @@ function compute_ownership_rate_health(
     n_owners = 0.0
     n_evaluated = 0.0
     sum_alpha = 0.0
+    n_at_kink = 0.0
 
     # Precompute interpolation objects keyed by (health, time)
     interp_cache = Dict{Tuple{Int,Int}, typeof(linear_interpolation(
@@ -687,6 +688,7 @@ function compute_ownership_rate_health(
         V_no_ann = V_interp(W_0, y_0)
         best_V = V_no_ann
         best_pi = 0.0
+        min_feas_pi = Inf
 
         for alpha in g.alpha
             alpha <= 0.0 && continue
@@ -697,6 +699,7 @@ function compute_ownership_rate_health(
                 W_rem -= p.fixed_cost
             end
             W_rem < 0.0 && continue
+            min_feas_pi = min(min_feas_pi, pi)
 
             # Premium pi is in real (age-65 nominal) dollars. For an age-t
             # purchase, the insurer pays pi*(1+pi_inf)^(t-1)*payout_rate per
@@ -740,16 +743,25 @@ function compute_ownership_rate_health(
         sum_alpha += w_i * best_alpha_i
         if best_pi > 0.0
             n_owners += w_i
+            # "At the kink": the optimum sits at the smallest feasible premium,
+            # so the min-purchase floor binds and the agent would buy less if
+            # allowed. A high share signals a lumpy extensive margin (SPIA
+            # participation fragility under the minimum-purchase requirement).
+            if best_pi <= min_feas_pi * (1.0 + 1e-9)
+                n_at_kink += w_i
+            end
         end
     end
 
     if n_evaluated > 0.0
         return (ownership_rate = n_owners / n_evaluated,
                 mean_alpha = sum_alpha / n_evaluated,
+                frac_at_kink = n_owners > 0.0 ? n_at_kink / n_owners : 0.0,
                 n_capped = n_capped,
                 n_evaluated = Int(round(n_evaluated)))
     else
         return (ownership_rate = 0.0, mean_alpha = 0.0,
+                frac_at_kink = 0.0,
                 n_capped = n_capped,
                 n_evaluated = 0)
     end

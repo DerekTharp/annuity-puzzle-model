@@ -76,13 +76,15 @@ function solve_and_evaluate(
     )
     ownership = result.ownership_rate
     mean_alpha = result.mean_alpha
+    frac_at_kink = result.frac_at_kink
 
     if verbose
         @printf("  %-50s  %6.1f%%  (a=%.3f)  (%.1fs)\n",
             step_name, ownership * 100, mean_alpha, solve_time)
     end
 
-    return (sol=sol, ownership=ownership, mean_alpha=mean_alpha, solve_time=solve_time)
+    return (sol=sol, ownership=ownership, mean_alpha=mean_alpha,
+            frac_at_kink=frac_at_kink, solve_time=solve_time)
 end
 
 """
@@ -113,6 +115,7 @@ function solve_and_evaluate(
         )
         ownership = result.ownership_rate
         mean_alpha = result.mean_alpha
+        frac_at_kink = result.frac_at_kink
     else
         # Solve per quartile and aggregate (parallel when workers available)
         quartile_tasks = collect(1:4)
@@ -126,21 +129,24 @@ function solve_and_evaluate(
             pop_q = _filter_quartile(_pop, q, SS_QUARTILE_BREAKS)
             n_q = size(pop_q, 1)
             if n_q == 0
-                return (ownership=0.0, mean_alpha=0.0, n=0.0)
+                return (ownership=0.0, mean_alpha=0.0, frac_at_kink=0.0, n=0.0)
             end
 
             result_q = compute_ownership_rate_health(
                 sol_q, pop_q, _pr; base_surv=_bs,
             )
-            (ownership=result_q.ownership_rate, mean_alpha=result_q.mean_alpha, n=Float64(n_q))
+            (ownership=result_q.ownership_rate, mean_alpha=result_q.mean_alpha,
+             frac_at_kink=result_q.frac_at_kink, n=Float64(n_q))
         end
 
         total_owners = sum(r.ownership * r.n for r in quartile_results)
         total_alpha = sum(r.mean_alpha * r.n for r in quartile_results)
         total_n = sum(r.n for r in quartile_results)
+        total_at_kink = sum(r.frac_at_kink * r.ownership * r.n for r in quartile_results)
 
         ownership = total_n > 0 ? total_owners / total_n : 0.0
         mean_alpha = total_n > 0 ? total_alpha / total_n : 0.0
+        frac_at_kink = total_owners > 0 ? total_at_kink / total_owners : 0.0
     end
 
     solve_time = time() - t0
@@ -150,7 +156,8 @@ function solve_and_evaluate(
             step_name, ownership * 100, mean_alpha, solve_time)
     end
 
-    return (sol=nothing, ownership=ownership, mean_alpha=mean_alpha, solve_time=solve_time)
+    return (sol=nothing, ownership=ownership, mean_alpha=mean_alpha,
+            frac_at_kink=frac_at_kink, solve_time=solve_time)
 end
 
 """
