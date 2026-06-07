@@ -21,6 +21,9 @@ const TEST_FILES = [
     "test_pashchenko_dia.jl",
     "test_10channel_smoke.jl",
     "test_age_invariance.jl",
+    "test_config_consistency.jl",
+    "test_subset_enum.jl",
+    "test_frac_at_kink.jl",
     # test_manuscript_numbers.jl is a POST-pipeline validator that reads
     # paper/numbers.tex and asserts agreement against tables/csv/*.csv.
     # When run as Stage 0 (pre-pipeline) on a fresh AWS instance, the
