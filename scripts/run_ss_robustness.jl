@@ -1,8 +1,9 @@
 # Social Security Benefit Cut Robustness Analysis
 #
 # Computes predicted private annuity demand under varying magnitudes
-# of Social Security benefit reductions. The full model (all channels
-# on) is solved at each cut level.
+# of Social Security benefit reductions. The structural model (rational +
+# preference + structural chi_ltc; behavioral SDU/PED off) is solved at each
+# cut level. A trust-fund shortfall cuts SS only; DB pension income survives.
 #
 # Cut sizes: 0% (baseline), 10%, 15%, 23% (trust fund), 30%, 40%, 50%, 100%
 #
@@ -85,8 +86,11 @@ flush(stdout)
 # ===================================================================
 cut_fractions = [0.0, 0.10, 0.15, 0.23, 0.30, 0.40, 0.50, 1.0]
 
-@printf("\n  SS quartile levels (baseline): [%s]\n",
+@printf("\n  Pre-existing income SS+DB (baseline): [%s]\n",
     join([@sprintf("\$%.0fK", l / 1000) for l in SS_QUARTILE_LEVELS], ", "))
+@printf("  SS cut hits SS only; DB survives. SS=[%s] DB=[%s]\n",
+    join([@sprintf("\$%.0fK", l / 1000) for l in SS_OBS], ", "),
+    join([@sprintf("\$%.0fK", l / 1000) for l in DB_OBS], ", "))
 flush(stdout)
 
 # ===================================================================
@@ -99,6 +103,8 @@ flush(stdout)
 _population = population
 _base_surv = base_surv
 _ss_q_levels = Float64.(SS_QUARTILE_LEVELS)
+_ss_obs = Float64.(SS_OBS)
+_db_obs = Float64.(DB_OBS)
 _min_wealth = MIN_WEALTH
 _gamma = GAMMA
 _beta = BETA
@@ -113,6 +119,7 @@ _fixed_cost = FIXED_COST
 _min_purchase = MIN_PURCHASE
 _consumption_decline = CONSUMPTION_DECLINE
 _health_utility = Float64.(HEALTH_UTILITY)
+_chi_ltc = CHI_LTC
 _inflation = INFLATION
 _surv_pess = SURVIVAL_PESSIMISM
 _n_wealth = N_WEALTH
@@ -126,10 +133,10 @@ _a_grid_pow = A_GRID_POW
 t0 = time()
 
 cut_results = parallel_solve(cut_fractions) do cut_frac
-    # Scale SS levels
-    ss_lvls = (1.0 - cut_frac) .* _ss_q_levels
+    # A trust-fund shortfall cuts Social Security only; DB pension income
+    # (the rest of the pre-existing annuitization floor) is untouched.
+    ss_lvls = (1.0 - cut_frac) .* _ss_obs .+ _db_obs
 
-    # Full model params (all channels on)
     gkw = (n_wealth=_n_wealth, n_annuity=_n_annuity, n_alpha=_n_alpha,
            W_max=_w_max, age_start=_age_start, age_end=_age_end,
            annuity_grid_power=_a_grid_pow)
@@ -138,6 +145,9 @@ cut_results = parallel_solve(cut_fractions) do cut_frac
            stochastic_health=true, n_health_states=3, n_quad=_n_quad,
            c_floor=_c_floor, hazard_mult=_hazard_mult)
 
+    # Structural channels on (incl. chi_ltc public-care aversion). The two
+    # behavioral channels (lambda_w SDU, psi_purchase PED) stay at their off
+    # defaults: the SS crowd-out is reported as a structural result.
     p_model = ModelParams(; ckw...,
         theta=_theta_dfj, kappa=_kappa_dfj,
         mwr=_mwr_loaded, fixed_cost=_fixed_cost, min_purchase=_min_purchase,
@@ -146,6 +156,7 @@ cut_results = parallel_solve(cut_fractions) do cut_frac
         survival_pessimism=_surv_pess,
         consumption_decline=_consumption_decline,
         health_utility=_health_utility,
+        chi_ltc=_chi_ltc,
         gkw...)
 
     # Build grids on worker
@@ -261,11 +272,14 @@ open(tex_path, "w") do f
     println(f, raw"\end{tabular}")
     println(f, raw"\begin{tablenotes}")
     println(f, raw"\small")
-    println(f, raw"\item Full model with all channels active. SS quartile levels")
-    levels_str = join([string("\\\$", round(Int, l / 1000), "K") for l in SS_QUARTILE_LEVELS], ", ")
-    println(f, "scaled by (1 -- cut fraction). Baseline levels: [$(levels_str)].")
+    println(f, raw"\item Structural model (rational, preference, and public-care")
+    println(f, raw"aversion channels; behavioral channels off). A trust-fund shortfall cuts")
+    println(f, raw"Social Security only; DB pension income survives.")
+    ss_str = join([string("\\\$", round(Int, l / 1000), "K") for l in SS_OBS], ", ")
+    db_str = join([string("\\\$", round(Int, l / 1000), "K") for l in DB_OBS], ", ")
+    println(f, "Baseline SS = [$(ss_str)], DB = [$(db_str)].")
     println(f, raw"23\% cut corresponds to projected trust fund exhaustion circa 2033.")
-    println(f, raw"100\% cut is a theoretical benchmark (complete SS elimination).")
+    println(f, raw"100\% cut eliminates Social Security entirely (DB pensions remain).")
     println(f, raw"\end{tablenotes}")
     println(f, raw"\end{table}")
 end
