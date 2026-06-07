@@ -120,8 +120,47 @@ note. The Stage 3 local diagnostic settles this BEFORE the AWS spend.
   existed only to express the wedge-vs-no-wedge contrast, which no longer exists,
   and were not referenced by name in code. Welfare set is now 12 configs.
 
-## Next: Stage 2 (results-mover code edits)
-frac_at_kink instrumentation; theta-recalibration at theta callsites; new scripts
-(run_shapley_gamma_stability.jl, run_ss_cut_by_wealth.jl,
-diagnose_gamma_oscillation.jl); run_ss_robustness.jl chi_ltc/lambda_w/psi kwarg
-fix; src/subset_enum.jl refactor.
+## Stage 2 (results-mover code edits): DONE
+
+- src/subset_enum.jl: extracted bitmask_to_channels / build_subset_config /
+  exact_shapley (shared by enumeration + gamma-stability). test_subset_enum.jl
+  29/29.
+- frac_at_kink diagnostic in wtp.jl, threaded through both solve_and_evaluate
+  signatures. test_frac_at_kink.jl 7/7.
+- run_ss_robustness.jl: SS-only cut (DB survives) + chi_ltc kwarg fix.
+- New scripts (all coarse-verified): run_shapley_gamma_stability.jl,
+  run_ss_cut_by_wealth.jl, diagnose_gamma_oscillation.jl (env-overridable grids).
+- run_all.jl: Stages 10b (gamma-stability) and 11b (DB-cushion) wired.
+- grid_convergence_joint.jl: gamma un-hardcoded (ANNUITY_GAMMA env).
+
+### Stage-2 deviation from the master plan (verified, intentional)
+- theta-recalibration mover DROPPED. recalibrate_theta_dfj (power-law
+  theta^(gamma/2) -> 156.5 at gamma=2.5) is dead code; applying it would blow the
+  bequest-to-wealth ratio far past target. The project's portability check
+  (bequest_recalibration.csv) shows the ratio moves only 0.173 -> 0.196 from
+  gamma=2.0 to 2.5 (13.6% < 20% retarget threshold), so theta=56.96 is portable
+  and is held fixed across the gamma sweep (with that caveat noted in the
+  exhibit). Third plan-mover eliminated by verification (after struct defaults
+  and behavioral-as-headline). The only baseline re-solve movers are CHID_LTC
+  and SS+DB, both already committed.
+
+### Coarse-grid verification signals (production will confirm at fine grid)
+- gamma-stability: Spearman(ownership-rank, mean-alpha-rank) = 0.983 — the
+  ranking is robust to the value statistic, answering the JRI referee's killer
+  objection.
+- diagnose_gamma_oscillation: mean_alpha rises monotonically (0.000 -> 0.042 ->
+  0.101) across gamma=2.0/2.5/3.0 while the ownership indicator jumps
+  (0/17/23%). The kill-criterion is NOT triggered: the level fragility is an
+  extensive-margin indicator effect, not model instability.
+- WATCH: at corrected calibration (chi_ltc=0.49, observed SS+DB), the coarse
+  9-channel ranking shows Loads > Medical+R-S > Pessimism (rank-2/3 vs the old
+  Loads > Pessimism > Med+R-S). Lock the headline sentence at Stage 6 against the
+  production numbers. Also WATCH: the DB-cushion response increases with wealth
+  at coarse grid (richer = more to annuitize), so the "cushion shrinks response
+  toward the top" framing may need reworking after production.
+
+## Next: Stage 3 (local diagnose + pre-flight)
+Run diagnose_gamma_oscillation.jl at (101,80) and (201,160) fine grids (via
+ANNUITY_NW/ANNUITY_NALPHA) to settle artifact-vs-economic before the AWS run;
+confirm all six results-movers (now four: CHID_LTC, SS+DB, run_ss_robustness
+fixes, behavioral-off) committed; pre-flight checklist.

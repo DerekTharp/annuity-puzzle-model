@@ -236,12 +236,28 @@ function main()
         joinpath(SCRIPTS_DIR, "run_subset_enumeration.jl"); parallel=true)
     push!(timings, "Shapley" => t)
 
+    # --- Stage 10b: Gamma-stability of the 9-channel Shapley ranking ---
+    # Produces: shapley_gamma_stability.csv, shapley_gamma_stability_summary.csv
+    # (the signature exhibit: ranking robust across gamma and across the
+    #  ownership vs mean-alpha value statistic).
+    t = run_stage(
+        "10b. Shapley Ranking Gamma-Stability (512 subsets x 5 gamma)",
+        joinpath(SCRIPTS_DIR, "run_shapley_gamma_stability.jl"); parallel=true)
+    push!(timings, "Shapley gamma-stability" => t)
+
     # --- Stage 11: SS cut robustness ---
     # Produces: ss_cut_robustness.tex/.csv
     t = run_stage(
         "11. Social Security Cut Robustness",
         joinpath(SCRIPTS_DIR, "run_ss_robustness.jl"); parallel=true)
     push!(timings, "SS cuts" => t)
+
+    # --- Stage 11b: SS cut response by wealth (DB-cushion exhibit) ---
+    # Produces: ss_cut_by_wealth.csv
+    t = run_stage(
+        "11b. SS Cut Response by Wealth Quartile (DB cushion)",
+        joinpath(SCRIPTS_DIR, "run_ss_cut_by_wealth.jl"); parallel=true)
+    push!(timings, "SS cut by wealth" => t)
 
     # --- Stage 12: Robustness and sensitivity ---
     # Produces: robustness_gamma_inflation.tex, retention_rates.tex, robustness_full.csv

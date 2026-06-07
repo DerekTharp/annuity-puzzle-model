@@ -11,7 +11,7 @@ println("=" ^ 70)
 println("  JOINT GRID CONVERGENCE TESTS")
 println("=" ^ 70)
 
-const GAMMA       = 2.5
+const GAMMA       = parse(Float64, get(ENV, "ANNUITY_GAMMA", "2.5"))  # ANNUITY_GAMMA overrides to check grid convergence at the gamma-sensitive points
 const BETA        = 0.97
 const R_RATE      = 0.02
 const AGE_START   = 65
