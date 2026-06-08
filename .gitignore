@@ -39,6 +39,7 @@ tables/
 .idea/
 
 # Claude Code working files
+.claude/
 AUDIT_CONVERGENCE_REPORT.md
 potential references/
 scripts.zip
