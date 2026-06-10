@@ -259,6 +259,19 @@ function main()
         joinpath(SCRIPTS_DIR, "run_ss_cut_by_wealth.jl"); parallel=true)
     push!(timings, "SS cut by wealth" => t)
 
+    # --- Stage 11c: Model-implied gradients + empirical validation ---
+    # Produces: model_gradients.csv (model side; reads subset_enumeration.csv
+    # for channel on/off deltas, so runs after Stage 10) and
+    # empirical_gradients_{cells,logit}.csv (HRS data side).
+    t = run_stage(
+        "11c. Model-Implied Ownership Gradients",
+        joinpath(SCRIPTS_DIR, "run_model_gradients.jl"); parallel=true)
+    push!(timings, "Model gradients" => t)
+    t = run_stage(
+        "11d. Empirical Gradient Validation (HRS)",
+        joinpath(SCRIPTS_DIR, "run_empirical_validation.jl"))
+    push!(timings, "Empirical gradients" => t)
+
     # --- Stage 12: Robustness and sensitivity ---
     # Produces: robustness_gamma_inflation.tex, retention_rates.tex, robustness_full.csv
     t = run_stage(
