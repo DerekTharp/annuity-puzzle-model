@@ -200,8 +200,10 @@ for nq in [5, 7, 11]
                          params=Dict{Symbol,Any}(:n_quad => nq)))
 end
 
-# § 9. Survival pessimism
-psi_vals = [0.970, 0.981, 0.990, 1.000]
+# § 9. Survival pessimism. The sweep includes the production value
+# (SURVIVAL_PESSIMISM = 0.96) so the manuscript baseline row is the actual
+# baseline; 0.981 is the O'Dea-Sturrock implied scalar kept as a sweep point.
+psi_vals = [0.960, 0.970, 0.981, 0.990, 1.000]
 for psi in psi_vals
     push!(master_specs, (section=:pessimism,
                          label=@sprintf("psi=%.3f", psi),

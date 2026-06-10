@@ -308,7 +308,7 @@ function figure_4_policy_functions()
         gamma = GAMMA, beta = BETA, r = R_RATE,
         stochastic_health = true, n_health_states = 3, n_quad = N_QUAD,
         c_floor = C_FLOOR, hazard_mult = HAZARD_MULT,
-        survival_pessimism = 0.981,  # O'Dea & Sturrock (2023)
+        survival_pessimism = SURVIVAL_PESSIMISM,
     )
 
     _ss_mean_val = sum(SS_QUARTILE_LEVELS) / length(SS_QUARTILE_LEVELS)

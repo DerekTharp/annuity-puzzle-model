@@ -731,12 +731,14 @@ function build_macros!()
         def!("ownInflation" * key, fmt_pct(robustness_ownership("Gamma×Inflation", spec); digits=1))
     end
 
-    # Survival pessimism sweep
+    # Survival pessimism sweep. Baseline = the production SURVIVAL_PESSIMISM
+    # (0.96); 0.981 is the O'Dea-Sturrock implied scalar, a sweep point only.
     for (key, spec) in [
-        ("Objective",    "psi=1.000"),
-        ("NinetySeven",  "psi=0.970"),
-        ("Baseline",     "psi=0.981"),
-        ("NinetyNine",   "psi=0.990"),
+        ("Objective",     "psi=1.000"),
+        ("Baseline",      "psi=0.960"),
+        ("NinetySeven",   "psi=0.970"),
+        ("NinetyEightOne","psi=0.981"),
+        ("NinetyNine",    "psi=0.990"),
     ]
         def!("ownPsi" * key, fmt_pct(robustness_ownership("Survival pessimism", spec); digits=1))
     end
