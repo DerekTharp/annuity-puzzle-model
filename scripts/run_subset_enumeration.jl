@@ -276,6 +276,15 @@ results = parallel_solve(subset_specs) do spec
         pop, pr; step_name="", verbose=false)
     st = time() - t0
 
+    # Liveness heartbeat: worker stdout is forwarded to the master log, so
+    # these lines distinguish slow progress from a hang in the multi-hour
+    # enumeration and give a rate for an ETA (~64 lines over 2048 subsets).
+    if mask % 32 == 0
+        @printf("    [heartbeat] subset %4d/%d solved in %.0fs (%.0fs elapsed)\n",
+                mask, N_SUBSETS, st, time() - t0_solve)
+        flush(stdout)
+    end
+
     (bitmask=mask, ownership=res.ownership, mean_alpha=res.mean_alpha,
      own_q=res.own_q, alpha_q=res.alpha_q, solve_time=st)
 end

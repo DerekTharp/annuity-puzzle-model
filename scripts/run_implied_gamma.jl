@@ -220,6 +220,10 @@ results = parallel_solve(draws) do d
     end
 
     implied_gamma = (lo + hi) / 2.0
+    # Liveness heartbeat: one line per completed bisection in the master log.
+    @printf("    [heartbeat] draw done: mwr=%.3f -> implied gamma=%.3f (%d iters)\n",
+            d.mwr, implied_gamma, n_iter)
+    flush(stdout)
     return (hazard_poor=d.hazard_poor, inflation=d.inflation, mwr=d.mwr,
             implied_gamma=implied_gamma, converged=true, n_iter=n_iter)
 end

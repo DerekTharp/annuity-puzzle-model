@@ -181,6 +181,10 @@ cut_results = parallel_solve(cut_fractions) do cut_frac
     res = solve_and_evaluate(p_model, local_grids, _base_surv, ss_lvls,
         pop, lpr; step_name="", verbose=false)
 
+    @printf("    [heartbeat] cut=%.0f%% solved (ownership=%.1f%%)\n",
+            cut_frac * 100, res.ownership * 100)
+    flush(stdout)
+
     (cut_pct=cut_frac * 100,
      ownership=res.ownership,
      mean_alpha=res.mean_alpha)

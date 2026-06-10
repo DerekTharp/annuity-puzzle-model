@@ -110,6 +110,7 @@ _gkw = grid_kw
 # ===================================================================
 function shapley_at_gamma(gamma::Float64)
     specs = [(bitmask=i,) for i in 0:(N_STRUCT_SUBSETS - 1)]
+    t0_g = time()
 
     results = parallel_solve(specs) do spec
         mask = spec.bitmask
@@ -149,6 +150,12 @@ function shapley_at_gamma(gamma::Float64)
 
         res = solve_and_evaluate(p_model, _grids, _base_surv, cfg.ss_levels,
             _population, pr; step_name="", verbose=false)
+        # Liveness heartbeat (~16 lines per gamma; see run_subset_enumeration).
+        if mask % 32 == 0
+            @printf("    [heartbeat] gamma=%.2f subset %3d/%d done (%.0fs elapsed)\n",
+                    gamma, mask, N_STRUCT_SUBSETS, time() - t0_g)
+            flush(stdout)
+        end
         (bitmask=mask, ownership=res.ownership, mean_alpha=res.mean_alpha)
     end
 

@@ -118,6 +118,9 @@ results = parallel_solve(specs) do spec
         chi_ltc=_chi, gkw...)
     res = solve_and_evaluate(p_model, _grids, _base_surv, fill(ss_q, 4),
         pop_q, _lpr; step_name="", verbose=false)
+    @printf("    [heartbeat] bin=%d cut=%.0f%% solved (own=%.1f%%)\n",
+            q, cut * 100, res.ownership * 100)
+    flush(stdout)
     (q=q, cut=cut, ownership=res.ownership, mean_alpha=res.mean_alpha, n=n_q)
 end
 

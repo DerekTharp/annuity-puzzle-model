@@ -194,6 +194,11 @@ results = parallel_solve(draws) do d
     own_result = compute_ownership_rate_health(sol, _pop, loaded_pr_nom; base_surv=_bs)
     own = own_result.ownership_rate * 100
 
+    # Liveness heartbeat: one line per completed draw in the master log.
+    @printf("    [heartbeat] draw done: mwr=%.3f psi=%.3f hp=%.2f -> own=%.1f%%\n",
+            d.mwr, d.pessimism, d.hazard_poor, own)
+    flush(stdout)
+
     (hazard_poor=d.hazard_poor, inflation=d.inflation, mwr=d.mwr,
      pessimism=d.pessimism, delta_c=d.delta_c,
      ownership_pct=own)
