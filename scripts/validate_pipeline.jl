@@ -1,7 +1,7 @@
 # Pipeline-level validation gates. Catches the "stale artifact drift"
 # pattern where manuscript and code fall out of sync as the model evolves.
 #
-# Three gates:
+# Four gates:
 #
 #   1. Manifest gate: every \input{...tex/X.tex} reference in main.tex,
 #      appendix.tex, and cover_letter.tex must appear in run_all.jl's
@@ -16,6 +16,13 @@
 #      for known stale literals (old observed-rate placeholder, old MWR
 #      labels, old title strings, etc.). Maintains a small allowlist of
 #      legitimate occurrences (e.g., quoted historical references).
+#
+#   4. Macro-definedness gate: every project-pattern macro the manuscript
+#      uses (\ownX, \shapX, \cevX, \mcX, \wtpX, \hrsX, \pX) must be defined
+#      in the regenerated numbers.tex. Catches the failure mode where a
+#      macro emitter is deleted from export_manuscript_numbers.jl while
+#      prose still references it — the build then breaks only at LaTeX
+#      compile time, which the pipeline never reaches.
 #
 # Usage:
 #   julia --project=. scripts/validate_pipeline.jl
@@ -247,6 +254,70 @@ function gate_hardcoded_staleness()
     return true
 end
 
+"""
+Gate 4: every project-pattern macro used in the manuscript must be defined
+in numbers.tex. Project macros follow the naming convention
+\\<prefix><UpperCamel> with prefix in {own, shap, cev, mc, wtp, hrs, p};
+standard LaTeX commands are all-lowercase and never match.
+
+Set ANNUITY_ALLOW_ORPHANS=1 to downgrade to a warning (intended ONLY for
+runs before a planned prose surgery that will remove the orphaned usages).
+"""
+function gate_macro_definedness()
+    isfile(NUMBERS_TEX) || begin
+        println("\n[GATE 4: MACRO DEFINEDNESS] SKIP (numbers.tex does not exist yet)")
+        return true
+    end
+
+    # Definition sites: numbers.tex (the generated source of truth) plus any
+    # \providecommand fallbacks the manuscript files declare locally. Local
+    # fallbacks keep the build alive, so they are not build-breakage orphans —
+    # but their VALUES can go stale; that is Gate 3 / prose-surgery territory.
+    defined = Set{String}()
+    def_sources = vcat([NUMBERS_TEX],
+                       [joinpath(PAPER_DIR, f) for f in MANUSCRIPT_FILES])
+    for src in def_sources
+        isfile(src) || continue
+        for line in eachline(src)
+            for m in eachmatch(r"\\(?:provide|new|renew)command\{?\\([A-Za-z]+)\}?", line)
+                push!(defined, m.captures[1])
+            end
+        end
+    end
+
+    proj_pat = r"\\((?:own|shap|cev|mc|wtp|hrs|p)[A-Z][A-Za-z]*)"
+    orphans = Tuple{String, Int, String}[]
+    for fname in MANUSCRIPT_FILES
+        path = joinpath(PAPER_DIR, fname)
+        isfile(path) || continue
+        for (lnum, line) in enumerate(eachline(path))
+            # Strip LaTeX comments (unescaped % to end of line).
+            stripped = replace(line, r"(?<!\\)%.*$" => "")
+            for m in eachmatch(proj_pat, stripped)
+                name = m.captures[1]
+                name in defined || push!(orphans, (fname, lnum, name))
+            end
+        end
+    end
+
+    if !isempty(orphans)
+        allow = get(ENV, "ANNUITY_ALLOW_ORPHANS", "0") == "1"
+        verdict = allow ? "WARNING (ANNUITY_ALLOW_ORPHANS=1)" : "FAIL"
+        println("\n[GATE 4: MACRO DEFINEDNESS] $verdict ($(length(orphans)) orphaned usage(s))")
+        println("  The manuscript uses macros that numbers.tex no longer defines;")
+        println("  the LaTeX build would break. Distinct orphaned macros:")
+        for name in sort(unique(o[3] for o in orphans))
+            uses = [o for o in orphans if o[3] == name]
+            locs = join(["$(u[1]):$(u[2])" for u in uses[1:min(3, length(uses))]], ", ")
+            extra = length(uses) > 3 ? " (+$(length(uses) - 3) more)" : ""
+            println("    \\$name  — $locs$extra")
+        end
+        return allow
+    end
+    println("[GATE 4: MACRO DEFINEDNESS] OK ($(length(defined)) defined; no orphans)")
+    return true
+end
+
 # ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
@@ -258,6 +329,8 @@ println("=" ^ 70)
 ok1 = gate_manifest()
 ok2 = gate_freshness()
 ok3 = gate_hardcoded_staleness()
+ok4 = gate_macro_definedness()
+ok3 = ok3 && ok4
 
 if !(ok1 && ok2 && ok3)
     println("\n" * "=" ^ 70)
