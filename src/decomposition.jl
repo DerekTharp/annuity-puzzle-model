@@ -78,7 +78,8 @@ function solve_and_evaluate(
     )
     ownership = result.ownership_rate
     mean_alpha = result.mean_alpha
-    frac_at_kink = result.frac_at_kink
+    frac_at_kink_contract = result.frac_at_kink_contract
+    frac_at_grid_floor = result.frac_at_grid_floor
 
     if verbose
         @printf("  %-50s  %6.1f%%  (a=%.3f)  (%.1fs)\n",
@@ -86,7 +87,8 @@ function solve_and_evaluate(
     end
 
     return (sol=sol, ownership=ownership, mean_alpha=mean_alpha,
-            frac_at_kink=frac_at_kink, solve_time=solve_time)
+            frac_at_kink_contract=frac_at_kink_contract,
+            frac_at_grid_floor=frac_at_grid_floor, solve_time=solve_time)
 end
 
 """
@@ -107,6 +109,10 @@ function solve_and_evaluate(
 )
     t0 = time()
 
+    own_q = zeros(4)
+    alpha_q = zeros(4)
+    n_q = zeros(4)
+
     if all(x -> x == ss_levels[1], ss_levels)
         # All quartiles identical: solve once
         ss_val = ss_levels[1]
@@ -117,7 +123,21 @@ function solve_and_evaluate(
         )
         ownership = result.ownership_rate
         mean_alpha = result.mean_alpha
-        frac_at_kink = result.frac_at_kink
+        frac_at_kink_contract = result.frac_at_kink_contract
+        frac_at_grid_floor = result.frac_at_grid_floor
+        # Per-wealth-bin evaluation on the same solution (evaluation only;
+        # the solve is shared). Feeds the by-wealth Shapley.
+        for q in 1:4
+            pop_q = _filter_quartile(population, q, SS_QUARTILE_BREAKS)
+            n_q[q] = size(pop_q, 1)
+            if n_q[q] > 0
+                rq = compute_ownership_rate_health(
+                    sol, pop_q, payout_rate; base_surv=base_surv,
+                )
+                own_q[q] = rq.ownership_rate
+                alpha_q[q] = rq.mean_alpha
+            end
+        end
     else
         # Solve per quartile and aggregate (parallel when workers available)
         quartile_tasks = collect(1:4)
@@ -129,26 +149,35 @@ function solve_and_evaluate(
             sol_q = solve_lifecycle_health(_p, _grids, _bs, ss_func_q)
 
             pop_q = _filter_quartile(_pop, q, SS_QUARTILE_BREAKS)
-            n_q = size(pop_q, 1)
-            if n_q == 0
-                return (ownership=0.0, mean_alpha=0.0, frac_at_kink=0.0, n=0.0)
+            nq = size(pop_q, 1)
+            if nq == 0
+                return (ownership=0.0, mean_alpha=0.0,
+                        frac_at_kink_contract=0.0, frac_at_grid_floor=0.0, n=0.0)
             end
 
             result_q = compute_ownership_rate_health(
                 sol_q, pop_q, _pr; base_surv=_bs,
             )
             (ownership=result_q.ownership_rate, mean_alpha=result_q.mean_alpha,
-             frac_at_kink=result_q.frac_at_kink, n=Float64(n_q))
+             frac_at_kink_contract=result_q.frac_at_kink_contract,
+             frac_at_grid_floor=result_q.frac_at_grid_floor, n=Float64(nq))
         end
 
         total_owners = sum(r.ownership * r.n for r in quartile_results)
         total_alpha = sum(r.mean_alpha * r.n for r in quartile_results)
         total_n = sum(r.n for r in quartile_results)
-        total_at_kink = sum(r.frac_at_kink * r.ownership * r.n for r in quartile_results)
+        total_contract = sum(r.frac_at_kink_contract * r.ownership * r.n for r in quartile_results)
+        total_grid_floor = sum(r.frac_at_grid_floor * r.ownership * r.n for r in quartile_results)
 
         ownership = total_n > 0 ? total_owners / total_n : 0.0
         mean_alpha = total_n > 0 ? total_alpha / total_n : 0.0
-        frac_at_kink = total_owners > 0 ? total_at_kink / total_owners : 0.0
+        frac_at_kink_contract = total_owners > 0 ? total_contract / total_owners : 0.0
+        frac_at_grid_floor = total_owners > 0 ? total_grid_floor / total_owners : 0.0
+        for q in 1:4
+            own_q[q] = quartile_results[q].ownership
+            alpha_q[q] = quartile_results[q].mean_alpha
+            n_q[q] = quartile_results[q].n
+        end
     end
 
     solve_time = time() - t0
@@ -159,7 +188,10 @@ function solve_and_evaluate(
     end
 
     return (sol=nothing, ownership=ownership, mean_alpha=mean_alpha,
-            frac_at_kink=frac_at_kink, solve_time=solve_time)
+            frac_at_kink_contract=frac_at_kink_contract,
+            frac_at_grid_floor=frac_at_grid_floor,
+            own_q=own_q, alpha_q=alpha_q, n_q=n_q,
+            solve_time=solve_time)
 end
 
 """

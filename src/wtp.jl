@@ -619,7 +619,8 @@ function compute_ownership_rate_health(
     n_owners = 0.0
     n_evaluated = 0.0
     sum_alpha = 0.0
-    n_at_kink = 0.0
+    n_at_contract = 0.0
+    n_at_grid_floor = 0.0
 
     # Precompute interpolation objects keyed by (health, time)
     interp_cache = Dict{Tuple{Int,Int}, typeof(linear_interpolation(
@@ -743,12 +744,21 @@ function compute_ownership_rate_health(
         sum_alpha += w_i * best_alpha_i
         if best_pi > 0.0
             n_owners += w_i
-            # "At the kink": the optimum sits at the smallest feasible premium,
-            # so the min-purchase floor binds and the agent would buy less if
-            # allowed. A high share signals a lumpy extensive margin (SPIA
-            # participation fragility under the minimum-purchase requirement).
-            if best_pi <= min_feas_pi * (1.0 + 1e-9)
-                n_at_kink += w_i
+            # An owner pinned at the smallest feasible premium would buy less
+            # if allowed. Two distinct constraints can pin them, with opposite
+            # interpretations:
+            #   contract — best_pi is at the $min_purchase contractual floor
+            #     (economic lumpiness: SPIA participation fragility);
+            #   grid floor — best_pi is at the smallest alpha-grid premium
+            #     with contractual slack, i.e. W_0/(n_alpha-1) > min_purchase
+            #     (numerical under-resolution, not economics).
+            # The two must not be conflated: the kill-criterion reads the
+            # contract share as substantive and the grid share as a refine-
+            # the-grid signal.
+            if p.min_purchase > 0.0 && best_pi <= p.min_purchase * (1.0 + 1e-9)
+                n_at_contract += w_i
+            elseif best_pi <= min_feas_pi * (1.0 + 1e-9)
+                n_at_grid_floor += w_i
             end
         end
     end
@@ -756,12 +766,14 @@ function compute_ownership_rate_health(
     if n_evaluated > 0.0
         return (ownership_rate = n_owners / n_evaluated,
                 mean_alpha = sum_alpha / n_evaluated,
-                frac_at_kink = n_owners > 0.0 ? n_at_kink / n_owners : 0.0,
+                frac_at_kink_contract = n_owners > 0.0 ? n_at_contract / n_owners : 0.0,
+                frac_at_grid_floor = n_owners > 0.0 ? n_at_grid_floor / n_owners : 0.0,
                 n_capped = n_capped,
                 n_evaluated = Int(round(n_evaluated)))
     else
         return (ownership_rate = 0.0, mean_alpha = 0.0,
-                frac_at_kink = 0.0,
+                frac_at_kink_contract = 0.0,
+                frac_at_grid_floor = 0.0,
                 n_capped = n_capped,
                 n_evaluated = 0)
     end

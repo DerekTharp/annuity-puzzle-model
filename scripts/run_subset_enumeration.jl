@@ -276,7 +276,8 @@ results = parallel_solve(subset_specs) do spec
         pop, pr; step_name="", verbose=false)
     st = time() - t0
 
-    (bitmask=mask, ownership=res.ownership, mean_alpha=res.mean_alpha, solve_time=st)
+    (bitmask=mask, ownership=res.ownership, mean_alpha=res.mean_alpha,
+     own_q=res.own_q, alpha_q=res.alpha_q, solve_time=st)
 end
 
 total_solve_time = time() - t0_solve
@@ -290,10 +291,14 @@ flush(stdout)
 ownership_lookup = Dict{Int, Float64}()
 alpha_lookup = Dict{Int, Float64}()
 solvetime_lookup = Dict{Int, Float64}()
+own_q_lookup = Dict{Int, Vector{Float64}}()
+alpha_q_lookup = Dict{Int, Vector{Float64}}()
 for r in results
     ownership_lookup[r.bitmask] = r.ownership
     alpha_lookup[r.bitmask] = r.mean_alpha
     solvetime_lookup[r.bitmask] = r.solve_time
+    own_q_lookup[r.bitmask] = r.own_q
+    alpha_q_lookup[r.bitmask] = r.alpha_q
 end
 
 yaari_own = ownership_lookup[0]
@@ -328,14 +333,19 @@ mkpath(joinpath(tables_dir, "tex"))
 
 enum_csv_path = joinpath(tables_dir, "csv", "subset_enumeration.csv")
 open(enum_csv_path, "w") do f
-    println(f, "bitmask,channel_names_active,ownership_pct,mean_alpha,solve_time")
+    println(f, "bitmask,channel_names_active,ownership_pct,mean_alpha,solve_time," *
+               "own_q1,own_q2,own_q3,own_q4,alpha_q1,alpha_q2,alpha_q3,alpha_q4")
     for mask in 0:(N_SUBSETS - 1)
-        @printf(f, "%d,%s,%.4f,%.6f,%.1f\n",
+        oq = own_q_lookup[mask]
+        aq = alpha_q_lookup[mask]
+        @printf(f, "%d,%s,%.4f,%.6f,%.1f,%.4f,%.4f,%.4f,%.4f,%.6f,%.6f,%.6f,%.6f\n",
             mask,
             channels_active_str(mask),
             ownership_lookup[mask] * 100,
             alpha_lookup[mask],
-            solvetime_lookup[mask])
+            solvetime_lookup[mask],
+            (oq .* 100)...,
+            aq...)
     end
 end
 println("\n  Enumeration CSV saved: $enum_csv_path")
@@ -509,6 +519,60 @@ open(shapley_csv_path, "w") do f
     end
 end
 println("\n  Shapley CSV saved: $shapley_csv_path")
+flush(stdout)
+
+# ===================================================================
+# By-wealth 9-channel Shapley (from the same enumeration; zero extra solves)
+# ===================================================================
+# The aggregate ownership level is carried disproportionately by the top
+# wealth bin, so the referee-relevant question is whether the channel RANKING
+# holds off the top bin. Masks 0..511 are exactly the 9 structural channels
+# (SDU bit 9 and PED bit 10 off).
+println("\n" * "=" ^ 70)
+println("  BY-WEALTH 9-CHANNEL SHAPLEY (structural game, masks 0..511)")
+println("=" ^ 70)
+flush(stdout)
+
+const N_STRUCT_BW = 9
+wealth_bin_labels = ["<30k", "30-120k", "120-350k", ">350k"]
+shapley_q = Matrix{Float64}(undef, N_STRUCT_BW, 4)
+for q in 1:4
+    lookup_q = Dict{Int, Float64}(m => own_q_lookup[m][q] for m in 0:(2^N_STRUCT_BW - 1))
+    shapley_q[:, q] = exact_shapley(N_STRUCT_BW, lookup_q)
+end
+
+@printf("\n  %-28s", "Channel (Shapley pp)")
+for lbl in wealth_bin_labels; @printf("  %10s", lbl); end
+println()
+println("  " * "-" ^ (28 + 12 * 4))
+for i in 1:N_STRUCT_BW
+    @printf("  %-28s", CHANNEL_NAMES[i])
+    for q in 1:4
+        @printf("  %+9.2f ", shapley_q[i, q] * 100)
+    end
+    println()
+end
+
+bw_csv_path = joinpath(tables_dir, "csv", "shapley_by_wealth.csv")
+open(bw_csv_path, "w") do f
+    println(f, "channel,shapley_q1_pp,shapley_q2_pp,shapley_q3_pp,shapley_q4_pp," *
+               "rank_q1,rank_q2,rank_q3,rank_q4")
+    # Rank 1 = largest Shapley value within the bin (strongest suppressor).
+    rank_col = Matrix{Int}(undef, N_STRUCT_BW, 4)
+    for q in 1:4
+        ord = sortperm(shapley_q[:, q]; rev=true)
+        for (k, idx) in enumerate(ord)
+            rank_col[idx, q] = k
+        end
+    end
+    for i in 1:N_STRUCT_BW
+        @printf(f, "%s,%.4f,%.4f,%.4f,%.4f,%d,%d,%d,%d\n",
+            CHANNEL_NAMES[i],
+            (shapley_q[i, :] .* 100)...,
+            rank_col[i, :]...)
+    end
+end
+println("\n  By-wealth Shapley CSV saved: $bw_csv_path")
 flush(stdout)
 
 # ===================================================================

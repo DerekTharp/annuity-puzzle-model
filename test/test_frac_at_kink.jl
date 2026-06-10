@@ -41,30 +41,47 @@ pop = [ 50_000.0 0.0 66.0 1.0;
        800_000.0 0.0 68.0 3.0;
      1_200_000.0 0.0 66.0 2.0]
 
-@testset "frac_at_kink threads through solve_and_evaluate" begin
+@testset "kink diagnostics + per-bin capture thread through solve_and_evaluate" begin
     # Uniform SS -> single-solve branch.
     res_u = solve_and_evaluate(p, grids, base_surv,
         [15_000.0, 15_000.0, 15_000.0, 15_000.0], pop, loaded_pr; verbose=false)
-    @test haskey(res_u, :frac_at_kink)
-    @test 0.0 <= res_u.frac_at_kink <= 1.0
+    @test haskey(res_u, :frac_at_kink_contract)
+    @test haskey(res_u, :frac_at_grid_floor)
+    @test 0.0 <= res_u.frac_at_kink_contract <= 1.0
+    @test 0.0 <= res_u.frac_at_grid_floor <= 1.0
+    # The two pins are mutually exclusive per owner, so shares sum to <= 1.
+    @test res_u.frac_at_kink_contract + res_u.frac_at_grid_floor <= 1.0 + 1e-12
     @test 0.0 <= res_u.ownership <= 1.0
+    # Per-wealth-bin capture: 4 bins, population-weighted aggregation identity.
+    @test length(res_u.own_q) == 4 && length(res_u.alpha_q) == 4 && length(res_u.n_q) == 4
+    @test sum(res_u.n_q) == size(pop, 1)
+    agg_u = sum(res_u.own_q .* res_u.n_q) / sum(res_u.n_q)
+    @test isapprox(agg_u, res_u.ownership; atol=1e-10)
 
     # Per-quartile SS -> quartile-aggregation branch.
     res_q = solve_and_evaluate(p, grids, base_surv,
         Float64.(SS_QUARTILE_LEVELS), pop, loaded_pr; verbose=false)
-    @test haskey(res_q, :frac_at_kink)
-    @test 0.0 <= res_q.frac_at_kink <= 1.0
+    @test haskey(res_q, :frac_at_kink_contract)
+    @test 0.0 <= res_q.frac_at_kink_contract <= 1.0
+    @test 0.0 <= res_q.frac_at_grid_floor <= 1.0
+    @test length(res_q.own_q) == 4
+    agg_q = sum(res_q.own_q .* res_q.n_q) / sum(res_q.n_q)
+    @test isapprox(agg_q, res_q.ownership; atol=1e-10)
 
-    # Direct call exposes the same field.
+    # Direct call exposes the same fields.
     sol = solve_lifecycle_health(p, grids, base_surv, (age, pp) -> 15_000.0)
     r = compute_ownership_rate_health(sol, pop, loaded_pr; base_surv=base_surv)
-    @test haskey(r, :frac_at_kink)
-    @test 0.0 <= r.frac_at_kink <= 1.0
+    @test haskey(r, :frac_at_kink_contract)
+    @test haskey(r, :frac_at_grid_floor)
+    @test 0.0 <= r.frac_at_kink_contract <= 1.0
+    @test 0.0 <= r.frac_at_grid_floor <= 1.0
 
-    @printf("\n  uniform : ownership=%.1f%%  frac_at_kink=%.2f\n",
-        res_u.ownership * 100, res_u.frac_at_kink)
-    @printf("  quartile: ownership=%.1f%%  frac_at_kink=%.2f\n",
-        res_q.ownership * 100, res_q.frac_at_kink)
+    @printf("\n  uniform : own=%.1f%%  contract=%.2f  grid_floor=%.2f  own_q=%s\n",
+        res_u.ownership * 100, res_u.frac_at_kink_contract, res_u.frac_at_grid_floor,
+        string(round.(res_u.own_q .* 100; digits=1)))
+    @printf("  quartile: own=%.1f%%  contract=%.2f  grid_floor=%.2f  own_q=%s\n",
+        res_q.ownership * 100, res_q.frac_at_kink_contract, res_q.frac_at_grid_floor,
+        string(round.(res_q.own_q .* 100; digits=1)))
 end
 
-println("\nfrac_at_kink verification passed.")
+println("\nKink-diagnostic and per-bin capture verification passed.")

@@ -93,7 +93,7 @@ cfg = build_subset_config(Set(1:9);
 # ===================================================================
 # Sweep gamma (serial outer loop; quartile solves parallelize inside)
 # ===================================================================
-rows = Tuple{Float64,Float64,Float64,Float64}[]  # gamma, ownership_pct, mean_alpha, frac_at_kink
+rows = Tuple{Float64,Float64,Float64,Float64,Float64}[]  # gamma, ownership_pct, mean_alpha, kink_contract, grid_floor
 for gamma in GAMMA_GRID
     t0 = time()
     ckw = (gamma=gamma, beta=BETA, r=R_RATE, stochastic_health=true,
@@ -108,9 +108,11 @@ for gamma in GAMMA_GRID
         psi_purchase=cfg.psi_purchase, psi_purchase_c_ref=cfg.psi_purchase_c_ref, gkw...)
     res = solve_and_evaluate(p_model, grids, base_surv, cfg.ss_levels,
         population, loaded_pr_nom; step_name="", verbose=false)
-    push!(rows, (gamma, res.ownership * 100, res.mean_alpha, res.frac_at_kink))
-    @printf("  gamma=%.2f  ownership=%6.2f%%  mean_alpha=%.4f  frac_at_kink=%.3f  (%.0fs)\n",
-            gamma, res.ownership * 100, res.mean_alpha, res.frac_at_kink, time() - t0)
+    push!(rows, (gamma, res.ownership * 100, res.mean_alpha,
+                 res.frac_at_kink_contract, res.frac_at_grid_floor))
+    @printf("  gamma=%.2f  ownership=%6.2f%%  mean_alpha=%.4f  kink_contract=%.3f  grid_floor=%.3f  (%.0fs)\n",
+            gamma, res.ownership * 100, res.mean_alpha,
+            res.frac_at_kink_contract, res.frac_at_grid_floor, time() - t0)
     flush(stdout)
 end
 
@@ -119,7 +121,8 @@ end
 # ===================================================================
 alphas = [r[3] for r in rows]
 owns = [r[2] for r in rows]
-kinks = [r[4] for r in rows]
+kink_contract = [r[4] for r in rows]
+grid_floor = [r[5] for r in rows]
 
 # Count sign changes in the first difference of mean_alpha (a monotone series
 # has zero). The ownership indicator may jump; the question is whether the
@@ -132,7 +135,8 @@ for i in 2:length(dalpha)
     end
 end
 own_range = maximum(owns) - minimum(owns)
-max_kink = maximum(kinks)
+max_contract = maximum(kink_contract)
+max_grid_floor = maximum(grid_floor)
 
 println("\n" * "=" ^ 70)
 println("  ASSESSMENT")
@@ -140,28 +144,36 @@ println("=" ^ 70)
 @printf("  Ownership range across gamma: %.1f pp (min %.1f%%, max %.1f%%)\n",
         own_range, minimum(owns), maximum(owns))
 @printf("  mean_alpha monotonicity: %d sign change(s) in the first difference\n", sign_changes)
-@printf("  max frac_at_kink across gamma: %.3f\n", max_kink)
+@printf("  max frac_at_kink_contract across gamma: %.3f\n", max_contract)
+@printf("  max frac_at_grid_floor across gamma:    %.3f\n", max_grid_floor)
 if sign_changes == 0
     println("  -> mean_alpha is monotone in gamma; any ownership jump is an")
     println("     extensive-margin indicator/threshold effect, not instability.")
-elseif max_kink >= 0.25
-    println("  -> mean_alpha oscillates BUT frac_at_kink is high: consistent with")
-    println("     minimum-purchase participation fragility (a substantive finding).")
+elseif max_contract >= 0.25
+    println("  -> mean_alpha oscillates AND owners pile up at the contractual")
+    println("     \$10k minimum: consistent with minimum-purchase participation")
+    println("     fragility (a substantive insurance-market finding).")
+elseif max_grid_floor >= 0.25
+    println("  -> mean_alpha oscillates AND owners pile up at the ALPHA-GRID")
+    println("     floor (not the contract): the alpha grid is under-resolved.")
+    println("     Re-run with finer ANNUITY_NALPHA before drawing conclusions.")
 else
-    println("  -> mean_alpha oscillates with LOW frac_at_kink: model may be")
-    println("     under-resolved at this grid. Re-run finer (ANNUITY_NW/NALPHA);")
-    println("     if it persists, the ranking-only paper pivots to a methods note.")
+    println("  -> mean_alpha oscillates with no kink mechanism at this grid:")
+    println("     re-run finer (ANNUITY_NW/ANNUITY_NALPHA); if it persists,")
+    println("     the ranking-only paper pivots to a methods note.")
 end
 
 # ===================================================================
 # Save CSV
 # ===================================================================
 out_dir = joinpath(@__DIR__, "..", "tables", "csv"); mkpath(out_dir)
-csv_path = joinpath(out_dir, "gamma_oscillation_diagnostic.csv")
+# Tag the output with the grid so multi-resolution diagnosis runs (the
+# (101,80)/(201,160)/(401,160) sequence) accumulate instead of overwriting.
+csv_path = joinpath(out_dir, "gamma_oscillation_diagnostic_$(NW)x$(NALPHA).csv")
 open(csv_path, "w") do f
-    println(f, "gamma,ownership_pct,mean_alpha,frac_at_kink,n_wealth,n_alpha")
-    for (g, o, a, k) in rows
-        @printf(f, "%.3f,%.4f,%.6f,%.4f,%d,%d\n", g, o, a, k, NW, NALPHA)
+    println(f, "gamma,ownership_pct,mean_alpha,frac_at_kink_contract,frac_at_grid_floor,n_wealth,n_alpha")
+    for (g, o, a, kc, gf) in rows
+        @printf(f, "%.3f,%.4f,%.6f,%.4f,%.4f,%d,%d\n", g, o, a, kc, gf, NW, NALPHA)
     end
 end
 println("\n  CSV saved: $csv_path")
