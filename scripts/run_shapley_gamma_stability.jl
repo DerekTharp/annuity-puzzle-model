@@ -10,11 +10,15 @@
 # untrustworthy; showing the ranking survives both the choice of statistic and
 # the value of gamma answers it.
 #
-# Bequest theta is held at THETA_DFJ across gamma. The project's portability
-# check (calibration/recalibrate_bequests.jl) shows the bequest-to-wealth ratio
-# moves only 0.173 -> 0.196 from gamma=2.0 to 2.5 (13.6%, under the 20% retarget
-# threshold), so the bequest channel's empirical strength is approximately
-# constant across the sweep; the exhibit varies gamma alone.
+# Bequest theta is held at THETA_DFJ across gamma. The portability check
+# (calibration/recalibrate_bequests.jl -> tables/csv/bequest_recalibration.csv)
+# measures the bequest-to-wealth ratio drift from the gamma=2.0 calibration:
+# 13.5% at gamma=2.5 (production; within the 20% retarget threshold), 20.3% at
+# 2.75, 26.8% at 3.0. The sweep endpoints therefore perturb the model JOINTLY:
+# higher gamma raises risk aversion AND strengthens the effective bequest
+# motive. A ranking stable across this joint perturbation is a stronger
+# robustness statement than gamma alone; do NOT describe the sweep as holding
+# the bequest channel's empirical strength constant.
 #
 # Usage:
 #   julia --project=. -p 90 scripts/run_shapley_gamma_stability.jl   (production)
@@ -161,35 +165,67 @@ function shapley_at_gamma(gamma::Float64)
     return (sh_own=sh_own, sh_alpha=sh_alpha, full_own=full_own)
 end
 
-# Rank: 1 = largest Shapley value (strongest suppressor of ownership).
+# Rank: 1 = largest Shapley value. Ranks over the FULL signed vector pin the
+# booster channels (negative Shapley: SS crowd-out, and typically Inflation)
+# at the bottom in every column, which mechanically inflates a full-vector
+# Spearman. The headline statistics are therefore computed on the SUPPRESSOR
+# subset (positive ownership-Shapley), with boosters reported separately.
 ranks_of(v) = (p = sortperm(v; rev=true); r = zeros(Int, length(v)); for (k, idx) in enumerate(p); r[idx] = k; end; r)
 
-# Spearman rank correlation between two ranking vectors.
+# Spearman rank correlation between two ranking vectors (no ties by construction).
 function spearman(r1::Vector{Int}, r2::Vector{Int})
     n = length(r1)
+    n < 2 && return 1.0
     d2 = sum((r1 .- r2) .^ 2)
     return 1.0 - 6.0 * d2 / (n * (n^2 - 1))
+end
+
+# Top-k channel names by descending value, restricted to given indices.
+function topk_names(v::Vector{Float64}, idxs::Vector{Int}, k::Int)
+    order = sort(idxs; by=i -> -v[i])
+    return [STRUCT_NAMES[i] for i in order[1:min(k, length(order))]]
 end
 
 # ===================================================================
 # Sweep gamma
 # ===================================================================
-rows = Tuple{Float64,String,Float64,Float64,Int,Int}[]  # gamma, channel, sh_own_pp, sh_alpha_pp, rank_own, rank_alpha
-gamma_summary = Tuple{Float64,Float64,Float64}[]          # gamma, full_own_pct, spearman(own,alpha)
+rows = Tuple{Float64,String,Float64,Float64,Int,Int,Int}[]  # gamma, channel, sh_own_pp, sh_alpha_pp, rank_own, rank_alpha, is_suppressor
+gamma_summary = NamedTuple[]
 
 for gamma in GAMMA_GRID
     t0 = time()
     out = shapley_at_gamma(gamma)
     r_own = ranks_of(out.sh_own)
     r_alpha = ranks_of(out.sh_alpha)
-    sp = spearman(r_own, r_alpha)
-    push!(gamma_summary, (gamma, out.full_own * 100, sp))
+    sp_full = spearman(r_own, r_alpha)
+
+    # Suppressors: positive ownership-Shapley (channels that reduce demand).
+    # Boosters (SS crowd-out; typically Inflation) are reported separately —
+    # their sign pins them at fixed ranks and would inflate a full-vector
+    # Spearman.
+    sup = [i for i in 1:N_STRUCT if out.sh_own[i] > 0]
+    boosters = [STRUCT_NAMES[i] for i in 1:N_STRUCT if out.sh_own[i] <= 0]
+    sup_r_own = ranks_of([out.sh_own[i] for i in sup])
+    sup_r_alpha = ranks_of([out.sh_alpha[i] for i in sup])
+    sp_sup = spearman(sup_r_own, sup_r_alpha)
+
+    top1_own = topk_names(out.sh_own, sup, 1)
+    top1_alpha = topk_names(out.sh_alpha, sup, 1)
+    top3_own = topk_names(out.sh_own, sup, 3)
+    top3_alpha = topk_names(out.sh_alpha, sup, 3)
+
+    push!(gamma_summary, (gamma=gamma, full_own=out.full_own * 100,
+        sp_full=sp_full, sp_sup=sp_sup,
+        top1_own=top1_own, top1_alpha=top1_alpha,
+        top3_own=top3_own, top3_alpha=top3_alpha,
+        boosters=boosters))
     for i in 1:N_STRUCT
         push!(rows, (gamma, STRUCT_NAMES[i], out.sh_own[i] * 100, out.sh_alpha[i] * 100,
-                     r_own[i], r_alpha[i]))
+                     r_own[i], r_alpha[i], i in sup ? 1 : 0))
     end
-    @printf("  gamma=%.2f: full ownership=%.1f%%  Spearman(own,alpha)=%.3f  (%.0fs)\n",
-            gamma, out.full_own * 100, sp, time() - t0)
+    @printf("  gamma=%.2f: full own=%.1f%%  Spearman full=%.3f sup-only=%.3f  top1=%s  (%.0fs)\n",
+            gamma, out.full_own * 100, sp_full, sp_sup,
+            isempty(top1_own) ? "-" : top1_own[1], time() - t0)
     flush(stdout)
 end
 
@@ -200,41 +236,76 @@ println("\n" * "=" ^ 70)
 println("  9-CHANNEL SHAPLEY RANKING BY GAMMA (ownership statistic)")
 println("=" ^ 70)
 @printf("  %-28s", "Channel")
-for (g, _, _) in gamma_summary; @printf("  g=%.2f", g); end
+for gs in gamma_summary; @printf("  g=%.2f", gs.gamma); end
 println()
 println("  " * "-" ^ (28 + 8 * length(gamma_summary)))
 for i in 1:N_STRUCT
     @printf("  %-28s", STRUCT_NAMES[i])
-    for (g, _, _) in gamma_summary
-        rk = first(r for (gg, ch, _, _, r, _) in rows if gg == g && ch == STRUCT_NAMES[i])
+    for gs in gamma_summary
+        rk = first(r for (gg, ch, _, _, r, _, _) in rows if gg == gs.gamma && ch == STRUCT_NAMES[i])
         @printf("  %5d", rk)
     end
     println()
 end
 
-println("\n  Per-gamma Spearman(ownership-rank, mean-alpha-rank):")
-for (g, fo, sp) in gamma_summary
-    @printf("    gamma=%.2f  full ownership=%5.1f%%  Spearman=%.3f\n", g, fo, sp)
+println("\n  Per-gamma statistics:")
+for gs in gamma_summary
+    @printf("    gamma=%.2f  full own=%5.1f%%  Spearman full=%.3f  suppressors-only=%.3f\n",
+            gs.gamma, gs.full_own, gs.sp_full, gs.sp_sup)
+    @printf("      top-3 suppressors (ownership):  %s\n", join(gs.top3_own, " > "))
+    @printf("      top-3 suppressors (mean-alpha): %s\n", join(gs.top3_alpha, " > "))
+    @printf("      boosters (negative Shapley):    %s\n", join(gs.boosters, ", "))
+end
+
+# Cross-gamma / cross-statistic concordance — the operative claim. The
+# full-vector Spearman cannot distinguish a single adjacent swap (0.983 at
+# n=9) from identity, so the headline is stated on top-k concordance.
+top1_set = unique(vcat([gs.top1_own for gs in gamma_summary]...,
+                       [gs.top1_alpha for gs in gamma_summary]...))
+top3_sets = unique(vcat([sort(gs.top3_own) for gs in gamma_summary],
+                        [sort(gs.top3_alpha) for gs in gamma_summary]))
+println("\n" * "=" ^ 70)
+println("  CONCORDANCE ACROSS GAMMA AND STATISTIC")
+println("=" ^ 70)
+if length(top1_set) == 1
+    @printf("  Top-1 suppressor: %s in EVERY gamma and under BOTH statistics.\n", top1_set[1])
+else
+    @printf("  Top-1 suppressor varies: %s\n", join(top1_set, ", "))
+end
+if length(top3_sets) == 1
+    @printf("  Top-3 suppressor SET identical everywhere: {%s}.\n", join(top3_sets[1], ", "))
+else
+    println("  Top-3 suppressor sets differ across columns:")
+    for s in top3_sets
+        println("    {", join(s, ", "), "}")
+    end
 end
 
 # ===================================================================
-# Save CSV
+# Save CSV (coarse local checks must not overwrite production artifacts)
 # ===================================================================
 out_dir = joinpath(@__DIR__, "..", "tables", "csv"); mkpath(out_dir)
-csv_path = joinpath(out_dir, "shapley_gamma_stability.csv")
+suffix = COARSE ? "_coarse" : ""
+csv_path = joinpath(out_dir, "shapley_gamma_stability$(suffix).csv")
 open(csv_path, "w") do f
-    println(f, "gamma,channel,shapley_ownership_pp,shapley_meanalpha_pp,rank_ownership,rank_meanalpha")
-    for (g, ch, so, sa, ro, ra) in rows
-        @printf(f, "%.2f,%s,%.4f,%.4f,%d,%d\n", g, ch, so, sa, ro, ra)
+    println(f, "gamma,channel,shapley_ownership_pp,shapley_meanalpha_pp,rank_ownership,rank_meanalpha,is_suppressor")
+    for (g, ch, so, sa, ro, ra, isup) in rows
+        @printf(f, "%.2f,%s,%.4f,%.4f,%d,%d,%d\n", g, ch, so, sa, ro, ra, isup)
     end
 end
 println("\n  CSV saved: $csv_path")
 
-summ_path = joinpath(out_dir, "shapley_gamma_stability_summary.csv")
+summ_path = joinpath(out_dir, "shapley_gamma_stability_summary$(suffix).csv")
 open(summ_path, "w") do f
-    println(f, "gamma,full_ownership_pct,spearman_own_alpha")
-    for (g, fo, sp) in gamma_summary
-        @printf(f, "%.2f,%.4f,%.4f\n", g, fo, sp)
+    println(f, "gamma,full_ownership_pct,spearman_full,spearman_suppressors," *
+               "top1_ownership,top1_meanalpha,top3_ownership,top3_meanalpha,boosters")
+    for gs in gamma_summary
+        @printf(f, "%.2f,%.4f,%.4f,%.4f,%s,%s,%s,%s,%s\n",
+            gs.gamma, gs.full_own, gs.sp_full, gs.sp_sup,
+            isempty(gs.top1_own) ? "" : gs.top1_own[1],
+            isempty(gs.top1_alpha) ? "" : gs.top1_alpha[1],
+            join(gs.top3_own, "|"), join(gs.top3_alpha, "|"),
+            join(gs.boosters, "|"))
     end
 end
 println("  Summary CSV saved: $summ_path")
