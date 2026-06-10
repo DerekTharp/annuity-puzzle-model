@@ -403,11 +403,12 @@ function compute_cev_grid(
 
     # SS function for the welfare model. The production decomposition solves
     # per quartile and aggregates; here we solve once with a representative
-    # level (median across quartiles, $18,500). This aligns the welfare CEV's
-    # baseline with the production solve rather than treating retirees as
-    # having zero SS, which would inflate the marginal value of annuitization.
-    # A per-quartile dispatch is left as a future tightening.
-    ss_func_welfare(age, p) = 18_500.0
+    # level (midpoint of the two middle wealth-bin floors). This aligns the
+    # welfare CEV's baseline with the production solve rather than treating
+    # retirees as having zero SS, which would inflate the marginal value of
+    # annuitization. A per-quartile dispatch is left as a future tightening.
+    ss_rep = (SS_QUARTILE_LEVELS[2] + SS_QUARTILE_LEVELS[3]) / 2
+    ss_func_welfare(age, p) = ss_rep
 
     grid_kw = (n_wealth=n_wealth, n_annuity=n_annuity, n_alpha=n_alpha,
                W_max=W_max, age_start=age_start, age_end=age_end,
@@ -533,7 +534,8 @@ function simulate_welfare_comparison(
 )
     g = sol.grids
     # Match the SS function used by compute_cev_grid for internal consistency.
-    ss_func_welfare(age, p) = 18_500.0
+    ss_rep = (SS_QUARTILE_LEVELS[2] + SS_QUARTILE_LEVELS[3]) / 2
+    ss_func_welfare(age, p) = ss_rep
 
     # Find optimal alpha (same logic as compute_cev)
     V_t1 = sol.V[:, :, H_0, 1]

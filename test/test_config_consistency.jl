@@ -28,13 +28,21 @@ include(joinpath(@__DIR__, "..", "scripts", "config.jl"))
     @test PSI_PURCHASE == 0.05
 end
 
-@testset "Observed SS + DB income floor" begin
-    @test SS_OBS == [9_160.0, 9_657.0, 9_989.0, 10_388.0]
-    @test DB_OBS == [3_757.0, 6_090.0, 9_309.0, 8_947.0]
+@testset "Observed SS + DB income floor (2014 dollars)" begin
+    @test SS_OBS == [13_018.0, 13_648.0, 14_517.0, 14_896.0]
+    @test DB_OBS == [5_266.0, 7_540.0, 11_407.0, 11_977.0]
     # SS_QUARTILE_LEVELS is defined once as SS_OBS + DB_OBS (no hardcoded sum).
     @test SS_QUARTILE_LEVELS == SS_OBS .+ DB_OBS
-    @test SS_QUARTILE_LEVELS == [12_917.0, 15_747.0, 19_298.0, 19_335.0]
+    @test SS_QUARTILE_LEVELS == [18_284.0, 21_188.0, 25_924.0, 26_873.0]
     @test SS_QUARTILE_BREAKS == [30_000.0, 120_000.0, 350_000.0]
+    # Constants must match the regenerated calibration CSV.
+    csv = readlines(joinpath(@__DIR__, "..", "data", "processed", "ss_income_profile.csv"))
+    @test length(csv) == 5  # header + 4 bins
+    for b in 1:4
+        toks = split(csv[b + 1], ',')
+        @test round(parse(Float64, toks[6])) == SS_OBS[b]   # obs_ss_claimers
+        @test round(parse(Float64, toks[8])) == DB_OBS[b]   # obs_db_ipen
+    end
 end
 
 @testset "Legacy ss_benefit() mirrors SS_QUARTILE_LEVELS" begin

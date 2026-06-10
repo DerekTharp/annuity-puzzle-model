@@ -1,8 +1,9 @@
 # Build HRS population sample for annuity puzzle model evaluation.
 #
-# Extracts single retirees aged 65-69 from the RAND HRS longitudinal file,
-# pooling across waves 5-9 (2000-2008) to match Lockwood (2012) sample.
-# Adds observed self-reported health mapped to 3 model states.
+# Extracts single nonworking retirees aged 65-69 from the RAND HRS
+# longitudinal file, pooling waves 5-9 (interviews 2000-2008), the same
+# window as Lockwood (2012). All dollar amounts deflated to 2014 dollars
+# (see calibration/hrs_common.jl for deflators and filter definitions).
 #
 # Output: data/processed/lockwood_hrs_sample.csv
 # Columns: wealth, perm_income, age, health, own_life_ann, weight
@@ -10,41 +11,36 @@
 # Health mapping: RAND HRS rXshlt (1=Excellent...5=Poor)
 #   {1,2} -> 1 (Good), {3} -> 2 (Fair), {4,5} -> 3 (Poor)
 #
-# RAND HRS variable conventions (wave w):
+# RAND HRS variable conventions (wave w), verified against the RAND HRS 2022
+# (V1) codebook:
 #   r{w}agey_b     age in years (at interview)
-#   r{w}mstat      marital status (1=married, 3=separated, 4=divorced,
-#                    5=widowed, 7=never married, 8=other)
+#   r{w}mstat      marital status (single codes in hrs_common.jl)
+#   r{w}lbrf       labor force status (retired codes in hrs_common.jl)
 #   r{w}shlt       self-reported health level (1=Exc...5=Poor)
 #   r{w}wtresp     person-level respondent weight
-#   r{w}iwstat     interview status (1=resp alive, 5/6=died)
-#   h{w}atotb      total household wealth excl 2nd home
-#   h{w}ahous      value of primary residence
-#   r{w}iearn      individual earnings
-#   r{w}issdi      individual SS disability income
-#   r{w}isret      individual SS retirement income
-#   r{w}igxrc      individual income from government transfers
-#   r{w}ipeninc    individual pension/annuity income
+#   r{w}iwstat     interview status (1=resp alive)
+#   h{w}atotb      total household wealth excl 2nd home (interview-year $)
+#   h{w}ahous      value of primary residence (interview-year $)
+#   r{w}isret      SS retirement/spouse/widow benefits, last calendar year;
+#                  excludes disability-based SS by RAND construction
+#   r{w}ipen       employer pension income, last calendar year (excludes
+#                  annuity income, unlike r{w}ipena = pension + annuity)
 #   r{w}iann       individual annuity income (positive = owner)
-#   r{w}iosdi      individual other govt transfer income
 #
 # References:
-#   Lockwood (2012, RED): Table 1 sample, single retirees 65-69
-#   RAND HRS Longitudinal File codebook (v1, 2024)
+#   Lockwood (2012, RED): Table 1 sample window, single retirees 65-69
+#   RAND HRS Longitudinal File 2022 (V1) codebook
 
 using ReadStatTables
 using Printf
 using DelimitedFiles
 
-# Extract underlying numeric value from ReadStatTables LabeledValue.
-numval(x) = Int(getfield(x, :value))
-numval(x::Number) = Int(x)
-numval_float(x) = Float64(getfield(x, :value))
-numval_float(x::Number) = Float64(x)
+include(joinpath(@__DIR__, "hrs_common.jl"))
 
 function main()
     println("=" ^ 70)
     println("  BUILD HRS POPULATION SAMPLE")
-    println("  Single retirees aged 65-69, waves 5-9 (2000-2008)")
+    println("  Single nonworking retirees 65-69, waves 5-9, 2014 dollars")
     println("=" ^ 70)
 
     # ------------------------------------------------------------------
@@ -57,14 +53,7 @@ function main()
     N = length(tbl[1])
     println("  Loaded $N respondents")
 
-    # Wave mapping: wave 5=2000, 6=2002, 7=2004, 8=2006, 9=2008
-    # Lockwood pools HRS 2000-2008 (5 waves).
     waves = 5:9
-    wave_years = Dict(5=>2000, 6=>2002, 7=>2004, 8=>2006, 9=>2008)
-
-    # Marital status codes indicating single:
-    #   3=separated, 4=divorced, 5=widowed, 7=never married, 8=other
-    single_codes = Set([3, 4, 5, 7, 8])
 
     # ------------------------------------------------------------------
     # Extract observations
@@ -82,62 +71,44 @@ function main()
 
     n_skipped_age = 0
     n_skipped_marital = 0
+    n_skipped_working = 0
     n_skipped_status = 0
     n_skipped_weight = 0
     n_skipped_health = 0
-    n_total_checked = 0
 
     for w in waves
-        println("\n  Processing wave $w ($(wave_years[w]))...")
+        println("\n  Processing wave $w ($(WAVE_YEARS[w]))...")
+        d_w = deflator_wealth(w)
+        d_i = deflator_income(w)
+        @printf("    Deflators to 2014\$: wealth x%.4f (CPI %d), income x%.4f (CPI %d)\n",
+            d_w, WAVE_YEARS[w], d_i, WAVE_YEARS[w] - 1)
 
-        # Build column symbols for this wave
-        age_sym     = Symbol("r$(w)agey_b")
-        mstat_sym   = Symbol("r$(w)mstat")
-        shltc_sym   = Symbol("r$(w)shlt")
-        iwstat_sym  = Symbol("r$(w)iwstat")
-        wtresp_sym  = Symbol("r$(w)wtresp")
+        age_col    = try collect(getproperty(tbl, Symbol("r$(w)agey_b"))) catch; nothing end
+        mstat_col  = try collect(getproperty(tbl, Symbol("r$(w)mstat")))  catch; nothing end
+        lbrf_col   = try collect(getproperty(tbl, Symbol("r$(w)lbrf")))   catch; nothing end
+        shltc_col  = try collect(getproperty(tbl, Symbol("r$(w)shlt")))   catch; nothing end
+        iwstat_col = try collect(getproperty(tbl, Symbol("r$(w)iwstat"))) catch; nothing end
+        wtresp_col = try collect(getproperty(tbl, Symbol("r$(w)wtresp"))) catch; nothing end
+        hatota_col = try collect(getproperty(tbl, Symbol("h$(w)atotb")))  catch; nothing end
+        hahous_col = try collect(getproperty(tbl, Symbol("h$(w)ahous")))  catch; nothing end
+        isret_col  = try collect(getproperty(tbl, Symbol("r$(w)isret")))  catch; nothing end
+        ipen_col   = try collect(getproperty(tbl, Symbol("r$(w)ipen")))   catch; nothing end
+        iann_col   = try collect(getproperty(tbl, Symbol("r$(w)iann")))   catch; nothing end
 
-        # Wealth: household total assets minus housing
-        hatota_sym  = Symbol("h$(w)atotb")
-        hahous_sym  = Symbol("h$(w)ahous")
-
-        # Income components for permanent/annuity income
-        isret_sym   = Symbol("r$(w)isret")    # SS retirement benefits
-        issdi_sym   = Symbol("r$(w)issdi")    # SS disability income
-        ipeninc_sym = Symbol("r$(w)ipeninc")  # pension/annuity income
-        iann_sym    = Symbol("r$(w)iann")     # individual annuity income
-
-        # Collect columns
-        # Use try/catch for columns that may not exist in all waves
-        age_col     = try collect(getproperty(tbl, age_sym))     catch; nothing end
-        mstat_col   = try collect(getproperty(tbl, mstat_sym))   catch; nothing end
-        shltc_col   = try collect(getproperty(tbl, shltc_sym))   catch; nothing end
-        iwstat_col  = try collect(getproperty(tbl, iwstat_sym))  catch; nothing end
-        wtresp_col  = try collect(getproperty(tbl, wtresp_sym))  catch; nothing end
-        hatota_col  = try collect(getproperty(tbl, hatota_sym))  catch; nothing end
-        hahous_col  = try collect(getproperty(tbl, hahous_sym))  catch; nothing end
-        isret_col   = try collect(getproperty(tbl, isret_sym))   catch; nothing end
-        issdi_col   = try collect(getproperty(tbl, issdi_sym))   catch; nothing end
-        ipeninc_col = try collect(getproperty(tbl, ipeninc_sym)) catch; nothing end
-        iann_col    = try collect(getproperty(tbl, iann_sym))    catch; nothing end
-
-        # Check that essential columns exist
-        if age_col === nothing || mstat_col === nothing
-            println("    Warning: missing age or marital status column for wave $w, skipping")
+        if age_col === nothing || mstat_col === nothing || lbrf_col === nothing
+            println("    Warning: missing age/mstat/lbrf column for wave $w, skipping")
             continue
         end
 
         n_wave = 0
         for i in 1:N
-            n_total_checked += 1
-
             # Must be alive respondent
             if iwstat_col !== nothing
                 ismissing(iwstat_col[i]) && continue
                 numval(iwstat_col[i]) != 1 && (n_skipped_status += 1; continue)
             end
 
-            # Must have age
+            # Must have age 65-69
             ismissing(age_col[i]) && continue
             age = numval(age_col[i])
             if age < 65 || age > 69
@@ -147,9 +118,16 @@ function main()
 
             # Must be single
             ismissing(mstat_col[i]) && continue
-            mstat_val = numval(mstat_col[i])
-            if !(mstat_val in single_codes)
+            if !(numval(mstat_col[i]) in SINGLE_MSTAT)
                 n_skipped_marital += 1
+                continue
+            end
+
+            # Must be retired / out of the labor force (no labor income in
+            # the model; active workers' unclaimed SS would bias levels)
+            ismissing(lbrf_col[i]) && (n_skipped_working += 1; continue)
+            if !(numval(lbrf_col[i]) in RETIRED_LBRF)
+                n_skipped_working += 1
                 continue
             end
 
@@ -173,12 +151,10 @@ function main()
             end
 
             # Map 5-point health to 3 states
-            # 1=Excellent, 2=VeryGood -> Good(1)
-            # 3=Good -> Fair(2)
-            # 4=Fair, 5=Poor -> Poor(3)
             health_3 = shlt_raw <= 2 ? 1.0 : (shlt_raw == 3 ? 2.0 : 3.0)
 
-            # Wealth: total household assets minus primary residence
+            # Wealth: total household assets minus primary residence,
+            # deflated to 2014 dollars (interview-year CPI)
             wealth = 0.0
             if hatota_col !== nothing && !ismissing(hatota_col[i])
                 wealth = numval_float(hatota_col[i])
@@ -186,28 +162,25 @@ function main()
             if hahous_col !== nothing && !ismissing(hahous_col[i])
                 wealth -= numval_float(hahous_col[i])
             end
-            # Floor at zero (some households have negative non-housing wealth)
-            wealth = max(wealth, 0.0)
+            wealth = max(wealth, 0.0) * d_w
 
-            # Permanent income: SS retirement + SS disability + pension/annuity
+            # Permanent annuitized income: SS retirement + employer pension,
+            # deflated to 2014 dollars (income-year CPI). SSI/SSDI excluded:
+            # SSI is the means-tested floor the model represents via c_floor.
             perm_inc = 0.0
             if isret_col !== nothing && !ismissing(isret_col[i])
                 perm_inc += max(numval_float(isret_col[i]), 0.0)
             end
-            if issdi_col !== nothing && !ismissing(issdi_col[i])
-                perm_inc += max(numval_float(issdi_col[i]), 0.0)
+            if ipen_col !== nothing && !ismissing(ipen_col[i])
+                perm_inc += max(numval_float(ipen_col[i]), 0.0)
             end
-            if ipeninc_col !== nothing && !ismissing(ipeninc_col[i])
-                perm_inc += max(numval_float(ipeninc_col[i]), 0.0)
-            end
+            perm_inc *= d_i
 
             # Annuity ownership: r{w}iann > 0 indicates individual receives
-            # annuity income (RAND HRS harmonized variable). Rates of 3-4%
-            # across waves are consistent with Lockwood's 3.6% from HRS.
+            # annuity income (RAND HRS harmonized variable)
             own_ann = 0.0
             if iann_col !== nothing && !ismissing(iann_col[i])
-                ann_inc = numval_float(iann_col[i])
-                own_ann = ann_inc > 0.0 ? 1.0 : 0.0
+                own_ann = numval_float(iann_col[i]) > 0.0 ? 1.0 : 0.0
             end
 
             push!(out_wealth, wealth)
@@ -224,19 +197,20 @@ function main()
     n_total = length(out_wealth)
     println("\n" * "=" ^ 70)
     @printf("  Total observations: %d\n", n_total)
-    @printf("  Skipped (wrong age):       %d\n", n_skipped_age)
-    @printf("  Skipped (married):         %d\n", n_skipped_marital)
-    @printf("  Skipped (not alive resp):  %d\n", n_skipped_status)
-    @printf("  Skipped (no weight):       %d\n", n_skipped_weight)
-    @printf("  Skipped (no health):       %d\n", n_skipped_health)
+    @printf("  Skipped (wrong age):          %d\n", n_skipped_age)
+    @printf("  Skipped (married):            %d\n", n_skipped_marital)
+    @printf("  Skipped (working/unemp/miss): %d\n", n_skipped_working)
+    @printf("  Skipped (not alive resp):     %d\n", n_skipped_status)
+    @printf("  Skipped (no weight):          %d\n", n_skipped_weight)
+    @printf("  Skipped (no health):          %d\n", n_skipped_health)
 
     # ------------------------------------------------------------------
     # Summary statistics
     # ------------------------------------------------------------------
-    println("\n  SUMMARY STATISTICS")
+    println("\n  SUMMARY STATISTICS (2014 dollars)")
     println("  " * "-" ^ 50)
 
-    med_idx = div(n_total, 2)
+    med_idx = max(div(n_total, 2), 1)
     sorted_w = sort(out_wealth)
     sorted_inc = sort(out_perm_inc)
     @printf("  Median wealth:           \$%s\n", string(round(Int, sorted_w[med_idx])))
@@ -244,11 +218,9 @@ function main()
     @printf("  Median perm income:      \$%s\n", string(round(Int, sorted_inc[med_idx])))
     @printf("  Mean perm income:        \$%s\n", string(round(Int, sum(out_perm_inc) / n_total)))
 
-    # Annuity ownership
     n_ann_owners = count(x -> x == 1.0, out_ann_own)
     @printf("  Annuity owners:          %d (%.1f%%)\n", n_ann_owners, n_ann_owners/n_total*100)
 
-    # Health distribution
     n_good = count(x -> x == 1.0, out_health)
     n_fair = count(x -> x == 2.0, out_health)
     n_poor = count(x -> x == 3.0, out_health)
@@ -257,7 +229,6 @@ function main()
         n_fair, n_fair/n_total*100,
         n_poor, n_poor/n_total*100)
 
-    # Age distribution
     for a in 65:69
         n_a = count(x -> x == Float64(a), out_age)
         @printf("  Age %d: %d (%.1f%%)\n", a, n_a, n_a/n_total*100)
