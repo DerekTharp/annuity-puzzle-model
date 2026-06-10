@@ -440,10 +440,14 @@ println("  PAIRWISE INTERACTIONS (from lookup table)")
 println("=" ^ 70)
 flush(stdout)
 
-# Interaction(i,j) = [v({i,j}) - v({i}) - v({j}) + v({})]
-# where v(S) = yaari - ownership(S)
-# = [ownership({i}) + ownership({j}) - ownership({i,j}) - yaari]
-# Negative means channels reinforce (super-additive).
+# Stored quantity: interaction(i,j) = ownership({i,j}) - additive prediction,
+# where the additive prediction is yaari - drop_i - drop_j with
+# drop_k = yaari - ownership({k}). Equivalently
+#   interaction(i,j) = ownership({i,j}) + yaari - ownership({i}) - ownership({j}),
+# the NEGATIVE of the cooperative-game interaction v({i,j})-v({i})-v({j})+v({})
+# under v(S) = yaari - ownership(S). Negative stored values mean the joint
+# ownership falls short of the additive prediction: channels reinforce
+# (super-additive demand reduction).
 
 interaction_matrix = fill(NaN, N_CHANNELS, N_CHANNELS)
 

@@ -1058,17 +1058,17 @@ The project uses version numbers for manuscript revisions. When a draft is super
 - Intermediate outputs (`.aux`, `.log`, `.blg`, `.out` files) do not need to be archived
 - The `archive/` directory is append-only; never delete or modify archived versions
 
-**Current version:** Phase 30 (May 11, 2026). Most recent tagged release is `v0.4-presubmission` (Apr 19, 2026); subsequent work is tracked by phase commits (Phase 25 onward).
-**Archived:** v0.1 (initial draft, Feb 28, 2026), Phase 29 (Chalmers-Reuter calibration found infeasible).
+**Current version:** JRI reframe, branch `jri-reframe` (June 2026). Most recent tagged release is `v0.4-presubmission` (Apr 19, 2026).
+**Archived:** v0.1 (initial draft, Feb 28, 2026), Phase 29 (Chalmers-Reuter calibration found infeasible). The Phase 30 two-model architecture is SUPERSEDED.
 
-**Phase 30 current state (lock in):**
-- Architecture: two-model (Model 1 = 11-channel structural; Model 2 = UK reduced-form transport, frictionless × UK_post/UK_pre = 41.85% × 0.179 = 7.5%)
-- 9-channel structural baseline: 1.7% predicted ownership
-- 11-channel Shapley: |PED| = 44.4 pp, |SDU| = 31.1 pp (over 2048 subsets)
-- Behavioral parameters lambda_W = 0.625 and psi = 0.05 are EXPLORATORY literature-magnitude best guesses, NOT moment-matched
-- AWS pipeline: 17 stages (no Stage 9b); Stage 10 is the 2048-subset Shapley
-- Tests: 187 total (186 pass / 1 broken status)
-- All 11 channels active in the full model
+**JRI reframe current state (live source of truth: docs/jri_reframe_plan.md):**
+- Architecture: single structural model. Model 2 (UK reduced-form transport) is CUT — no UK retention constants or transport macros remain in code.
+- Headline: the order-independent (exact Shapley), gamma-stable, statistic-robust RANKING of demand channels; the ownership level is reported as fragile by design.
+- 9-channel structural game (512 subsets) is the headline; the 11-channel game (2048 subsets, adds SDU/PED) is appendix robustness. Behavioral parameters lambda_W = 0.625 and psi = 0.05 remain EXPLORATORY, not moment-matched.
+- Calibration: chi_LTC = 0.49 (Ameriks 2011 JF derivation; the channel is mildly PRO-annuity in this model); pre-existing annuitization floor = observed RAND HRS SS_OBS + DB_OBS in 2014 dollars (claimer-conditional SS, pension-only DB, single nonworking retirees 65-69, CPI-deflated).
+- An SS trust-fund cut hits SS_OBS only; DB pension income survives (run_ss_robustness.jl, run_welfare_counterfactuals.jl, run_ss_cut_by_wealth.jl all consistent).
+- Pipeline adds Stage 10b (gamma-stability of the Shapley ranking) and Stage 11b (SS-cut incidence by wealth bin).
+- Headline numbers are NOT locked until the post-reframe production AWS run completes; do not cite pre-reframe ownership levels (1.7%, 6.8%, 7.5%) as current.
 
 ---
 

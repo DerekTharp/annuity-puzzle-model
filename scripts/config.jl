@@ -100,18 +100,23 @@ const PSI_PURCHASE_C_REF = 18_000.0
 
 # Public-care aversion (mechanism: Ameriks et al. 2011, Journal of Finance;
 # LTC-state utility framework extended in Ameriks et al. 2020, Journal of
-# Political Economy). Households retain liquid wealth to avoid Medicaid
-# long-term-care reliance. Operationally: when the consumption floor binds AND
-# health = Poor (proxy for LTC need), the resulting consumption is treated as
-# Medicaid-financed and yields flow utility scaled by chi_LTC < 1. Annuitization
-# accelerates Medicaid eligibility by depleting liquid wealth faster, so the
-# channel reduces predicted ownership.
+# Political Economy). Households dislike Medicaid-financed long-term care.
+# Operationally: when the consumption floor binds AND health = Poor (proxy for
+# LTC need), the resulting consumption is treated as Medicaid-financed and
+# enters utility at the consumption-equivalent c_eff = chi_LTC * c.
+#
+# The channel's a priori direction is ambiguous: aversion to the Medicaid state
+# raises the value of retaining liquid wealth (against annuitization), but it
+# also lowers the value of wealth IN the Medicaid-binding state, which favors
+# converting wealth to income that keeps the agent off the floor. In this model
+# the measured net effect is mildly PRO-annuity: the chi_LTC sweep
+# (scripts/sweep_chi_ltc.jl) shows ownership rising monotonically as chi_LTC
+# falls. The manuscript must describe the channel accordingly.
 #
 # chi_LTC is a flow-utility transformation of the public-care-aversion evidence,
 # not a parameter Ameriks et al. report directly; 0.49 is a calibration choice
 # within that evidence (the manuscript appendix documents the derivation).
-# Sensitivity is swept in scripts/sweep_chi_ltc.jl: lower chi_LTC is mildly
-# PRO-annuity, since liquid wealth is worth less in the Medicaid state. 1.0 = off.
+# 1.0 = channel off.
 const CHI_LTC = 0.49
 
 # HRS population data path

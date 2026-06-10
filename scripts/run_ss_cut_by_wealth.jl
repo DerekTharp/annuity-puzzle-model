@@ -1,11 +1,14 @@
-# SS-cut response by wealth quartile — the DB-pension "cushion" exhibit.
+# SS-cut response by wealth bin — incidence of a trust-fund cut on private
+# annuity demand across the wealth distribution.
 #
-# A Social Security shortfall cuts SS only; DB pension income survives. Quartiles
-# with a larger DB pension hold a larger share of their pre-existing
-# annuitization floor outside the cut, so the same proportional SS cut removes a
-# smaller share of their total floor and elicits a smaller private-annuity-demand
-# response. The exhibit shows the 23% (2033 trust-fund) response shrinking from
-# the bottom wealth quartile (thin DB cushion) toward the top (thick cushion).
+# A Social Security shortfall cuts SS only; DB pension income survives. Two
+# forces pull the by-wealth response in opposite directions: a thicker DB
+# cushion shields a bin's income floor from the cut (dampening), while wealth
+# itself determines whether private annuitization is feasible at all (the $10k
+# minimum purchase and the consumption floor exclude low-wealth households from
+# responding regardless of how hard the cut hits them). Which force dominates
+# is an empirical question this script answers; the assessment block below
+# reports the computed gradient rather than presupposing it.
 #
 # Structural model (rational + preference + structural chi_ltc; behavioral off).
 #
@@ -139,21 +142,34 @@ for q in 1:4
     println()
 end
 
-println("\n  DB cushion gradient (23% SS cut response by quartile):")
+println("\n  SS-cut incidence (23% SS cut response by wealth bin):")
 @printf("  %-14s  %8s  %12s  %12s\n", "wealth", "DB share", "base own", "23%cut d_pp")
+responses = Float64[]
 for q in 1:4
     db_share = SS_OBS[q] + DB_OBS[q] > 0 ? DB_OBS[q] / (SS_OBS[q] + DB_OBS[q]) : 0.0
     base = own[(q, 0.0)] * 100
     at23 = own[(q, 0.23)] * 100
+    push!(responses, at23 - base)
     @printf("  %-14s  %7.2f  %11.1f%%  %+11.1f\n", labels[q], db_share, base, at23 - base)
 end
-println("\n  (A thicker DB cushion -> smaller SS-cut response toward the top.)")
+# Report the computed gradient; do not presuppose its direction.
+if issorted(responses)
+    println("\n  Computed gradient: the 23% SS-cut response INCREASES with wealth —")
+    println("  feasibility (minimum purchase, consumption floor) dominates the DB cushion.")
+elseif issorted(responses; rev=true)
+    println("\n  Computed gradient: the 23% SS-cut response DECREASES with wealth —")
+    println("  the DB cushion dominates feasibility.")
+else
+    println("\n  Computed gradient: the 23% SS-cut response is non-monotone in wealth;")
+    println("  feasibility and the DB cushion trade off across bins.")
+end
 
 # ===================================================================
 # Save CSV
 # ===================================================================
 out_dir = joinpath(@__DIR__, "..", "tables", "csv"); mkpath(out_dir)
-csv_path = joinpath(out_dir, "ss_cut_by_wealth.csv")
+# Coarse local checks must not overwrite the production artifact.
+csv_path = joinpath(out_dir, COARSE ? "ss_cut_by_wealth_coarse.csv" : "ss_cut_by_wealth.csv")
 open(csv_path, "w") do f
     println(f, "quartile,wealth_lo,wealth_hi,n,ss_obs,db_obs,db_share,cut_pct,ownership_pct")
     for q in 1:4
