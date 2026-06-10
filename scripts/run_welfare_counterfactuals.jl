@@ -106,7 +106,10 @@ struct CounterfactualConfig
     inflation::Float64
     psi::Float64
     c_floor::Float64
-    ss_scale::Float64       # multiplier on SS_QUARTILE_LEVELS (1.0 = baseline)
+    ss_scale::Float64       # multiplier on the Social Security component only
+                            # (1.0 = baseline). DB pension income survives an SS
+                            # cut: ss_lvls = ss_scale*SS_OBS + DB_OBS, matching
+                            # run_ss_robustness.jl.
     description::String
 end
 
@@ -205,8 +208,10 @@ for (i, cfg) in enumerate(configs)
         chi_ltc=CHI_LTC,
         grid_kw...)
 
-    # SS levels for this counterfactual
-    ss_lvls = cfg.ss_scale .* SS_QUARTILE_LEVELS
+    # SS levels for this counterfactual. The scale hits Social Security only;
+    # DB pension income is untouched by a trust-fund shortfall. At
+    # ss_scale=1.0 this reproduces SS_QUARTILE_LEVELS = SS_OBS + DB_OBS.
+    ss_lvls = cfg.ss_scale .* Float64.(SS_OBS) .+ Float64.(DB_OBS)
 
     t0 = time()
     res = solve_and_evaluate(p_model, grids, base_surv, ss_lvls,
@@ -268,11 +273,13 @@ bequest_specs = [
 
 wealth_eval = [50_000.0, 100_000.0, 200_000.0, 500_000.0, 1_000_000.0]
 
-# SS is wired through the welfare model's ss_func at $18,500 (median quartile).
+# SS is wired through the welfare model's ss_func at the representative level
+# (midpoint of the two middle wealth-bin floors of SS_QUARTILE_LEVELS).
 # y_existing is reserved for non-SS pre-existing annuity income, ~zero in HRS.
 y_existing_for_grid = 0.0
-@printf("\n  y_existing = \$%s (SS via ss_func at \$18,500/year)\n",
-    string(round(Int, y_existing_for_grid)))
+ss_rep_display = (SS_QUARTILE_LEVELS[2] + SS_QUARTILE_LEVELS[3]) / 2
+@printf("\n  y_existing = \$%s (SS via ss_func at \$%s/year)\n",
+    string(round(Int, y_existing_for_grid)), string(round(Int, ss_rep_display)))
 flush(stdout)
 
 cev_results = Dict{String, Any}()
@@ -469,8 +476,9 @@ open(tex_path, "w") do f
         delta_str = i == 1 ? "---" : @sprintf("%+.1f", delta * 100)
         mwr_str = @sprintf("%.2f", cfg.mwr)
         infl_str = cfg.inflation > 0 ? @sprintf("%.0f\\%%", cfg.inflation * 100) : "0 (real)"
+        label_tex = replace(r.label, "%" => "\\%")  # escape for LaTeX
         @printf(f, "%s & %s & %s & %.1f & %s \\\\\n",
-            r.label, mwr_str, infl_str, r.ownership * 100, delta_str)
+            label_tex, mwr_str, infl_str, r.ownership * 100, delta_str)
         # Add midrule after baseline
         if i == 1
             println(f, raw"\midrule")
@@ -482,11 +490,15 @@ open(tex_path, "w") do f
     println(f, raw"\end{tabular}")
     println(f, raw"\begin{tablenotes}")
     println(f, raw"\small")
-    println(f, raw"\item Baseline: $\gamma=2.5$, $\beta=0.97$, DFJ bequests")
-    println(f, raw"($\theta=56.96$, $\kappa=\$272{,}628$), $\psi=0.981$.")
-    println(f, raw"Population: HRS single retirees 65--69 with $W \geq \$5{,}000$ ($N=566$).")
+    @printf(f, "\\item Baseline: \$\\gamma=%.1f\$, \$\\beta=%.2f\$, DFJ bequests\n", GAMMA, BETA)
+    @printf(f, "(\$\\theta=%.2f\$, \$\\kappa=\\\$%s\$), \$\\psi=%.3f\$.\n",
+        THETA_DFJ, replace(@sprintf("%d", round(Int, KAPPA_DFJ)), r"(\d)(?=(\d{3})+$)" => s"\1{,}"), SURVIVAL_PESSIMISM)
+    @printf(f, "Population: HRS single nonworking retirees 65--69 with \$W \\geq \\\$%s\$ (\$N=%s\$).\n",
+        replace(@sprintf("%d", round(Int, MIN_WEALTH)), r"(\d)(?=(\d{3})+$)" => s"\1{,}"),
+        replace(@sprintf("%d", size(pop, 1)), r"(\d)(?=(\d{3})+$)" => s"\1{,}"))
     println(f, raw"Group pricing reflects TSP/employer plan MWR (James et al.\ 2006).")
-    println(f, raw"SS cut: 23\% across-the-board (projected trust fund exhaustion).")
+    println(f, raw"SS cut: 23\% reduction in Social Security benefits only; DB pension")
+    println(f, raw"income is unaffected (projected trust fund exhaustion).")
     println(f, raw"\end{tablenotes}")
     println(f, raw"\end{table}")
 end
@@ -552,11 +564,13 @@ open(cev_tex_path, "w") do f
     println(f, raw"\small")
     println(f, raw"\item CEV: consumption-equivalent variation (\% of lifetime consumption")
     println(f, raw"agent would pay for annuity market access). Welfare model uses representative")
-    println(f, raw"SS income (\$18{,}500/yr, median quartile). Baseline: MWR=0.87, 2\% inflation,")
-    println(f, raw"$\psi=0.981$, $\psi_{\text{purchase}}=0.0163$. Group pricing: MWR=0.90.")
-    println(f, raw"Real annuity: 0\% inflation, MWR=0.87. Best feasible combines group pricing,")
-    println(f, raw"real annuity, no survival pessimism ($\psi=1.0$), and default architecture")
-    println(f, raw"($\psi_{\text{purchase}}=0$).")
+    @printf(f, "SS income (\\\$%s/yr, midpoint of the middle wealth-bin floors).\n",
+        replace(@sprintf("%d", round(Int, ss_rep_display)), r"(\d)(?=(\d{3})+$)" => s"\1{,}"))
+    @printf(f, "Baseline: MWR=%.2f, %.0f\\%% inflation, \$\\psi=%.3f\$; behavioral channels off.\n",
+        MWR_LOADED, INFLATION * 100, SURVIVAL_PESSIMISM)
+    @printf(f, "Group pricing: MWR=0.90. Real annuity: 0\\%% inflation, MWR=%.2f.\n", MWR_LOADED)
+    println(f, raw"Best feasible combines group pricing, real annuity, and no survival")
+    println(f, raw"pessimism ($\psi=1.0$).")
     println(f, raw"\end{tablenotes}")
     println(f, raw"\end{table}")
 end
