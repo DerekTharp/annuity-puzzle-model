@@ -27,6 +27,18 @@ start=$(date +%s)
 last_size=-1
 last_change=$(date +%s)
 
+# Salvage pull: copy whatever tables/logs exist on the box to local scratch so
+# a spot reclamation loses at most one digest cycle of artifacts. Non-fatal.
+pull_partial() {
+    mkdir -p logs/aws-partial
+    rsync -az -e "$SSH" \
+        ec2-user@"$PUBLIC_DNS":/home/ec2-user/annuity-puzzle/tables/ \
+        logs/aws-partial/tables/ 2>/dev/null || true
+    rsync -az -e "$SSH" \
+        ec2-user@"$PUBLIC_DNS":/home/ec2-user/run_all.log \
+        logs/aws-partial/ 2>/dev/null || true
+}
+
 while true; do
     now=$(date +%s)
 
@@ -64,6 +76,7 @@ while true; do
         exit 0
     fi
     if echo "$INFO" | grep -q "FLAG=PARTIAL"; then
+        pull_partial
         echo "EVENT=PARTIAL_FAILED"
         echo "ELAPSED_MIN=$(( (now - LAUNCHED) / 60 ))"
         echo "$INFO"
@@ -76,6 +89,7 @@ while true; do
         last_change=$now
     fi
     if [ $((now - last_change)) -gt "$STALL" ]; then
+        pull_partial
         echo "EVENT=STALL"
         echo "STALL_MIN=$(( (now - last_change) / 60 ))"
         echo "ELAPSED_MIN=$(( (now - LAUNCHED) / 60 ))"
@@ -84,6 +98,7 @@ while true; do
     fi
 
     if [ $((now - start)) -ge "$DIGEST" ]; then
+        pull_partial
         echo "EVENT=DIGEST"
         echo "ELAPSED_MIN=$(( (now - LAUNCHED) / 60 ))"
         echo "$INFO"
