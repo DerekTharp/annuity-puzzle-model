@@ -142,6 +142,14 @@ ln -sf "$RESULTS_TARBALL" "$PROJECT_DIR/results-latest.tar.gz"
 if { [ "$PIPELINE_RC" = "0" ] && [ "$BUNDLE_RC" = "0" ]; } || [ "${ANNUITY_FORCE_COMPLETE:-0}" = "1" ]; then
     touch "$PROJECT_DIR/.pipeline-complete"
     echo "=== Pipeline complete: $(date) ===" | tee -a "$LOG"
+    # Idle-burn guard for on-demand runs: stop (not terminate) the instance
+    # shortly after success. Results stay on EBS; a stopped box bills only
+    # pennies for the volume and can be started again to pull the bundle.
+    # Failure paths stay up for live diagnosis.
+    if [ "${ANNUITY_STOP_ON_SUCCESS:-0}" = "1" ]; then
+        echo "ANNUITY_STOP_ON_SUCCESS=1 — stopping instance in 15 minutes" | tee -a "$LOG"
+        sudo shutdown -h +15 &
+    fi
 else
     touch "$PROJECT_DIR/.pipeline-partial"
     echo "=== Pipeline FAILED: pipeline_rc=$PIPELINE_RC bundle_rc=$BUNDLE_RC at $(date) ===" | tee -a "$LOG"

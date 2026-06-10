@@ -231,7 +231,7 @@ $SSH_CMD ec2-user@"$PUBLIC_DNS" 'chmod +x /home/ec2-user/annuity-puzzle/scripts/
 # Kick off the pipeline detached
 echo
 echo "Starting pipeline (detached, will run for ~2-3 hours)..."
-$SSH_CMD ec2-user@"$PUBLIC_DNS" 'cd /home/ec2-user/annuity-puzzle && nohup bash scripts/aws/run_pipeline_remote.sh > /home/ec2-user/run_all.log 2>&1 < /dev/null &'
+$SSH_CMD ec2-user@"$PUBLIC_DNS" 'cd /home/ec2-user/annuity-puzzle && ANNUITY_STOP_ON_SUCCESS=1 nohup bash scripts/aws/run_pipeline_remote.sh > /home/ec2-user/run_all.log 2>&1 < /dev/null &'
 sleep 3
 
 # Confirm it's running
