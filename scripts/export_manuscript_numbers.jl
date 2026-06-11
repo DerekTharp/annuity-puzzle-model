@@ -362,6 +362,7 @@ function build_macros!()
     def!("pCFloor",             fmt_dollar(C_FLOOR))
     def!("pFixedCost",          fmt_dollar(FIXED_COST))
     def!("pMinWealth",          fmt_dollar(MIN_WEALTH))
+    def!("pMinPurchase",        fmt_dollar(MIN_PURCHASE))
     def!("pWMax",               fmt_dollar(W_MAX))
     # Use \text{million} so this macro survives inside math mode like $[0, \pWMaxMillions]$.
     def!("pWMaxMillions",       @sprintf("\\\$%s\\text{ million}", W_MAX >= 1_000_000 ? fmt_num(W_MAX / 1_000_000; digits=(W_MAX % 1_000_000 == 0 ? 0 : 1)) : fmt_num(W_MAX / 1_000_000; digits=1)))
