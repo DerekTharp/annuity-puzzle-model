@@ -456,31 +456,6 @@ function build_macros!()
         end
     end
 
-    # ----------------------------------------------------------------------
-    # Section C3 — UK ELSA pre/post 2015 freedoms empirical evidence
-    # Source: data/processed/elsa_pre_post_freedoms.csv,
-    #         data/processed/elsa_disposition_pooled.csv
-    # ----------------------------------------------------------------------
-    elsa_pp_path = joinpath(REPO_ROOT, "data", "processed", "elsa_pre_post_freedoms.csv")
-    if isfile(elsa_pp_path)
-        # Manuscript uses pctELSAWaveSixAnnuity, pctELSAPostAnnuity, and
-        # nELSAPostLumpSum. Other rows in the CSV are not currently cited
-        # in prose; only the macros below are emitted.
-        for (i, line) in enumerate(eachline(elsa_pp_path))
-            i == 1 && continue
-            toks = split(chomp(line), ',')
-            length(toks) == 5 || continue
-            regime, measure, _, n_denom, pct = toks
-            if regime == "pre_freedoms_w6" && measure == "annuity_style_of_dc_recipients"
-                # LaTeX macro names cannot contain digits, so "W6" -> "WaveSix".
-                def!("pctELSAWaveSixAnnuity",  fmt_pct(parse(Float64, pct); digits=1))
-            elseif regime == "post_freedoms_pool_w8_11" && measure == "lumpsum_annuitize"
-                def!("nELSAPostLumpSum",  fmt_int(parse(Int, n_denom)))
-                def!("pctELSAPostAnnuity", fmt_pct(parse(Float64, pct); digits=2))
-            end
-        end
-    end
-
     # ======================================================================
     # Section D — Sequential decomposition (retention path)
     # Bitmasks follow the decomposition ordering used by run_subset_enumeration.jl

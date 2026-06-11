@@ -123,43 +123,6 @@ function main()
         end
     end
 
-    # --- Stage 0d: ELSA pre/post 2015 freedoms regime comparison ---
-    # Produces: data/processed/elsa_pre_post_freedoms.csv. Requires the ELSA
-    # archive (UK Data Service deposit 5050) at data/raw/ELSA/ or via the
-    # ANNUITY_ELSA_ARCHIVE env var. Skipped gracefully if archive is absent.
-    elsa_csv = joinpath(PROJECT_DIR, "data", "processed", "elsa_pre_post_freedoms.csv")
-    if isfile(elsa_csv) && !force_rebuild
-        @printf("  Skipping Stage 0d: %s already exists.\n", elsa_csv)
-        push!(timings, "ELSA pre/post (skipped)" => 0.0)
-    else
-        try
-            t = run_stage(
-                "0d. ELSA Pre/Post 2015 Freedoms Comparison",
-                joinpath(PROJECT_DIR, "calibration", "elsa_pre_post_freedoms.jl"))
-            push!(timings, "ELSA pre/post" => t)
-        catch e
-            @warn "Stage 0d failed (ELSA archive likely unavailable). Skipping; using checked-in CSV." exception=e
-        end
-    end
-
-    # --- Stage 0e: ELSA pooled disposition (waves 8-11) ---
-    # Produces: data/processed/elsa_disposition_pooled.csv. Same raw-data
-    # requirements as Stage 0d.
-    elsa_disp_csv = joinpath(PROJECT_DIR, "data", "processed", "elsa_disposition_pooled.csv")
-    if isfile(elsa_disp_csv) && !force_rebuild
-        @printf("  Skipping Stage 0e: %s already exists.\n", elsa_disp_csv)
-        push!(timings, "ELSA disposition (skipped)" => 0.0)
-    else
-        try
-            t = run_stage(
-                "0e. ELSA Pooled Disposition (waves 8-11)",
-                joinpath(PROJECT_DIR, "calibration", "elsa_disposition_pooled.jl"))
-            push!(timings, "ELSA disposition" => t)
-        catch e
-            @warn "Stage 0e failed (ELSA archive likely unavailable). Skipping; using checked-in CSV." exception=e
-        end
-    end
-
     # --- Stage 1: Lockwood (2012) replication ---
     # Produces: lockwood_replication.tex (appendix)
     t = run_stage(
