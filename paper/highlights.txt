@@ -1,5 +1,7 @@
 Highlights
 
-- A nine-channel structural lifecycle model combining six rational channels (Social Security, bequests, combined medical expenditure risk and health-mortality correlation, survival pessimism, pricing loads, inflation erosion) with two preference channels (age-varying consumption needs, state-dependent utility) and one structural channel (public-care aversion) predicts US voluntary annuity ownership of 6.8%, modestly above two HRS empirical comparators computed on the same wealth-restricted sample (3.11% lifetime contract indicator, 95% CI [2.54%, 3.81%]; 5.21% any-annuity income proxy, 95% CI [4.45%, 6.09%]); the structural prediction overshoots the income proxy by roughly 1.6 pp and the lifetime indicator by roughly 3.7 pp
-- An exact nine-channel Shapley decomposition over 512 subsets is the disciplined headline attribution; an exploratory eleven-channel extension over 2,048 subsets adds two literature-magnitude behavioral parameters (source-dependent utility, narrow-framing at-purchase penalty) and shows them entering with large but offsetting contributions, illustrative of where standard behavioral parameters would land in the channel ranking but not identified
-- The paper does not claim to resolve the puzzle; the structural channels alone bring predicted ownership into the same neighborhood as the HRS empirical comparators (modestly above both), and the exploratory behavioral channels at literature magnitudes are net-suppressive, offering a candidate explanation for the residual gap without being moment-matched to US data
+- Exact Shapley over all 512 channel orderings yields an order-independent ranking
+- Pricing loads dominate, with survival pessimism and health-mortality risk second
+- Bequests, the most-cited explanation, rank mid-pack rather than first
+- The channel ranking is stable across risk aversion even as the level is knife-edged
+- Predicted ownership concentrates in the top wealth quartile, reframing the puzzle
