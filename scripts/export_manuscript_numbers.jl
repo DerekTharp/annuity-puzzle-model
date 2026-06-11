@@ -813,6 +813,79 @@ function build_macros!()
         def!("mcMaxOwnership",       fmt_pct(mc.max;    digits=1))
         def!("nMCDraws",             commas(mc.n))
     end
+
+    # ======================================================================
+    # Section M — Reframe exhibits: gamma-stability concordance, by-wealth
+    # Shapley, SS-cut incidence, and empirical-gradient validation. Each
+    # block is guarded so a partial pipeline run still produces numbers.tex.
+    # ======================================================================
+    colof(hdr, name) = findfirst(==(name), vec(hdr))
+
+    # Gamma-stability of the channel ranking (Class 1 / Class 5).
+    gs_path = joinpath(CSV_DIR, "shapley_gamma_stability_summary.csv")
+    if isfile(gs_path)
+        gs, gh = read_csv("shapley_gamma_stability_summary.csv")
+        gam   = Float64.(gs[:, colof(gh, "gamma")])
+        top1  = strip.(string.(gs[:, colof(gh, "top1_ownership")]))
+        spsup = Float64.(gs[:, colof(gh, "spearman_suppressors")])
+        fullo = Float64.(gs[:, colof(gh, "full_ownership_pct")])
+        i25   = findfirst(g -> isapprox(g, 2.5; atol=1e-6), gam)
+        i25 === nothing && (i25 = 1)
+        def!("gammaStabTopOne",      String(top1[i25]))
+        def!("gammaStabSpearmanSup", fmt_num(spsup[i25]; digits=2))
+        def!("gammaStabTopOneCount", string(count(==(top1[i25]), top1)))
+        def!("gammaStabNGamma",      string(length(gam)))
+        def!("ownGammaSweepLow",     fmt_pct(minimum(fullo); digits=1))
+        def!("ownGammaSweepHigh",    fmt_pct(maximum(fullo); digits=1))
+    end
+
+    # By-wealth 9-channel Shapley: Loads rank across bins (Class 3).
+    bw_path = joinpath(CSV_DIR, "shapley_by_wealth.csv")
+    if isfile(bw_path)
+        bw, bh = read_csv("shapley_by_wealth.csv")
+        chan = strip.(string.(bw[:, colof(bh, "channel")]))
+        li = findfirst(==("Loads"), chan)
+        if li !== nothing
+            lr = [Int(bw[li, colof(bh, "rank_q$q")]) for q in 1:4]
+            def!("shapByWealthLoadsTopBins", string(count(==(1), lr)))
+            def!("shapByWealthNBins", "4")
+        end
+    end
+
+    # Ownership concentration in the top wealth bin (full 9-channel, mask 511).
+    se, sh = read_csv("subset_enumeration.csv")
+    if colof(sh, "own_q4") !== nothing
+        bm = Int.(se[:, colof(sh, "bitmask")])
+        r511 = findfirst(==(511), bm)
+        if r511 !== nothing
+            def!("ownFullQone",  fmt_pct(Float64(se[r511, colof(sh, "own_q1")]); digits=1))
+            def!("ownFullQfour", fmt_pct(Float64(se[r511, colof(sh, "own_q4")]); digits=1))
+        end
+    end
+
+    # SS-cut incidence by wealth (Class 4).
+    sc_path = joinpath(CSV_DIR, "ss_cut_by_wealth.csv")
+    if isfile(sc_path)
+        sc, sch = read_csv("ss_cut_by_wealth.csv")
+        qv  = Int.(sc[:, colof(sch, "quartile")])
+        cv  = Float64.(sc[:, colof(sch, "cut_pct")])
+        ov  = Float64.(sc[:, colof(sch, "ownership_pct")])
+        cell(qq, cc) = (k = findfirst(i -> qv[i] == qq && isapprox(cv[i], cc; atol=1e-6), eachindex(qv));
+                        k === nothing ? NaN : ov[k])
+        def!("ssCutWealthQfourBase",  fmt_pct(cell(4, 0.0);  digits=1))
+        def!("ssCutWealthQfourTrust", fmt_pct(cell(4, 23.0); digits=1))
+        def!("ssCutWealthBottomResp", fmt_pct(cell(1, 23.0); digits=1))
+    end
+
+    # Empirical-gradient validation: predicted-sign concordance (Class 1 test).
+    eg_path = joinpath(CSV_DIR, "empirical_gradients_logit.csv")
+    if isfile(eg_path)
+        eg, egh = read_csv("empirical_gradients_logit.csv")
+        ps = strip.(string.(eg[:, colof(egh, "predicted_sign")]))
+        sm = strip.(string.(eg[:, colof(egh, "sign_match")]))
+        def!("empSignMatch", string(count(==("yes"), sm)))
+        def!("empSignTotal", string(count(x -> x != "", ps)))
+    end
 end
 
 # ---------------------------------------------------------------------------
