@@ -693,13 +693,51 @@ function build_macros!()
     # Section I — Robustness (gamma, inflation, psi sweeps)
     # ======================================================================
     for (key, spec) in [
-        ("Two",          "gamma=2.00"),
-        ("TwoPointThree","gamma=2.30"),
-        ("TwoPointFour", "gamma=2.40"),
-        ("TwoPointFive", "gamma=2.50"),
-        ("Three",        "gamma=3.00"),
+        ("OnePointFive",  "gamma=1.50"),
+        ("Two",           "gamma=2.00"),
+        ("TwoPointTwo",   "gamma=2.20"),
+        ("TwoPointThree", "gamma=2.30"),
+        ("TwoPointFour",  "gamma=2.40"),
+        ("TwoPointFive",  "gamma=2.50"),
+        ("TwoPointSix",   "gamma=2.60"),
+        ("Three",         "gamma=3.00"),
+        ("ThreePointFive","gamma=3.50"),
+        ("Four",          "gamma=4.00"),
+        ("Five",          "gamma=5.00"),
     ]
         def!("ownGamma" * key, fmt_pct(robustness_ownership("Gamma sweep", spec); digits=1))
+    end
+
+    # Pairwise channel interactions (pp), from pairwise_interactions.csv
+    let prows = read_csv("pairwise_interactions.csv")[1]
+        pairwise(c1, c2) = begin
+            for r in eachrow(prows)
+                if strip(string(r[1])) == c1 && strip(string(r[2])) == c2
+                    return Float64(r[end])
+                end
+            end
+            error("pairwise interaction $c1 x $c2 not found")
+        end
+        def!("pairwiseSSLoads",    fmt_num(pairwise("SS", "Loads"); digits=1))
+        def!("pairwiseMedRSLoads", fmt_num(pairwise("Medical+R-S", "Loads"); digits=1))
+    end
+
+    # Multi-gamma decomposition ownership at the R-S and survival-pessimism steps
+    # (columns: 1=step, 2=own_gamma2.0, 5=own_gamma2.5, 8=own_gamma3.0)
+    let mrows = read_csv("multigamma_decomposition.csv")[1]
+        mg(step, col) = begin
+            for r in eachrow(mrows)
+                if occursin(step, string(r[1]))
+                    return Float64(r[col])
+                end
+            end
+            error("multigamma step $step not found")
+        end
+        def!("mgRSGammaTwo",       fmt_pct(mg("Health-mortality", 2); digits=1))
+        def!("mgRSGammaThree",     fmt_pct(mg("Health-mortality", 8); digits=1))
+        def!("mgPessGammaTwo",     fmt_pct(mg("Survival pessimism", 2); digits=1))
+        def!("mgPessGammaTwoFive", fmt_pct(mg("Survival pessimism", 5); digits=1))
+        def!("mgPessGammaThree",   fmt_pct(mg("Survival pessimism", 8); digits=1))
     end
 
     # Inflation is reported via the combined Gamma×Inflation sweep
