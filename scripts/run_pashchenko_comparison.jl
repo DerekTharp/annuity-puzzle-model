@@ -144,7 +144,7 @@ p5 = ModelParams(; common_kw..., theta=THETA_DFJ, kappa=KAPPA_DFJ,
     survival_pessimism=SURVIVAL_PESSIMISM,
     min_purchase=MIN_PURCHASE, grid_kw...)
 res5 = solve_and_evaluate(p5, grids, base_surv, SS_LEVELS, pop, loaded_pr_pash;
-    step_name="5. + Survival pessimism (psi=0.981)", verbose=true)
+    step_name="5. + Survival pessimism (psi=0.96)", verbose=true)
 flush(stdout)
 
 # Step 6: + Full loads + Inflation (2%) — uses MWR_FULL from config.jl.

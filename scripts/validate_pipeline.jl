@@ -318,6 +318,56 @@ function gate_macro_definedness()
     return true
 end
 
+"""
+Gate 4b: no project-pattern macro may rely on a hardcoded \\providecommand
+literal fallback that numbers.tex does not also define. Fallbacks that ALIAS
+another macro (value begins with a backslash) or are [pending] placeholders are
+allowed; a hardcoded numeric literal that is never regenerated from config/CSVs
+is the pChiLTC=0.7 drift failure mode (the manuscript showed 0.7 while the
+pipeline ran 0.49) and is rejected here.
+"""
+function gate_no_fallback_only_literals()
+    isfile(NUMBERS_TEX) || begin
+        println("\n[GATE 4b: FALLBACK-ONLY LITERALS] SKIP (numbers.tex absent)")
+        return true
+    end
+    numbers_defined = Set{String}()
+    for line in eachline(NUMBERS_TEX)
+        for m in eachmatch(r"\\(?:new|renew)command\{?\\([A-Za-z]+)\}?", line)
+            push!(numbers_defined, m.captures[1])
+        end
+    end
+    proj = r"^(?:own|shap|cev|mc|wtp|hrs|p)[A-Z]"
+    offenders = Tuple{String, Int, String, String}[]
+    for fname in MANUSCRIPT_FILES
+        path = joinpath(PAPER_DIR, fname)
+        isfile(path) || continue
+        for (lnum, line) in enumerate(eachline(path))
+            for m in eachmatch(r"\\providecommand\{?\\([A-Za-z]+)\}?\{([^}]*)\}", line)
+                name, val = m.captures[1], m.captures[2]
+                occursin(proj, name) || continue
+                name in numbers_defined && continue      # generated source of truth — fine
+                startswith(strip(val), "\\") && continue  # alias to another macro — fine
+                strip(val) == "[pending]" && continue     # placeholder — fine
+                occursin(r"\d", val) || continue          # only hardcoded numeric literals
+                push!(offenders, (fname, lnum, name, val))
+            end
+        end
+    end
+    if !isempty(offenders)
+        println("\n[GATE 4b: FALLBACK-ONLY LITERALS] FAIL ($(length(offenders)) macro(s))")
+        println("  These project macros carry a hardcoded \\providecommand literal that")
+        println("  numbers.tex does not regenerate — the pChiLTC=0.7 drift failure mode.")
+        println("  Emit them from scripts/export_manuscript_numbers.jl instead:")
+        for (f, l, n, v) in offenders
+            println("    \\$n = $v  ($f:$l)")
+        end
+        return false
+    end
+    println("[GATE 4b: FALLBACK-ONLY LITERALS] OK (no hardcoded-literal fallbacks)")
+    return true
+end
+
 # ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
@@ -330,7 +380,8 @@ ok1 = gate_manifest()
 ok2 = gate_freshness()
 ok3 = gate_hardcoded_staleness()
 ok4 = gate_macro_definedness()
-ok3 = ok3 && ok4
+ok4b = gate_no_fallback_only_literals()
+ok3 = ok3 && ok4 && ok4b
 
 if !(ok1 && ok2 && ok3)
     println("\n" * "=" ^ 70)

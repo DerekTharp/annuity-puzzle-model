@@ -316,7 +316,7 @@ if n_conv > 0
         println(f, raw"we bisect over $\gamma$ to find the value that generates 3.6\%")
         println(f, raw"predicted ownership (Lockwood 2012 observed rate).")
         println(f, raw"Draws: $\mu_P \sim U(2.0, 3.5)$, $\pi \sim U(0.01, 0.03)$, MWR $\sim U(0.75, 0.89)$.")
-        println(f, raw"Survival pessimism $\psi = 0.981$ (O'Dea \& Sturrock 2023).")
+        println(f, raw"Survival pessimism $\psi = 0.960$ (O'Dea \& Sturrock 2023).")
         println(f, raw"\end{tablenotes}")
         println(f, raw"\end{table}")
     end

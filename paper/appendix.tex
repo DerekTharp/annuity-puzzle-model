@@ -31,12 +31,12 @@
 % the transition period before the pipeline regenerates numbers.tex.
 \providecommand{\ownNoBehavioralBaseline}{[pending]}
 \providecommand{\ownTenChannelSDU}{[pending]}
-\providecommand{\ownTenChannelFull}{\ownNoBehavioralBaseline}
-\providecommand{\ownTenChannelFullNum}{\ownNoBehavioralBaseline}
+\providecommand{\ownNineChannelFull}{\ownNoBehavioralBaseline}
+\providecommand{\ownNineChannelFullNum}{\ownNoBehavioralBaselineNum}
 \providecommand{\ownNineChannelSDU}{\ownTenChannelSDU}
 \providecommand{\pLambdaW}{0.625}
 \providecommand{\pPsiPurchase}{0.05}
-\providecommand{\pChiLTC}{0.7}
+\providecommand{\pChiLTC}{0.49}
 
 \title{Online Appendix for ``Quantifying the Annuity Puzzle: A Unified Lifecycle Decomposition''}
 \author{Derek Tharp}
@@ -206,22 +206,22 @@ Table~\ref{tab:grid_convergence} reports predicted ownership and mean annuitizat
 Specification & $n_W \times n_A$ & Nodes & Ownership (\%) & $\bar{\alpha}$ \\
 \midrule
 \multicolumn{5}{l}{\textit{Panel A: Grid convergence (9-node GH)}} \\
-Medium & $60 \times 20$ & 9 & 27.10 & 0.0820 \\
-\textbf{Production} & $\mathbf{80 \times 30}$ & \textbf{9} & \textbf{25.47} & \textbf{0.0718} \\
-Fine & $100 \times 40$ & 9 & 24.30 & 0.0680 \\
-Very fine & $120 \times 50$ & 9 & 24.23 & 0.0676 \\
+Medium & $60 \times 20$ & 9 & 21.06 & 0.0542 \\
+\textbf{Production} & $\mathbf{80 \times 30}$ & \textbf{9} & \textbf{20.01} & \textbf{0.0485} \\
+Fine & $100 \times 40$ & 9 & 20.80 & 0.0510 \\
+Very fine & $120 \times 50$ & 9 & 21.02 & 0.0526 \\
 \midrule
 \multicolumn{5}{l}{\textit{Panel B: Quadrature convergence ($80 \times 30$ grid)}} \\
- & $80 \times 30$ & 3 & 26.39 & 0.0664 \\
- & $80 \times 30$ & 5 & 28.16 & 0.0833 \\
- & $80 \times 30$ & 7 & 26.28 & 0.0711 \\
- & $80 \times 30$ & \textbf{9} & \textbf{25.47} & \textbf{0.0718} \\
- & $80 \times 30$ & 11 & 25.75 & 0.0769 \\
- & $80 \times 30$ & 13 & 25.65 & 0.0784 \\
- & $80 \times 30$ & 15 & 25.47 & 0.0784 \\
+ & $80 \times 30$ & 3 & 17.95 & 0.0416 \\
+ & $80 \times 30$ & 5 & 20.67 & 0.0510 \\
+ & $80 \times 30$ & 7 & 19.22 & 0.0442 \\
+ & $80 \times 30$ & \textbf{9} & \textbf{20.01} & \textbf{0.0485} \\
+ & $80 \times 30$ & 11 & 20.49 & 0.0518 \\
+ & $80 \times 30$ & 13 & 21.06 & 0.0535 \\
+ & $80 \times 30$ & 15 & 21.24 & 0.0545 \\
 \midrule
 \multicolumn{5}{l}{\textit{Panel C: Reference}} \\
- & $120 \times 50$ & 11 & 24.26 & 0.0712 \\
+ & $120 \times 50$ & 11 & 21.41 & 0.0551 \\
 \bottomrule
 \end{tabular}
 \begin{tablenotes}
@@ -231,11 +231,11 @@ Very fine & $120 \times 50$ & 9 & 24.23 & 0.0676 \\
 \end{threeparttable}
 \end{table}
 
-Ownership rates in this table differ from the headline result of \ownTenChannelFull{} because convergence tests use mean Social Security income across all quartiles (\$19,000/year) rather than the per-quartile assignment used in the production decomposition. The convergence properties---stability across grid resolutions and quadrature node counts---are unaffected by this simplification.
+Ownership rates in this table differ from the headline result of \ownNineChannelFull{} because convergence tests use mean Social Security income across all quartiles (\$19,000/year) rather than the per-quartile assignment used in the production decomposition. The convergence properties---stability across grid resolutions and quadrature node counts---are unaffected by this simplification.
 
-Panel A shows that grid convergence is monotone: ownership decreases from 27.1\% at $60 \times 20$ to 24.2\% at $120 \times 50$, with the change between the two finest grids ($100 \times 40$ to $120 \times 50$) being only 0.07 pp. The production resolution ($80 \times 30$) is biased upward by approximately 1.2 pp relative to the most refined grid. Panel B shows that quadrature convergence is tight from 9 nodes onward: ownership at $n_{\text{quad}} \in \{9, 11, 13, 15\}$ is 25.47\%, 25.75\%, 25.65\%, and 25.47\%, a range of 0.28 pp. Lower-order rules ($n_{\text{quad}} \leq 7$) deviate by up to 2.7 pp because the lognormal medical expense distribution ($\sigma \approx 1.4$) has heavy right tails that interact with the Medicaid floor; insufficient tail resolution at low orders shifts marginal households across the discrete ownership threshold ($\alpha^* > 0$).
+Panel A shows that grid convergence is tight: ownership ranges from 20.0\% at the production $80 \times 30$ grid to 21.0\% at $120 \times 50$, with the change between the two finest grids ($100 \times 40$ to $120 \times 50$) being 0.2 pp. The production resolution is biased downward by approximately 1.0 pp relative to the most refined grid. Panel B shows that quadrature convergence improves steadily with node count: ownership at $n_{\text{quad}} \in \{9, 11, 13, 15\}$ is 20.0\%, 20.5\%, 21.1\%, and 21.2\%, rising within a 1.2 pp band. Lower-order rules ($n_{\text{quad}} \leq 7$) deviate by up to 2 pp because the lognormal medical expense distribution ($\sigma \approx 1.4$) has heavy right tails that interact with the Medicaid floor; insufficient tail resolution at low orders shifts marginal households across the discrete ownership threshold ($\alpha^* > 0$).
 
-Nine-node Gauss--Hermite is adopted as the production standard because it is the smallest order at which quadrature convergence is tight (within 0.3 pp of the n=15 result). The reference specification (Panel C: $120 \times 50$ grid, 11-node GH) gives 24.26\%, 1.21 pp below the production point. The total numerical uncertainty---combining grid coarseness and quadrature error---is therefore approximately 1.2 pp, modest relative to the Shapley channel contributions (the smallest substantive channel has a Shapley value of 2.2 pp). The qualitative ranking of channels is stable across all grid and quadrature specifications tested.
+Nine-node Gauss--Hermite is adopted as the production standard as a balance between accuracy and computational cost. The reference specification (Panel C: $120 \times 50$ grid, 11-node GH) gives 21.4\%, about 1.4 pp above the production point. The total numerical uncertainty---combining grid coarseness and quadrature error---is therefore approximately 1.4 pp on this mean-SS diagnostic. The qualitative ranking of channels is stable across all grid and quadrature specifications tested, which is the property the paper's conclusions rely on.
 
 
 %% ================================================================
@@ -341,12 +341,12 @@ Category & Specification & Ownership (\%) \\
 \multicolumn{3}{l}{\textit{Money's worth ratio}} \\
  & MWR = 0.82               & \ownMWREightyTwoNum \\  % ALLOWLIST: sensitivity-table row showing prediction at a 0.82 load
  & MWR = 0.85               & \ownMWREightyFiveNum \\
- & MWR = \pMwrBaseline{} (baseline) & \ownTenChannelFullNum \\
+ & MWR = \pMwrBaseline{} (baseline) & \ownNineChannelFullNum \\
  & MWR = 0.90               & \ownMWRNinetyNum \\
  & MWR = 0.95               & \ownMWRNinetyFiveNum \\[4pt]
 \multicolumn{3}{l}{\textit{Hazard multipliers $[\mu_G, \mu_F, \mu_P]$}} \\
  & R--S functional $[0.45, 1.0, 3.5]$ & \ownHazardRSNum \\
- & Baseline $[\pHazardGood, \pHazardFair, \pHazardPoor]$ & \ownTenChannelFullNum \\
+ & Baseline $[\pHazardGood, \pHazardFair, \pHazardPoor]$ & \ownNineChannelFullNum \\
  & HRS SRH $[0.57, 1.0, 2.7]$ & \ownHazardHRSNum \\
  & Conservative $[0.60, 1.0, 2.0]$ & \ownHazardConservativeNum \\[4pt]
 \multicolumn{3}{l}{\textit{Inflation ($\pi$)}} \\
@@ -379,27 +379,18 @@ Category & Specification & Ownership (\%) \\
 \midrule
 \multicolumn{3}{l}{\textit{Bequest specification}} \\
  & No bequest ($\theta = 0$) & \ownBequestNoneNum \\
- & DFJ luxury (baseline) & \ownTenChannelFullNum \\[4pt]
+ & DFJ luxury (baseline) & \ownNineChannelFullNum \\[4pt]
 \multicolumn{3}{l}{\textit{Minimum purchase}} \\
- & \$0 & 22.0 \\
- & \$1,000 & 22.0 \\
- & \$5,000 & 22.0 \\
- & \pFixedCost{} (baseline) & 22.0 \\
- & \$25,000 & 22.0 \\[4pt]
-\multicolumn{3}{l}{\textit{Grid convergence}} \\
- & Coarse ($40 \times 15$) & 29.6 \\
- & Medium ($60 \times 20$) & 25.6 \\
- & Production ($\pNWealth \times \pNAnnuity$) & \ownTenChannelFullNum \\
- & Fine ($100 \times 40$) & 23.6 \\[4pt]
-\multicolumn{3}{l}{\textit{Quadrature}} \\
- & 5-node GH & 24.1 \\
- & 7-node GH & 22.8 \\
- & \pNQuad-node GH (production) & \ownTenChannelFullNum \\
+ & \$0 & \ownNineChannelFullNum \\
+ & \$1,000 & \ownNineChannelFullNum \\
+ & \$5,000 & \ownNineChannelFullNum \\
+ & \pFixedCost{} (baseline) & \ownNineChannelFullNum \\
+ & \$25,000 & \ownNineChannelFullNum \\
 \bottomrule
 \end{tabular}
 \begin{tablenotes}
 \small
-\item Notes as in Table~\ref{tab:full_robustness}.
+\item Notes as in Table~\ref{tab:full_robustness}. Predicted ownership is invariant to the minimum-purchase threshold because model owners are concentrated at high wealth and purchase annuity premiums well above \$25{,}000, so the floor never binds (in contrast to the binding \$25{,}000 minimum in the Pashchenko comparison, Table~\ref{tab:pashchenko}). Grid and quadrature convergence are reported separately in Table~\ref{tab:grid_convergence}.
 \end{tablenotes}
 \end{threeparttable}
 \end{table}
@@ -454,7 +445,7 @@ For each draw, the model is solved repeatedly via bisection over $\gamma$ until 
 
 \input{../tables/tex/implied_gamma.tex}
 
-The median implied $\gamma$ of 2.77 sits inside the upper half of the \citet{chetty2006} range of 1--3, with an interquartile range of [2.19, 4.55] and 57\% of draws falling inside the Chetty interval (n = 300, all converged). The wide spread reflects the substantial sensitivity of predicted ownership to the nuisance parameters: the six-channel rational model can match Lockwood's reported 3.6\% rate only across a wide $\gamma$ range that includes values somewhat above empirically plausible bounds, and the precise $\gamma$ required is highly sensitive to assumptions about mortality, inflation, and pricing. This is informative about the limits of $\gamma$-tuning as an alternative to the channel structure adopted in the body of the paper. Adding the two preference channels brings the baseline-$\gamma$ prediction to \ownEightChannelExt{} and the structural public-care aversion channel yields the nine-channel structural baseline of \ownNineChannelLTC{} (the disciplined reading).
+The median implied $\gamma$ of 2.44 sits inside the \citet{chetty2006} range of 1--3, with an interquartile range of [2.36, 2.54] and all 300 converged draws falling inside the Chetty interval. The implied-$\gamma$ distribution is tight (minimum 2.20, maximum 2.74), so matching Lockwood's reported 3.6\% rate requires a $\gamma$ close to the baseline $\gamma = \pGamma$ rather than an implausible value. This is reassuring about the channel structure adopted in the body of the paper: the baseline risk aversion is consistent with the ownership rate Lockwood reports, without recourse to extreme preferences. Adding the two preference channels brings the baseline-$\gamma$ prediction to \ownEightChannelExt{} and the structural public-care aversion channel yields the nine-channel structural baseline of \ownNineChannelLTC{} (the disciplined reading).
 
 For each draw, the full model is solved by backward induction on the production grid ($60 \times 20 \times 51$) and ownership is evaluated on the HRS population sample. The 300 bisection searches (each requiring 8--12 solves) are parallelized across available CPU cores.
 
@@ -491,7 +482,7 @@ At $t = 1$, the optimal annuitization fraction $\alpha^*$ is found by grid searc
 
 \subsection{Population evaluation}
 
-Ownership is evaluated on a population of HRS individuals with observed initial wealth, permanent income, age, and self-reported health. For each individual, the optimal $\alpha^*$ is computed at their specific $(W_0, y, H_0)$. Ownership is defined as $\alpha^* > 0$. The ownership rate is the fraction of the eligible population (wealth $\geq$ \pMinWealth) that annuitizes any positive amount. The wealth grid extends to \pWMaxMillions, covering the 99.5th percentile of the HRS wealth distribution. Individuals above the grid maximum (\pctHRSAboveWmax{} of the sample) are excluded rather than extrapolated.
+Ownership is evaluated on a population of HRS individuals with observed initial wealth, permanent income, age, and self-reported health. For each individual, the optimal $\alpha^*$ is computed at their specific $(W_0, y, H_0)$. Ownership is defined as $\alpha^* > 0$. The ownership rate is the fraction of the eligible population (wealth $\geq$ \pMinWealth) that annuitizes any positive amount. The wealth grid extends to \pWMaxMillions, covering the 99.5th percentile of the HRS wealth distribution. Individuals above the grid maximum (\pctHRSAboveWmax{} of the sample) are capped at the grid maximum and evaluated at the cap, rather than extrapolated beyond it.
 
 \subsection{Computational performance}
 
@@ -512,7 +503,7 @@ where $W' = (1+r)(\text{cash} - c^*)$ and the expectation is over the medical ex
 
 The normalized Euler residual at each grid point is $|u'(c^*) - \text{RHS}| / |u'(c^*)|$. Corner solutions ($c^* = \underline{c}$ or $c^* = \text{cash}$) are excluded, as the Euler equation holds with inequality at boundaries.
 
-Table~\ref{tab:euler} reports summary statistics. The median residual is zero: most interior grid points satisfy the Euler equation exactly. The mean residual is 1.4\%, with approximately 10\% of grid points exceeding 1\% and 6\% exceeding 5\%. The large maximum residuals ($\approx 0.99$) occur at low-wealth states where the finite-difference derivative of the piecewise-linear value function is a poor approximation to the true marginal value. Grid convergence is visible: the fraction of points above 1\% declines from 10.9\% at $40 \times 15$ to 9.9\% at $100 \times 40$.
+Table~\ref{tab:euler} reports summary statistics. The median residual is zero: most interior grid points satisfy the Euler equation exactly. The mean residual is 0.5\%, with approximately 4.8\% of grid points exceeding 1\% and 2.4\% exceeding 5\%. The large maximum residuals ($\approx 0.99$) occur at low-wealth states where the finite-difference derivative of the piecewise-linear value function is a poor approximation to the true marginal value. Grid convergence is visible: the fraction of points above 1\% declines from 5.3\% at $40 \times 15$ to 4.7\% at $100 \times 40$.
 
 \begin{table}[htbp]
 \centering
@@ -524,16 +515,16 @@ Table~\ref{tab:euler} reports summary statistics. The median residual is zero: m
 Specification & Mean & Median & \% ${>} 1\%$ & \% ${>} 5\%$ \\
 \midrule
 \multicolumn{5}{l}{\textit{Grid convergence (9-node GH)}} \\
-$40 \times 15$ & 0.014 & 0.000 & 10.9 & 6.3 \\
-$60 \times 20$ & 0.014 & 0.000 & 10.3 & 6.1 \\
-$80 \times 30$ (production) & 0.014 & 0.000 & 10.1 & 6.0 \\
-$100 \times 40$ & 0.014 & 0.000 & 9.9 & 5.9 \\
+$40 \times 15$ & 0.006 & 0.000 & 5.3 & 2.6 \\
+$60 \times 20$ & 0.006 & 0.000 & 4.9 & 2.5 \\
+$80 \times 30$ (production) & 0.005 & 0.000 & 4.8 & 2.4 \\
+$100 \times 40$ & 0.005 & 0.000 & 4.7 & 2.4 \\
 \midrule
 \multicolumn{5}{l}{\textit{Quadrature sensitivity ($80 \times 30$ grid)}} \\
-5-node GH & 0.013 & 0.000 & 8.8 & 5.0 \\
-7-node GH & 0.014 & 0.000 & 9.6 & 5.6 \\
-9-node GH & 0.014 & 0.000 & 10.1 & 6.0 \\
-11-node GH & 0.014 & 0.000 & 10.5 & 6.2 \\
+5-node GH & 0.005 & 0.000 & 4.2 & 2.1 \\
+7-node GH & 0.005 & 0.000 & 4.6 & 2.3 \\
+9-node GH & 0.005 & 0.000 & 4.8 & 2.4 \\
+11-node GH & 0.005 & 0.000 & 5.0 & 2.5 \\
 \bottomrule
 \end{tabular}
 \begin{tablenotes}
@@ -543,7 +534,7 @@ $100 \times 40$ & 0.014 & 0.000 & 9.9 & 5.9 \\
 \end{threeparttable}
 \end{table}
 
-The use of piecewise-linear interpolation means derivatives are discontinuous at grid points, which introduces a floor on residual accuracy. The 6\% of points with residuals above 5\% are concentrated at low wealth levels where the value function has high curvature and the linear approximation is poorest. Switching to cubic spline interpolation would reduce these residuals at the cost of potential Runge-type oscillations at low wealth. The grid convergence results in Section~\ref{app:grid_convergence} provide a complementary accuracy check: stable ownership predictions across grid resolutions confirm that the policy function is resolved by the production grid. The exact Shapley decomposition, which evaluates all $2{,}048$ channel subsets (the eleven-channel cooperative game, with the nine-channel structural subset reported as the disciplined headline) on the same production grid, implicitly provides a further robustness check: if the solver were unreliable, the $1{,}024$ ownership evaluations would not produce the internally consistent attribution hierarchy reported in Section~\ref{M-sec:shapley}.
+The use of piecewise-linear interpolation means derivatives are discontinuous at grid points, which introduces a floor on residual accuracy. The 2.4\% of points with residuals above 5\% are concentrated at low wealth levels where the value function has high curvature and the linear approximation is poorest. Switching to cubic spline interpolation would reduce these residuals at the cost of potential Runge-type oscillations at low wealth. The grid convergence results in Section~\ref{app:grid_convergence} provide a complementary accuracy check: stable ownership predictions across grid resolutions confirm that the policy function is resolved by the production grid. The exact Shapley decomposition, which evaluates all $2{,}048$ channel subsets (the eleven-channel cooperative game, with the nine-channel structural subset reported as the disciplined headline) on the same production grid, implicitly provides a further robustness check: if the solver were unreliable, the $1{,}024$ ownership evaluations would not produce the internally consistent attribution hierarchy reported in Section~\ref{M-sec:shapley}.
 
 
 \bibliographystyle{aer}

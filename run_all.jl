@@ -278,6 +278,22 @@ function main()
         joinpath(SCRIPTS_DIR, "run_state_utility_sensitivity.jl"); parallel=true)
     push!(timings, "State-util sensitivity" => t)
 
+    # --- Stage 14c: Grid and quadrature convergence diagnostics ---
+    # Produces: tables/csv/convergence_diagnostics.csv (mean-SS diagnostic
+    # basis). Backs the grid/quadrature convergence table in the appendix.
+    t = run_stage(
+        "14c. Grid and Quadrature Convergence Diagnostics",
+        joinpath(SCRIPTS_DIR, "grid_convergence_full.jl"); parallel=true)
+    push!(timings, "Convergence diagnostics" => t)
+
+    # --- Stage 14d: Euler equation residual diagnostics ---
+    # Produces: tables/csv/euler_residuals.csv. Backs the Euler-residual
+    # table in the appendix (solver-accuracy check).
+    t = run_stage(
+        "14d. Euler Equation Residual Diagnostics",
+        joinpath(SCRIPTS_DIR, "run_euler_diagnostics.jl"); parallel=true)
+    push!(timings, "Euler diagnostics" => t)
+
     # --- Stage 15: Export manuscript numbers (must run AFTER all CSVs exist) ---
     # Produces: paper/numbers.tex — single source of truth for every numeric
     # literal cited in main.tex, appendix.tex, and cover_letter.tex. All three

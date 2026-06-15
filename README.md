@@ -76,6 +76,12 @@ julia --project=. run_all.jl
 `run_all.jl` runs the test suite first by default; pass `--skip-tests` for
 faster iteration during development (NEVER for production).
 
+To run only the tests, use `julia --project=. test/runtests.jl` (the canonical
+test runner). The project is intentionally not configured as a package for
+`Pkg.test()`: each test file is `include`d in a separate process to avoid the
+module re-definition conflicts that the codebase's include-based loading would
+otherwise produce.
+
 ## Runtime
 
 The full pipeline takes approximately 3 hours on a 192-vCPU AWS c7a.48xlarge
