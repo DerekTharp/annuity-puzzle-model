@@ -68,7 +68,7 @@ using TOML
     # When nothing, uses constant hazard_mult vector (backward compatible).
     hazard_mult_by_age::Union{Nothing, Matrix{Float64}} = nothing
     hazard_mult_age_midpoints::Union{Nothing, Vector{Float64}} = nothing
-    survival_pessimism::Float64 = 1.0     # 1.0 = objective; 0.981 = O'Dea & Sturrock (2023) 15pp gap at 10yr
+    survival_pessimism::Float64 = 1.0     # 1.0 = objective; production 0.96 (Heimer/Payne); 0.981 = O'Dea-Sturrock 10yr gap
     n_quad::Int = 9                       # Gauss-Hermite quadrature nodes
 
     # Grids

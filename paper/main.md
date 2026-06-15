@@ -108,7 +108,7 @@ The model allows the agent’s subjective survival probabilities to differ from 
 s^{\text{subj}}(t, H) = \psi \cdot s(t, H), \quad \psi \in (0, 1].
 \end{equation}
 ```
-The parameter $`\psi`$ scales each one-year survival probability downward. The annuity is priced using the objective survival rates $`s(t, H)`$; only the agent’s Bellman equation uses $`s^{\text{subj}}`$. A per-year factor of $`\psi = 0.960`$ matches the O’Dea–Sturrock finding: over a 10-year horizon, $`(0.71/0.86)^{1/10} \approx 0.960`$. When $`\psi = 1`$, beliefs are objective and this channel is inactive.
+The parameter $`\psi`$ scales each one-year survival probability downward. The annuity is priced using the objective survival rates $`s(t, H)`$; only the agent’s Bellman equation uses $`s^{\text{subj}}`$. A per-year factor of $`\psi = 0.960`$ implies subjective 10-year survival of $`\psi^{10} \approx 0.66`$ times the objective rate, a degree of pessimism consistent with the survival-underestimation evidence of Heimer et al. (2019), Payne et al. (2013), and O’Dea and Sturrock (2023). It is somewhat stronger than the mild per-year discount the O’Dea–Sturrock 10-year ratio implies on its own ($`(0.71/0.86)^{1/10} \approx 0.98`$); Section <a href="#sec:robustness" data-reference-type="ref" data-reference="sec:robustness">5</a> reports sensitivity across $`\psi`$, including that value. When $`\psi = 1`$, beliefs are objective and this channel is inactive.
 
 ### Medical expenditures
 
@@ -1305,6 +1305,12 @@ Finkelstein, Amy, Erzo F. P. Luttmer, and Matthew J. Notowidigdo. 2013. “What 
 
 </div>
 
+<div id="ref-heimer2019" class="csl-entry">
+
+Heimer, Rawley Z., Kristian Ove R. Myrseth, and Raphael S. Schoenle. 2019. “YOLO: Mortality Beliefs and Household Finance Puzzles.” *The Journal of Finance* 74 (6): 2957–96. <https://doi.org/10.1111/jofi.12828>.
+
+</div>
+
 <div id="ref-huscott2007" class="csl-entry">
 
 Hu, Wei-Yin, and Jason S. Scott. 2007. “Behavioral Obstacles in the Annuity Market.” *Financial Analysts Journal* 63 (6): 71–82.
@@ -1356,6 +1362,12 @@ O’Dea, Cormac, and David Sturrock. 2023. “Survival Pessimism and the Demand 
 <div id="ref-pashchenko2013" class="csl-entry">
 
 Pashchenko, Svetlana. 2013. “Accounting for Non-Annuitization.” *Journal of Public Economics* 98: 53–67. <https://doi.org/10.1016/j.jpubeco.2012.11.005>.
+
+</div>
+
+<div id="ref-payne2013" class="csl-entry">
+
+Payne, John W., Namika Sagara, Suzanne B. Shu, Kirstin C. Appelt, and Eric J. Johnson. 2013. “Life Expectancy as a Constructed Belief: Evidence of a Live-to or Die-by Framing Effect.” *Journal of Risk and Uncertainty* 46 (1): 27–50. <https://doi.org/10.1007/s11166-012-9158-0>.
 
 </div>
 

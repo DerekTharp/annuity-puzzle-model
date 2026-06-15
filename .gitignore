@@ -1,3 +1,7 @@
+# Local run logs and the regenerable external-review bundle (not archived)
+logs/
+review_bundle/
+
 # Raw HRS data (restricted-use, large files)
 # Use glob form (data/raw/*) instead of bare directory (data/raw/) so the
 # negation below for README.md works (git ignores file negations inside

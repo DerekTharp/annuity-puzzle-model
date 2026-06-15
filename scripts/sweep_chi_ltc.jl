@@ -25,8 +25,8 @@ end
 
 include(joinpath(@__DIR__, "config.jl"))
 
-# chi_LTC values to sweep. 1.0 = channel off (reference); 0.70 = current
-# production; 0.49 = honest Ameriks (2011) C_PC / C_f ratio.
+# chi_LTC values to sweep. 1.0 = channel off (reference); 0.49 = current
+# production (Ameriks 2011 C_PC / C_f ratio); 0.70 = prior production value.
 const CHI_LTC_GRID = [1.0, 0.85, 0.70, 0.60, 0.49, 0.40]
 
 println("=" ^ 70)
@@ -138,8 +138,8 @@ println("=" ^ 70)
 
 own_by_chi = Dict(r.chi_ltc => r.ownership for r in results)
 if haskey(own_by_chi, 0.70) && haskey(own_by_chi, 0.49)
-    @printf("  Production (chi_LTC=0.70):        %.2f%%\n", own_by_chi[0.70] * 100)
-    @printf("  Honest Ameriks 2011 (chi_LTC=0.49): %.2f%%\n", own_by_chi[0.49] * 100)
+    @printf("  Prior value (chi_LTC=0.70):         %.2f%%\n", own_by_chi[0.70] * 100)
+    @printf("  Production (chi_LTC=0.49):          %.2f%%\n", own_by_chi[0.49] * 100)
     @printf("  Recalibration shift:              %+.2f pp\n",
             (own_by_chi[0.49] - own_by_chi[0.70]) * 100)
 end
