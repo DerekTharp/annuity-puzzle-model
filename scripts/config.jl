@@ -115,7 +115,7 @@ const PSI_PURCHASE_C_REF = 18_000.0
 #
 # chi_LTC is a flow-utility transformation of the public-care-aversion evidence,
 # not a parameter Ameriks et al. report directly; 0.49 is a calibration choice
-# within that evidence (the manuscript appendix documents the derivation).
+# within that evidence, expressed as a flow-utility transformation.
 # 1.0 = channel off.
 const CHI_LTC = 0.49
 
