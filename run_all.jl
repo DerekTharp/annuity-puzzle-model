@@ -375,7 +375,9 @@ function main()
         "bequest_recalibration.tex",
         "cev_counterfactuals.tex",
         "dia_comparison.tex",
+        "euler_residuals_table.tex",  # Stage 14e output; appendix \input
         "extension_path.tex",
+        "grid_convergence.tex",       # Stage 14e output; appendix \input
         "implied_gamma.tex",
         "moment_validation.tex",
         "monte_carlo_summary.tex",  # Stage 13c output; appendix \input
