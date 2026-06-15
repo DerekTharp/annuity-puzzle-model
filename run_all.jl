@@ -294,6 +294,15 @@ function main()
         joinpath(SCRIPTS_DIR, "run_euler_diagnostics.jl"); parallel=true)
     push!(timings, "Euler diagnostics" => t)
 
+    # --- Stage 14e: Render diagnostic tables from CSVs ---
+    # Produces: tables/tex/grid_convergence.tex, euler_residuals_table.tex from
+    # the Stage 14c/14d CSVs, so the appendix \input's reproducible tables rather
+    # than hand-typed values.
+    t = run_stage(
+        "14e. Render Diagnostic Tables (grid convergence, Euler)",
+        joinpath(SCRIPTS_DIR, "emit_diagnostic_tables.jl"))
+    push!(timings, "Diagnostic tables" => t)
+
     # --- Stage 15: Export manuscript numbers (must run AFTER all CSVs exist) ---
     # Produces: paper/numbers.tex — single source of truth for every numeric
     # literal cited in main.tex, appendix.tex, and cover_letter.tex. All three

@@ -740,6 +740,57 @@ function build_macros!()
         def!("mgPessGammaThree",   fmt_pct(mg("Survival pessimism", 8); digits=1))
     end
 
+    # Grid/quadrature convergence summary stats for prose (mean-SS diagnostic).
+    let crows = read_csv("convergence_diagnostics.csv")[1]
+        cg(spec) = begin
+            for r in eachrow(crows)
+                strip(string(r[1])) == "Grid (9-node)" && occursin(spec, string(r[2])) && return Float64(r[3])
+            end
+            error("conv grid $spec")
+        end
+        cq(n) = begin
+            for r in eachrow(crows)
+                strip(string(r[1])) == "Quadrature" && occursin("n_quad=$n", string(r[2])) && return Float64(r[3])
+            end
+            error("conv quad $n")
+        end
+        cref = begin
+            v = 0.0
+            for r in eachrow(crows); strip(string(r[1])) == "Reference" && (v = Float64(r[3])); end
+            v
+        end
+        prod, med, fine, vfine = cg("80x30"), cg("60x20"), cg("100x40"), cg("120x50")
+        def!("gridConvProd",     fmt_pct(prod; digits=1))
+        def!("gridConvMed",      fmt_pct(med; digits=1))
+        def!("gridConvFine",     fmt_pct(fine; digits=1))
+        def!("gridConvVeryFine", fmt_pct(vfine; digits=1))
+        def!("gridConvRef",      fmt_pct(cref; digits=1))
+        def!("gridConvFineStep", fmt_num(abs(vfine - fine); digits=1))
+        def!("gridConvBias",     fmt_num(abs(vfine - prod); digits=1))
+        def!("gridConvTotalUnc", fmt_num(abs(cref - prod); digits=1))
+        def!("quadThree",    fmt_pct(cq(3); digits=1))
+        def!("quadNine",     fmt_pct(cq(9); digits=1))
+        def!("quadEleven",   fmt_pct(cq(11); digits=1))
+        def!("quadThirteen", fmt_pct(cq(13); digits=1))
+        def!("quadFifteen",  fmt_pct(cq(15); digits=1))
+        def!("quadBand",     fmt_num(cq(15) - cq(9); digits=1))
+    end
+
+    # Euler-residual summary stats for prose.
+    let erows = read_csv("euler_residuals.csv")[1]
+        eb(label, col) = begin
+            for r in eachrow(erows)
+                strip(string(r[1])) == label && return Float64(r[col])
+            end
+            error("euler $label")
+        end
+        def!("eulerMeanPct",      fmt_pct(eb("Baseline 80x30 (9-node)", 3) * 100; digits=1))
+        def!("eulerPctAboveOne",  fmt_pct(eb("Baseline 80x30 (9-node)", 5); digits=1))
+        def!("eulerPctAboveFive", fmt_pct(eb("Baseline 80x30 (9-node)", 6); digits=1))
+        def!("eulerPctOneCoarse", fmt_pct(eb("Grid 40x15 (9-node)", 5); digits=1))
+        def!("eulerPctOneFine",   fmt_pct(eb("Grid 100x40 (9-node)", 5); digits=1))
+    end
+
     # Inflation is reported via the combined Gamma×Inflation sweep
     for (key, spec) in [
         ("One",   "g=2.5,pi=1%"),

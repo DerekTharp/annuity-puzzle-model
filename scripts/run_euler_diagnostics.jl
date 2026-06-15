@@ -88,7 +88,7 @@ end
 # --- 3. Quadrature sensitivity ---
 println("\n--- QUADRATURE SENSITIVITY ---"); flush(stdout)
 for nq in [5, 7, 11]
-    label = @sprintf("80x30, %d-node GH", nq)
+    label = @sprintf("80x30 %d-node GH", nq)
     run_euler_check(label, base_surv, ss_func; n_quad=nq)
 end
 
