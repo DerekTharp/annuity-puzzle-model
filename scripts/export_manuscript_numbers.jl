@@ -386,7 +386,7 @@ function build_macros!()
     # Hazard multipliers [G, F, P]
     def!("pHazardGood",         fmt_num(HAZARD_MULT[1]; digits=2))
     def!("pHazardFair",         fmt_num(HAZARD_MULT[2]; digits=1))
-    def!("pHazardPoor",         fmt_num(HAZARD_MULT[3]; digits=1))
+    def!("pHazardPoor",         fmt_num(HAZARD_MULT[3]; digits=2))
 
     # Survival pessimism
     def!("pPessimism",          fmt_num(SURVIVAL_PESSIMISM; digits=3))
@@ -865,7 +865,8 @@ function build_macros!()
     fln = state_utility_sensitivity("FLN")
     rs  = state_utility_sensitivity("ReichlingSmetters")
 
-    # Raw FLN central mapping (the production calibration)
+    # FLN raw endpoint [1, 0.90, 0.75]: state-utility sensitivity lower bound.
+    # The production calibration is the FLN central midpoint (ownEightChannelExt).
     def!("ownNineChannelFLN",  fmt_pct(fln.ownership_pct; digits=1))
 
     # Reichling-Smetters softer mapping (robustness case)

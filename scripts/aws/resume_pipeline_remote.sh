@@ -69,6 +69,15 @@ run_stage "12. Robustness and Sensitivity Analysis" scripts/run_robustness.jl pa
 # Stage 14b — state-dependent utility sensitivity
 [ "$OVERALL_RC" = "0" ] && { run_stage "14b. State-dependent Utility Sensitivity" scripts/run_state_utility_sensitivity.jl || OVERALL_RC=$?; }
 
+# Stage 14c — grid and quadrature convergence diagnostics (writes convergence_diagnostics.csv)
+[ "$OVERALL_RC" = "0" ] && { run_stage "14c. Grid and Quadrature Convergence Diagnostics" scripts/grid_convergence_full.jl parallel || OVERALL_RC=$?; }
+
+# Stage 14d — Euler equation residual diagnostics (writes euler_residuals.csv)
+[ "$OVERALL_RC" = "0" ] && { run_stage "14d. Euler Equation Residual Diagnostics" scripts/run_euler_diagnostics.jl parallel || OVERALL_RC=$?; }
+
+# Stage 14e — render diagnostic tables from the 14c/14d CSVs
+[ "$OVERALL_RC" = "0" ] && { run_stage "14e. Render Diagnostic Tables (grid convergence, Euler)" scripts/emit_diagnostic_tables.jl || OVERALL_RC=$?; }
+
 # Stage 15 — export manuscript numbers
 [ "$OVERALL_RC" = "0" ] && { run_stage "15. Export Manuscript Numbers" scripts/export_manuscript_numbers.jl || OVERALL_RC=$?; }
 

@@ -1,21 +1,4 @@
-# Quantifying the Annuity Puzzle: A Unified Lifecycle Decomposition
-
-**Derek Tharp** — Department of Accounting \& Finance, University of Southern Maine. Email: derek.tharp@maine.edu
-
-## Abstract
-
-Yaari (1965) showed that a consumer with uncertain lifetime and no bequest motive should fully annuitize under actuarially fair pricing; observed voluntary ownership among US retirees is only a few percent. Six decades of research proposed competing “dominant” explanations—bequests, correlated health and mortality risk, pricing loads—but the sequential decompositions used to adjudicate them are order-dependent, so the answer has depended on which channel is introduced first. I nest nine rational and preference channels in a calibrated lifecycle model and attribute the annuity-demand gap with exact Shapley values over all $`2^{9} = 512`$ channel orderings.
-
-The order-independent ranking is the paper’s central result. Pricing loads are the dominant suppressor of annuity demand (31.4 pp), with subjective survival pessimism (10.9 pp) and the combined medical-expenditure and Reichling–Smetters health-mortality channel (9.4 pp) as the co-leading second tier. Bequest motives, the most-cited explanation in the literature, land mid-pack (5.8 pp). Social Security enters with a large negative value ($`-21.1`$ pp): pre-existing public annuitization is the single largest force in the game and raises private demand at the margin by supplying an income floor. The ranking is stable where the level is not. Predicted ownership is knife-edged in risk aversion, moving from 0.0% to 21.9% across $`\gamma \in [2.0, 3.0]`$, yet pricing loads remain the top suppressor at all 5 values of $`\gamma`$ and in every wealth quartile, and the ranking is unchanged under the discontinuous ownership indicator and the continuous mean-purchase statistic (suppressor rank correlation 1.00).
-
-The exercise reframes the puzzle as distributional. Predicted ownership concentrates entirely in the top wealth quartile (33.5%, versus 0.0% below it). The bottom half is rationally excluded by pre-existing annuitization, the minimum-purchase floor, and precautionary liquidity held against the Medicaid consumption floor. A 23% Social Security cut, approximating the projected OASI shortfall on trust-fund depletion in 2033, raises private demand only among the wealthy who least need the substitution, while the households the cut most exposes cannot respond at all. In HRS cross-sections the resource-side channels reproduce the ownership patterns they predict (5 of 7 predicted signs). The disciplined nine-channel baseline predicts ownership of 7.9%, modestly above the two HRS measures (3.11% lifetime-contract, 5.21% any-annuity proxy). Two exploratory behavioral channels are reported in an appendix.
-
-*JEL Codes:* D14, D15, D91, G22, H55, J14  
-*Keywords:* annuity puzzle, lifecycle model, Shapley decomposition, stochastic mortality, age-varying consumption needs
-
----
-
-## Introduction
+# Introduction
 
 Yaari (1965) established one of the sharpest predictions in consumer theory: an individual facing uncertain lifetime, with no bequest motive and access to actuarially fair annuities, should convert all wealth into a life annuity. The mortality credit, the return premium financed by redistributing wealth from decedents to survivors, dominates any asset with the same underlying return. Davidoff et al. (2005) extended this result to incomplete markets, showing that partial annuitization remains optimal under a wide range of conditions. Yet observed voluntary annuity ownership among single US retirees aged 65–69 is only a few percent: $`3.11\%`$ on the cleaner HRS lifetime annuity contract indicator (q286 series) and $`5.21\%`$ on the conventional any-annuity income proxy used in prior literature (Lockwood 2012; Dushi and Webb 2004; Poterba et al. 2011).[^3] A companion survey (Tharp 2025) argues that the accumulated evidence from six decades of research substantially accounts for low aggregate annuity demand, but identifies the absence of a unified structural model incorporating all empirically relevant channels as the gap preventing a unified quantitative resolution. This paper supplies that model.
 
@@ -23,7 +6,7 @@ Six decades of research proposed partial explanations for this gap, and the stan
 
 This paper nests nine rational and preference channels in a single calibrated lifecycle model—pre-existing Social Security annuitization, bequest motives, combined medical-expenditure risk and the Reichling and Smetters (2015) health-mortality correlation, subjective survival pessimism (O’Dea and Sturrock 2023), pricing loads, inflation erosion, public-care aversion (Ameriks et al. 2011, 2020), age-varying consumption needs (Aguiar and Hurst 2013), and state-dependent utility (Finkelstein et al. 2013)—and attributes the annuity-demand gap with exact Shapley values computed over all $`2^{9} = 512`$ channel subsets. The Shapley value averages each channel’s marginal contribution across every entry order, so the attribution is order-independent by construction. Where a sequential decomposition reports one of many possible rankings, the Shapley reports a unique attribution given the channel partition and outcome statistic.
 
-Within this game, the ranking is clear. Pricing loads are the dominant suppressor, contributing 31.4 percentage points of the total demand reduction. Subjective survival pessimism (10.9 pp) and the combined medical and Reichling and Smetters (2015) health-mortality channel (9.4 pp) form the co-leading second tier. Bequest motives—the single most-cited explanation for the puzzle—contribute 5.8 pp, mid-pack. Social Security carries a large negative Shapley value ($`-21.1`$ pp): it is the largest-magnitude force in the game, but it raises annuitization at the margin rather than suppressing it, because the public income floor it provides is what makes a private annuity feasible. Most single retirees are already substantially annuitized through Social Security before they face a private annuity decision, so the marginal value of additional annuitization is small, and the suppressing channels need not be individually large because they compound on a thin remaining surplus.
+Within this game, the ranking is clear. Pricing loads are the dominant suppressor, contributing 31.4 percentage points of the total demand reduction. Subjective survival pessimism (10.9 pp) and the combined medical and Reichling and Smetters (2015) health-mortality channel (9.4 pp) form the co-leading second tier. Bequest motives—the single most-cited explanation for the puzzle—contribute 5.8 pp, mid-pack. Social Security carries a large negative Shapley value ($`-21.1`$ pp): it is the largest-magnitude demand-boosting force, raising annuitization at the margin rather than suppressing it, because the public income floor it provides is what makes a private annuity feasible. Most single retirees are already substantially annuitized through Social Security before they face a private annuity decision, so the marginal value of additional annuitization is small, and the suppressing channels need not be individually large because they compound on a thin remaining surplus.
 
 The ranking is robust where the predicted level is not. The level is knife-edged in risk aversion: predicted ownership moves from 0.0% to 21.9% as $`\gamma`$ ranges over $`[2.0, 3.0]`$, because the extensive margin sits on a fixed-cost and minimum-purchase threshold that the population crosses discontinuously. The same fragility plausibly explains why broadly comparable models in the literature have predicted ownership anywhere from a few percent to full annuitization. The channel ranking, by contrast, is stable: pricing loads remain the top suppressor at all 5 values of $`\gamma`$ and in every one of the 4 wealth quartiles, and the ranking is unchanged whether attribution is computed on the discontinuous ownership indicator or the continuous mean-purchase share (suppressor rank correlation 1.00). The methodological implication is that in calibrated annuity models the predicted participation *level* is the wrong object on which to stake claims. Rankings and comparative statics are the stable, reportable quantities.
 
@@ -41,15 +24,15 @@ These results shift the question away from whether retirees irrationally fail to
 
 Section <a href="#sec:model" data-reference-type="ref" data-reference="sec:model">2</a> specifies the model. Section <a href="#sec:calibration" data-reference-type="ref" data-reference="sec:calibration">3</a> describes the calibration. Section <a href="#sec:results" data-reference-type="ref" data-reference="sec:results">4</a> presents the decomposition, counterfactuals, and welfare analysis. Section <a href="#sec:robustness" data-reference-type="ref" data-reference="sec:robustness">5</a> reports sensitivity checks. Section <a href="#sec:discussion" data-reference-type="ref" data-reference="sec:discussion">6</a> discusses limitations. Section <a href="#sec:conclusion" data-reference-type="ref" data-reference="sec:conclusion">7</a> concludes.
 
-## Model
+# Model
 
-### Environment
+## Environment
 
 Time is discrete. An individual enters at age 65 (period $`t = 1`$) and may survive to a maximum age of 110 (period $`T = 46`$). At $`t = 1`$, the individual makes a single irreversible decision: what fraction $`\alpha \in [0, 1]`$ of initial liquid wealth $`W_0`$ to convert into a single premium immediate annuity (SPIA). The remaining wealth $`(1 - \alpha)W_0`$ stays liquid. In each subsequent period, the individual chooses consumption $`c_t`$ from available resources.
 
 The state at each period $`t`$ is characterized by four variables: liquid wealth $`W_t \geq 0`$, annuity income $`A`$ (fixed after the age-65 purchase), health status $`H_t \in \{1, 2, 3\}`$ (Good, Fair, Poor), and age $`t`$. Social Security income $`\text{SS}(t)`$ is received exogenously in each period and is not a decision variable.
 
-### Preferences
+## Preferences
 
 The individual maximizes expected discounted lifetime utility. Flow utility over consumption takes the constant relative risk aversion (CRRA) form:
 ``` math
@@ -71,11 +54,11 @@ where $`b`$ is bequeathable wealth (liquid wealth at death; annuity income cease
 
 The parameters $`\theta`$ and $`\kappa`$ must be interpreted jointly. With the DFJ luxury-good calibration ($`\theta = 56.96`$, $`\kappa = \$272{,}628`$), an individual with \$50,000 in wealth faces negligible marginal bequest utility, while an individual with \$1,000,000 faces strong resistance to annuitizing. Combining this $`\theta`$ with a small $`\kappa`$ (e.g., \$10, the homothetic specification) produces pathological results: extreme marginal bequest utility near $`b = 0`$ acts as a precautionary buffer rather than a genuine bequest motive, anomalously *increasing* predicted ownership above the no-bequest case.[^4] The DFJ estimates from Lockwood (2012) are jointly calibrated to HRS bequest data; using one parameter with the other replaced is not a valid counterfactual.
 
-The bequest channel’s isolated effect on ownership is modest under the DFJ specification (100% retention rate in the sequential decomposition) because the luxury-good $`\kappa`$ makes the bequest motive nearly irrelevant for the median retiree in the HRS sample. The 100% retention rate in the sequential decomposition reflects the ordering: bequests are added when ownership is already 100% (steps 0–1 include only SS). In the full nine-channel structural model, removing bequests raises ownership from 7.9% to 26.1% (Table <a href="#A-tab:full_robustness" data-reference-type="ref" data-reference="A-tab:full_robustness">[A-tab:full_robustness]</a>), because bequests interact with pricing loads and inflation to suppress demand for agents near the annuitization margin. The Shapley decomposition, which averages over all orderings, assigns bequests a value of 0.7 pp (2% share).
+The bequest channel’s isolated effect on ownership is modest under the DFJ specification (100% retention rate in the sequential decomposition) because the luxury-good $`\kappa`$ makes the bequest motive nearly irrelevant for the median retiree in the HRS sample. The 100% retention rate in the sequential decomposition reflects the ordering: bequests are added when ownership is already 100% (steps 0–1 include only SS). In the full nine-channel structural model, removing bequests raises ownership from 7.9% to 26.1% (Table <a href="#A-tab:full_robustness" data-reference-type="ref" data-reference="A-tab:full_robustness">[A-tab:full_robustness]</a>), because bequests interact with pricing loads and inflation to suppress demand for agents near the annuitization margin. The Shapley decomposition, which averages over all orderings, assigns bequests a value of 5.8 pp (15% share).
 
 The individual discounts future utility at rate $`\beta`$ per period.
 
-### Health dynamics and mortality
+## Health dynamics and mortality
 
 Health follows a first-order Markov process with three states: Good ($`H = 1`$), Fair ($`H = 2`$), and Poor ($`H = 3`$). Transition probabilities are age-dependent and calibrated to HRS panel data following De Nardi et al. (2010):
 ``` math
@@ -93,11 +76,11 @@ s(t, H) = s_{\text{base}}(t)^{\mu(H, t)},
 ```
 where $`\mu(H, t)`$ is a health- and age-specific hazard multiplier with $`\mu(\text{Good}, t) < 1 < \mu(\text{Poor}, t)`$ and $`\mu(\text{Fair}, t) = 1`$. This specification maps directly to proportional hazards: if the baseline hazard is $`\lambda_{\text{base}}(t) = -\ln s_{\text{base}}(t)`$, then the adjusted hazard is $`\mu(H, t) \cdot \lambda_{\text{base}}(t)`$.
 
-The baseline specification uses constant hazard multipliers $`\mu = [0.50, 1.0, 3.8]`$ for Good, Fair, and Poor health respectively, chosen as a central tendency across age bands from the HRS data. The health-mortality gradient compresses with age: the Poor-to-Fair hazard ratio falls from 3.29 at ages 65–74 to 2.77 at 75–84 to 1.82 at 85+. Section <a href="#sec:robustness" data-reference-type="ref" data-reference="sec:robustness">5</a> reports results across the empirical range of multiplier specifications.
+The baseline specification uses constant hazard multipliers $`\mu = [0.50, 1.0, 3.75]`$ for Good, Fair, and Poor health respectively, set above the HRS self-reported age-band estimates toward the steeper functional-limitation gradient of Reichling and Smetters (2015). The health-mortality gradient compresses with age: the Poor-to-Fair hazard ratio falls from 3.29 at ages 65–74 to 2.77 at 75–84 to 1.82 at 85+. Section <a href="#sec:robustness" data-reference-type="ref" data-reference="sec:robustness">5</a> reports results across the empirical range of multiplier specifications.
 
 The age-varying multipliers are the mechanism underlying the Reichling and Smetters (2015) result. A negative health shock simultaneously increases mortality ($`\mu(\text{Poor}, t) > 1`$ reduces expected remaining annuity payments) and, through the medical expenditure process described below, increases the need for liquid wealth. The annuity becomes “valuation-risky”: it loses value in precisely the states where liquidity is most valuable. The effect is strongest at younger ages where the gradient is widest, which matters because the annuitization decision is made at age 65.
 
-### Subjective survival beliefs
+## Subjective survival beliefs
 
 O’Dea and Sturrock (2023) document that individuals aged 65–69 underestimate their survival probability at age 75 by approximately 15 percentage points relative to actuarial tables (subjective $`\Pr(\text{survive to 75}) \approx 0.71`$ versus actuarial 0.86). This pessimism reduces the perceived value of annuities by overweighting the probability of dying before recovering the premium.
 
@@ -110,7 +93,7 @@ s^{\text{subj}}(t, H) = \psi \cdot s(t, H), \quad \psi \in (0, 1].
 ```
 The parameter $`\psi`$ scales each one-year survival probability downward. The annuity is priced using the objective survival rates $`s(t, H)`$; only the agent’s Bellman equation uses $`s^{\text{subj}}`$. A per-year factor of $`\psi = 0.960`$ implies subjective 10-year survival of $`\psi^{10} \approx 0.66`$ times the objective rate, a degree of pessimism consistent with the survival-underestimation evidence of Heimer et al. (2019), Payne et al. (2013), and O’Dea and Sturrock (2023). It is somewhat stronger than the mild per-year discount the O’Dea–Sturrock 10-year ratio implies on its own ($`(0.71/0.86)^{1/10} \approx 0.98`$); Section <a href="#sec:robustness" data-reference-type="ref" data-reference="sec:robustness">5</a> reports sensitivity across $`\psi`$, including that value. When $`\psi = 1`$, beliefs are objective and this channel is inactive.
 
-### Medical expenditures
+## Medical expenditures
 
 Out-of-pocket medical expenditures depend on age and health. Log medical spending follows:
 ``` math
@@ -119,13 +102,13 @@ Out-of-pocket medical expenditures depend on age and health. Log medical spendin
 \ln m_{t} = \mu_m(t, H_t) + \sigma_m(t, H_t) \cdot \varepsilon_t, \quad \varepsilon_t \sim N(0, 1),
 \end{equation}
 ```
-where $`\mu_m`$ and $`\sigma_m`$ are the mean and standard deviation of log expenditures, both age- and health-dependent. The baseline calibration matches the age profiles reported by Jones et al. (2018): mean out-of-pocket spending of \$4,200 at age 70, rising to \$29,700 at age 100, with a 95th percentile of approximately \$111,200 at age 100.
+where $`\mu_m`$ and $`\sigma_m`$ are the mean and standard deviation of log expenditures, both age- and health-dependent. The baseline calibration matches the age profiles reported by Jones et al. (2018): mean out-of-pocket spending of \$4,201 at age 70, rising to \$29,703 at age 100, with a 95th percentile of approximately \$111,509 at age 100.
 
 A Medicaid safety net provides a consumption floor $`\underline{c}`$. If total resources (wealth plus income minus medical costs) fall below $`\underline{c}`$, the government covers the shortfall. The individual consumes $`\underline{c}`$ and enters the next period with zero liquid wealth. This floor is calibrated to the SSI federal benefit rate plus average state supplement for an elderly individual (\$6,180, following the value used in (Lockwood 2012)).
 
 Expectations over medical expenditure shocks are computed using nine-node Gauss–Hermite quadrature. At the calibrated variance ($`\sigma \approx 1.4`$), lower-order rules place insufficient weight in the tails of the lognormal distribution; Appendix <a href="#A-app:quadrature" data-reference-type="ref" data-reference="A-app:quadrature">[A-app:quadrature]</a> documents the convergence diagnostics.
 
-### Annuity pricing
+## Annuity pricing
 
 The annuity is nominal: the insurer prices the stream of nominal payments using the nominal discount rate $`r_{\text{nom}} = (1+r)(1+\pi) - 1`$, where $`r`$ is the real interest rate and $`\pi`$ is the inflation rate. The actuarially fair annual payout per dollar of premium is:
 ``` math
@@ -147,7 +130,7 @@ The annuity is priced with a money’s worth ratio (MWR), defined as the expecte
 
 A fixed cost of \$2,500 is incurred upon any purchase.[^5]
 
-### Budget constraint
+## Budget constraint
 
 Within each period, the timing is:
 
@@ -172,7 +155,7 @@ W_{t+1} = (1 + r)(W_t + A_t + \text{SS}(t) - m_t - c_t),
 ```
 subject to $`c_t \geq \underline{c}`$ and $`W_{t+1} \geq 0`$ (no borrowing).
 
-### Age-varying consumption needs
+## Age-varying consumption needs
 
 Aguiar and Hurst (2013) document that consumption expenditure declines at roughly 2% per year in retirement, even among wealthy households, once time costs and home production are accounted for. This decline reflects changing consumption needs—reduced transportation, clothing, and food-away-from-home expenditures—rather than binding liquidity constraints. The declining profile reduces the value of late-life income streams, including annuities.
 
@@ -187,7 +170,7 @@ where $`t = 1`$ at age 65. Flow utility becomes $`w(t) \cdot u(c)`$. This specif
 
 Age-varying consumption needs should be distinguished from time preference ($`\beta`$). The discount factor $`\beta`$ governs the rate at which future utility is discounted; $`w(t)`$ governs how much utility a given level of consumption generates at each age. A constant $`\beta`$ with declining $`w(t)`$ implies that the individual values future consumption opportunities but needs less consumption to achieve the same felicity as she ages.
 
-### State-dependent utility
+## State-dependent utility
 
 Finkelstein et al. (2013) estimate that the marginal utility of consumption declines with poor health, with a central estimate implying that individuals in poor health value a dollar of consumption roughly 10–25% less than those in good health. Reichling and Smetters (2015) incorporated this channel in their annuity model. State-dependent utility reduces annuity demand because the annuity delivers income in poor-health states where its marginal utility is lower.
 
@@ -198,15 +181,15 @@ The model allows the marginal utility of consumption to depend on health status 
 u(c, H) = \varphi(H) \cdot \frac{c^{1-\gamma}}{1-\gamma},
 \end{equation}
 ```
-where $`\varphi(\text{Good}) = 1.00`$, $`\varphi(\text{Fair}) = 0.92`$, and $`\varphi(\text{Poor}) = 0.82`$, following the mapping used by Reichling and Smetters (2015) based on the estimates of Finkelstein et al. (2013). When $`\varphi(H) = 1`$ for all $`H`$, this channel is inactive.
+where $`\varphi(\text{Good}) = 1.00`$, $`\varphi(\text{Fair}) = 0.92`$, and $`\varphi(\text{Poor}) = 0.82`$, the central midpoint of the Finkelstein et al. (2013) estimates, applied through the multiplicative state-dependent-utility approach of Reichling and Smetters (2015). When $`\varphi(H) = 1`$ for all $`H`$, this channel is inactive.
 
-In practice, state-dependent utility has a negligible effect on predicted ownership (Shapley value of 0.3 pp). The channel is included for completeness and to confirm that its quantitative irrelevance, suggested by the prior literature, holds in the unified framework.
+In practice, state-dependent utility has a negligible effect on predicted ownership (Shapley value of 0.4 pp). The channel is included for completeness and to confirm that its quantitative irrelevance, suggested by the prior literature, holds in the unified framework.
 
-### Behavioral channels (exploratory)
+## Behavioral channels (exploratory)
 
 The nine rational and preference-based channels above constitute the disciplined structural baseline. Two further behavioral channels are reported as exploratory extensions, layered onto the nine-channel baseline rather than substituted for it.
 
-##### Source-dependent utility (SDU; exploratory).
+#### Source-dependent utility (SDU; exploratory).
 
 Blanchett and Finke (2024, 2025) document that retirees apply a higher consumption rate to guaranteed income flows than to portfolio assets, consistent with the source-dependent utility framework of Shefrin and Thaler (1988) and Thaler (1999). The model captures this through a multiplicative discount on portfolio drawdowns:
 ``` math
@@ -217,7 +200,7 @@ c_{\text{eff}}(t) = c_{\text{income}}(t) + \lambda_W \cdot c_{\text{portfolio}}(
 ```
 where $`c_{\text{income}}`$ is consumption financed from annuity and Social Security income, $`c_{\text{portfolio}}`$ is consumption financed from liquid wealth drawdowns, and $`\lambda_W < 1`$ reflects the lower utility weight placed on portfolio-financed consumption. The production calibration sets $`\lambda_W = 0.625`$ as a literature-magnitude best guess: Blanchett and Finke (2024) report retirees spending at approximately 50% of the rate from portfolio assets compared with 80% from guaranteed income, implying $`\lambda_W = 50/80 = 0.625`$. This is an exploratory parameter anchored to a behavioral spending differential rather than moment-matched to a US annuitization moment; results across $`\lambda_W \in \{0.5, 0.625, 0.75, 0.85\}`$ are reported in Section <a href="#sec:robustness" data-reference-type="ref" data-reference="sec:robustness">5</a>.
 
-##### Narrow-framing at-purchase penalty (PED; exploratory).
+#### Narrow-framing at-purchase penalty (PED; exploratory).
 
 A cumulative-prospect-theory mechanism formalized by Hu and Scott (2007), with empirical support from Brown et al. (2008) and Chalmers and Reuter (2012), generates a per-period at-purchase disutility while the household’s running gain/loss tally on the SPIA is underwater. Letting $`\pi = \alpha W_0`$ denote the premium, $`A = \pi \cdot \rho`$ the annual annuity income at payout rate $`\rho`$, and $`t^* = \lceil 1/\rho \rceil + 1`$ the breakeven horizon, the model captures the penalty as the discounted, survival-weighted NPV of the loss-aversion stream:
 ``` math
@@ -228,11 +211,11 @@ A cumulative-prospect-theory mechanism formalized by Hu and Scott (2007), with e
 ```
 where $`c_{\text{ref}} = \$18{,}000`$ is a reference consumption level chosen so that $`\psi_{\text{purchase}}`$ has an interpretable scale, $`u'(c_{\text{ref}}) = c_{\text{ref}}^{-\gamma}`$ is the marginal utility of consumption at $`c_{\text{ref}}`$ (converting dollar-denominated underwater amounts to utility units), $`S(t)`$ is the cumulative survival probability to period $`t`$, and $`\beta`$ is the discount factor. The penalty applies once at age 65 over the underwater period of the SPIA; once cumulative payouts cross the premium (period $`t^*`$) the loss tally turns positive and the penalty vanishes. The production calibration sets $`\psi_{\text{purchase}} = 0.05`$ as a literature-magnitude best guess. The parameter is not moment-matched to a US annuitization target. Results across $`\psi_{\text{purchase}} \in \{0.01, 0.05, 0.09\}`$ are reported in Section <a href="#sec:robustness" data-reference-type="ref" data-reference="sec:robustness">5</a>. At the production magnitude the at-purchase penalty saturates—it eliminates participation for nearly all agents—so the eleven-channel specification is reported as an exploratory exercise illustrating where literature-magnitude behavioral parameters would push predictions, not as a moment-matched calibration.
 
-##### Status of behavioral channels.
+#### Status of behavioral channels.
 
 Both SDU and PED are exploratory rather than identified. The model could be moment-matched against a US annuitization target, but doing so would conflict with the out-of-sample comparison strategy used elsewhere in the paper (the structural baseline uses no US annuitization moment). The eleven-channel specification therefore shows what happens when these channels are introduced at literature magnitudes. The behavioral results below are reported as an exploratory sensitivity exercise rather than a within-model calibration of the behavioral primitives.
 
-### Bellman equation
+## Bellman equation
 
 For $`t < T`$, the value function satisfies:
 ``` math
@@ -256,7 +239,7 @@ At $`t = 1`$ (age 65), the annuitization decision is:
 ```
 where $`F`$ is the fixed purchase cost.
 
-### Analytical characterization
+## Analytical characterization
 
 The numerical decomposition in Section <a href="#sec:results" data-reference-type="ref" data-reference="sec:results">4</a> can be given analytical structure. Consider the annuitization decision at $`\alpha = 0`$. Shifting one dollar from liquid wealth to the annuity premium changes welfare by
 ``` math
@@ -325,15 +308,15 @@ where $`\varepsilon_i`$ captures agent-level heterogeneity. Each additional chan
 
 </div>
 
-The dominant term is $`\Phi_{\text{MWR}} = 0.87`$, which alone reduces the annuity value ratio by 13%. The near-unity $`\Phi_{\text{bequest}}`$ under the DFJ specification explains why bequests contribute only 0.7 pp in the Shapley decomposition: the luxury-good curvature parameter makes bequest utility irrelevant for median-wealth retirees.
+The dominant term is $`\Phi_{\text{MWR}} = 0.87`$, which alone reduces the annuity value ratio by 13%. The near-unity $`\Phi_{\text{bequest}}`$ under the DFJ specification explains why bequests contribute only 5.8 pp in the Shapley decomposition: the luxury-good curvature parameter makes bequest utility irrelevant for median-wealth retirees.
 
-### Solution method
+## Solution method
 
 The model is solved by backward induction over the state space $`(W, A, H, t)`$. The wealth grid uses 80 points with power-function spacing (denser at low wealth) over $`[0, \$3\text{ million}]`$, covering the 99.5th percentile of the HRS wealth distribution. The annuity income grid uses 30 points with cubic spacing to resolve small purchases, and health is discrete with three states. Consumption is optimized at each grid point using Brent’s method. Value function interpolation across the wealth dimension uses piecewise linear interpolation with flat extrapolation.
 
-The annuitization fraction $`\alpha`$ is optimized over a 101-point grid at age 65. Grid convergence is verified at the 9-node production quadrature rule: on the mean-Social-Security diagnostic, predicted ownership ranges from 21.1% at the medium grid ($`60 \times 20`$) to 20.8% at the fine grid ($`100 \times 40`$), bracketing the production grid ($`80 \times 30`$, 20.0%); the roughly 1.0 pp variation across grid resolutions is small relative to the channel contributions in the Shapley decomposition. See Appendix Table <a href="#A-tab:grid_convergence" data-reference-type="ref" data-reference="A-tab:grid_convergence">[A-tab:grid_convergence]</a>.
+The annuitization fraction $`\alpha`$ is optimized over a 101-point grid at age 65. Grid convergence is verified at the 9-node production quadrature rule: on the mean-Social-Security diagnostic, predicted ownership ranges from 21.1% at the medium grid ($`60 \times 20`$) to 20.8% at the fine grid ($`100 \times 40`$), both modestly above the production grid ($`80 \times 30`$, 20.0%); the roughly 1.0 pp variation across grid resolutions is small relative to the channel contributions in the Shapley decomposition. See Appendix Table <a href="#A-tab:grid_convergence" data-reference-type="ref" data-reference="A-tab:grid_convergence">[A-tab:grid_convergence]</a>.
 
-## Calibration and Validation
+# Calibration and Validation
 
 Table <a href="#tab:calibration" data-reference-type="ref" data-reference="tab:calibration">1</a> summarizes the parameter values. Each is drawn from a published source or calibrated to match moments from the HRS.
 
@@ -387,29 +370,29 @@ All dollar values in 2014 dollars.
 
 </div>
 
-##### Preferences.
+#### Preferences.
 
 I set $`\gamma = 2.5`$, within the range of 1–3 estimated by Chetty (2006) from labor supply elasticities. Lockwood (2012) uses $`\gamma = 2`$; the slightly higher value reflects the richer model environment. Section <a href="#sec:robustness" data-reference-type="ref" data-reference="sec:robustness">5</a> reports results for $`\gamma \in \{1.5, 2.0, \ldots, 5.0\}`$.
 
-##### Age-varying consumption needs.
+#### Age-varying consumption needs.
 
 The decline rate $`\delta_c = 0.02`$ matches the central estimate from Aguiar and Hurst (2013), who found that nondurable consumption expenditure declines at roughly 2% per year in retirement after controlling for changes in household composition. This rate is applied uniformly across health states.
 
-##### State-dependent utility.
+#### State-dependent utility.
 
-The health-utility weights $`\varphi = [1.00, 0.92, 0.82]`$ follow the mapping used by Reichling and Smetters (2015), based on the estimates of Finkelstein et al. (2013) from the HRS. Good-health individuals receive full weight; Fair and Poor health reduce the marginal utility of consumption proportionally.
+The health-utility weights $`\varphi = [1.00, 0.92, 0.82]`$ are the central midpoint of the Finkelstein et al. (2013) estimates from the HRS, applied through the multiplicative state-dependent-utility approach of Reichling and Smetters (2015); the softer translation $`\varphi = [1.00, 0.95, 0.85]`$ is examined as a robustness check in Section <a href="#sec:results" data-reference-type="ref" data-reference="sec:results">4</a>. Good-health individuals receive full weight; Fair and Poor health reduce the marginal utility of consumption proportionally.
 
-##### Public-care aversion ($`\chi_{\text{LTC}}`$).
+#### Public-care aversion ($`\chi_{\text{LTC}}`$).
 
 The structural channel applies a utility multiplier $`\chi_{\text{LTC}} = 0.49< 1`$ to consumption in the Medicaid-binding Poor-health state (when the consumption floor binds), representing the reduced utility of publicly-financed long-term care relative to self-financed care. The value is a calibration choice within the public-care-aversion evidence of Ameriks et al. (2020), expressed as a flow-utility transformation rather than a parameter they report directly. The channel’s direction is a priori ambiguous: aversion to the Medicaid state raises the value of retaining liquid wealth (against annuitization), but it also raises the value of guaranteed income that keeps the agent off the floor (toward annuitization). In the fitted model the net effect is mildly pro-annuity, and the channel enters the Shapley decomposition with a small negative (demand-boosting) value (Section <a href="#sec:shapley" data-reference-type="ref" data-reference="sec:shapley">4.4</a>).
 
-##### Exploratory behavioral parameters.
+#### Exploratory behavioral parameters.
 
 The two behavioral channels are calibrated to literature magnitudes rather than estimated from US moments. SDU’s $`\lambda_W = 0.625`$ follows the Blanchett and Finke (2024, 2025) retiree spending differential (approximately 50% from portfolio assets versus 80% from guaranteed income, implying $`\lambda_W = 50/80 = 0.625`$). The same calibration is applied to the Social Security claiming margin in Tharp (2026). The at-purchase penalty $`\psi_{\text{purchase}} = 0.05`$ at reference consumption $`c_{\text{ref}} = \$18{,}000`$ is a literature-magnitude best guess consistent with cumulative-prospect-theory parameterizations (Hu and Scott 2007) and the Brown et al. (2008) and Chalmers and Reuter (2012) narrow-framing evidence. Both parameters are exploratory and not moment-matched to any US annuitization target. Sensitivity sweeps across $`\lambda_W \in \{0.5, 0.625, 0.75, 0.85\}`$ and $`\psi_{\text{purchase}} \in \{0.01, 0.05, 0.09\}`$ are reported in Section <a href="#sec:robustness" data-reference-type="ref" data-reference="sec:robustness">5</a>.
 
-The bequest parameters $`\theta = 56.96`$ and $`\kappa = \$272{,}628`$ are taken directly from Lockwood (2012), who estimated them from HRS bequest data at $`\gamma = 2`$. Using them at $`\gamma = 2.5`$ raises a portability concern in principle, but a simulation-based check (Appendix <a href="#A-app:bequest_recal" data-reference-type="ref" data-reference="A-app:bequest_recal">[A-app:bequest_recal]</a>) shows the bequest-to-wealth ratio is well preserved at the baseline $`\gamma = 2.5`$, diverging materially only toward the extremes of the risk-aversion range. All results use Lockwood’s original estimates, a conservative choice.
+The bequest parameters $`\theta = 56.96`$ and $`\kappa = \$272{,}628`$ are taken directly from Lockwood (2012), who estimated them from HRS bequest data at $`\gamma = 2`$. Using them at $`\gamma = 2.5`$ raises a portability concern in principle, but a simulation-based check (Appendix <a href="#A-app:bequest_recal" data-reference-type="ref" data-reference="A-app:bequest_recal">[A-app:bequest_recal]</a>) shows the bequest-to-wealth ratio diverges only modestly at the baseline $`\gamma = 2.5`$ (about 14%), rising monotonically toward the upper end of the risk-aversion range. All results use Lockwood’s original estimates, a conservative choice.
 
-##### Health and mortality.
+#### Health and mortality.
 
 Health transition matrices are calibrated to HRS panel data following De Nardi et al. (2010). The five HRS self-reported health categories are mapped to three states: Good (Excellent/Very Good), Fair (Good), and Poor (Fair/Poor). Baseline survival probabilities use the SSA administrative life table from Lockwood (2012).
 
@@ -425,13 +408,13 @@ Hazard multipliers are estimated from the RAND HRS longitudinal file (waves 4–
 
 </div>
 
-The compression of the gradient at older ages is consistent with selection effects: those surviving to 85 in Poor health have already demonstrated above-average resilience. The baseline constant multipliers $`[0.50, 1.0, 3.8]`$ represent a central tendency across these age bands, falling between the R-S functional estimates ($`[0.45, 1.0, 3.5]`$, consistent with ADL/IADL-based measures) and the empirical HRS self-reported health values ($`[0.57, 1.0, 2.7]`$). Section <a href="#sec:robustness" data-reference-type="ref" data-reference="sec:robustness">5</a> reports results across the full range.
+The compression of the gradient at older ages is consistent with selection effects: those surviving to 85 in Poor health have already demonstrated above-average resilience. The baseline constant multipliers $`[0.50, 1.0, 3.75]`$ sit at the upper end of the empirical range. The Good and Fair multipliers fall between the HRS self-reported values ($`[0.57, 1.0, 2.7]`$) and the ADL/IADL-based functional estimates of Reichling and Smetters (2015) ($`[0.45, 1.0, 3.5]`$); the Poor multiplier sits just above both, reflecting the steeper functional-limitation gradient at the younger ages where the annuitization decision is made. Section <a href="#sec:robustness" data-reference-type="ref" data-reference="sec:robustness">5</a> reports results across the full range, including the R-S functional and HRS self-reported endpoints.
 
-##### Medical expenditures.
+#### Medical expenditures.
 
-The medical expenditure process matches the moments published by Jones et al. (2018): mean out-of-pocket spending of \$4,200 at age 70, growing to \$29,700 at age 100, with a 95th percentile of approximately \$111,200 at age 100. Health shifts both the mean and variance of log spending, with Poor health raising expected costs by a factor of roughly two relative to Fair.
+The medical expenditure process matches the moments published by Jones et al. (2018): mean out-of-pocket spending of \$4,201 at age 70, growing to \$29,703 at age 100, with a 95th percentile of approximately \$111,509 at age 100. Health shifts both the mean and variance of log spending, with Poor health raising expected costs by a factor of roughly two relative to Fair.
 
-##### Population sample and empirical targets.
+#### Population sample and empirical targets.
 
 The wealth distribution is drawn from the RAND HRS longitudinal file, selecting single retirees aged 65–69 using filters comparable to Lockwood (2012). The resulting sample contains 4,258 person-wave observations (waves 5–9). The main analysis restricts to the 2279 observations with liquid wealth above \$5,000, as those with negligible wealth cannot meaningfully annuitize. *The empirical-target ownership rates reported below ($`3.11\%`$ lifetime contract indicator and $`5.21\%`$ any-annuity income proxy) are computed on the same wealth-restricted subsample as the model predictions, ensuring symmetric comparison.* The structural model maps each household’s state to a predicted decision rather than estimating moments from the sample distribution. The HRS observations are unweighted; the qualitative results are stable under sample weights. Unweighted estimates serve as the headline so that the empirical target maps directly to the cells solved in the structural decomposition.
 
@@ -443,7 +426,7 @@ The paper reports two HRS measures of US lifetime annuity ownership in parallel 
 
 Both HRS measures are reported as out-of-sample comparisons for the nine-channel structural baseline (7.9%). Section <a href="#sec:results" data-reference-type="ref" data-reference="sec:results">4</a> reports headline results against both measures.
 
-##### Lifecycle moment validation.
+#### Lifecycle moment validation.
 
 Table <a href="#tab:moment_validation" data-reference-type="ref" data-reference="tab:moment_validation">2</a> reports a compact bequest-distribution diagnostic from the lifecycle simulation: simulated vs. HRS exit-interview moments for the mean, median, and fraction with bequest greater than \$10K. These moments are not targeted in calibration. The comparison serves as external discipline on the bequest and decumulation behavior rather than as matched moments.
 
@@ -469,9 +452,9 @@ Empirical: HRS exit interviews (bequests); Jones et al. (2018) (medical).
 
 </div>
 
-## Results
+# Results
 
-### Sequential decomposition
+## Sequential decomposition
 
 Table <a href="#tab:retention" data-reference-type="ref" data-reference="tab:retention">3</a> presents an intuitive sequential decomposition of predicted voluntary annuity ownership, adding channels one at a time across rational, preference, and exploratory behavioral blocks. Because this exercise is order-dependent, I use it as a descriptive path through the model and treat the exact Shapley values below as the preferred attribution. For narrative transparency the table reports medical expenditure risk and the health-mortality correlation as two separate sequential steps. The Shapley analysis combines them into a single Med+R-S channel (Section <a href="#sec:shapley" data-reference-type="ref" data-reference="sec:shapley">4.4</a>), because the R-S mechanism’s quantitative bite in this framework operates through the interaction with medical risk: without competing demand for liquid wealth in sick states, the lower expected annuity NPV does not translate into a precautionary motive against annuitization. The narrative below describes the rational channels in this section and the preference and exploratory behavioral channels in Sections <a href="#sec:extension" data-reference-type="ref" data-reference="sec:extension">4.2</a> and <a href="#sec:behavioral_results" data-reference-type="ref" data-reference="sec:behavioral_results">4.3</a>. The table covers all three blocks for ease of reference. Because Table <a href="#tab:retention" data-reference-type="ref" data-reference="tab:retention">3</a> orders the preference channels (age-varying needs and state-dependent utility) before pricing loads while this section’s narrative defers them, the per-step ownership figure for a given channel can differ between the table and the prose—pricing loads, for instance, enter at a higher ownership level in the rational-only narrative below than in the full-table ordering. Both are valid paths through an order-dependent exercise, which is precisely why the order-independent Shapley values are the preferred attribution.
 
@@ -501,39 +484,39 @@ Retention rate = ownership after channel / ownership before channel. Cumulative 
 
 </div>
 
-##### Population benchmark with public consumption floor.
+#### Population benchmark with public consumption floor.
 
 The first row—no bequest motive, actuarially fair pricing, no medical expenditure risk, no inflation, and no Social Security income—predicts 46.5% ownership in the HRS population sample. This is not the theoretical Yaari full-annuitization result. The benchmark holds two US institutional features fixed across all subsequent decomposition rows: a public consumption floor (Medicaid/SSI proxy at $`c_{\text{floor}} = \$6{,}180`$/year) and a minimum-wealth analytical sample restriction (HRS singles with non-housing wealth $`\geq`$ \$5,000). Many low-wealth households in the data find annuitization unattractive even in this frictionless environment because the public floor effectively guarantees consumption at Medicaid-eligible levels, reducing the marginal value of liquid wealth that could be annuitized. The standard convention in the calibrated lifecycle literature (Pashchenko 2013; Peijnenburg-Nijman-Werker 2016; De Nardi-French-Jones 2010) is to bake the safety net into the institutional environment rather than treat it as a behavioral channel. This paper follows that convention.
 
-##### Social Security.
+#### Social Security.
 
 Adding Social Security income (COLA-protected, calibrated by wealth quartile) raises predicted ownership to 100.0%. SS acts as a complement in the frictionless model: the guaranteed income floor enables consumption smoothing and makes agents willing to lock up additional wealth in annuities. The 215.2% retention rate reflects this complementarity.
 
-##### Bequest motives.
+#### Bequest motives.
 
 Adding the DFJ luxury-good bequest specification ($`\theta = 56.96`$, $`\kappa = \$272{,}628`$) leaves ownership unchanged at 100.0% (retention rate of 100%). The luxury-good $`\kappa = \$272{,}628`$ makes marginal bequest utility nearly flat for individuals with wealth below \$200,000. In the HRS sample, median liquid wealth is approximately \$40,000.
 
-##### Medical expenditure risk and health-mortality correlation (combined).
+#### Medical expenditure risk and health-mortality correlation (combined).
 
 Introducing stochastic medical expenditures together with the Reichling–Smetters health-mortality correlation reduces ownership to 76.9% (retention 76.9%, a $`-23.1`$ pp effect). The two are bundled into a single channel because the R-S mechanism’s quantitative bite in this framework operates through the interaction with medical risk: without competing demand for liquid wealth in sick states, the lower expected annuity NPV does not translate into a precautionary motive against annuitization. The mechanism: when a retiree’s health deteriorates, expected remaining lifetime falls (reducing the present value of future annuity payments) and expected medical costs rise (increasing the marginal value of liquid wealth). The demand-suppressing effect depends on this correlation between health deterioration, survival reduction, and cost increases. The combined channel was not jointly incorporated in the multi-channel models of Pashchenko (2013) or Peijnenburg et al. (2016).
 
-##### Survival pessimism.
+#### Survival pessimism.
 
 Introducing subjective survival beliefs ($`\psi = 0.960`$) reduces ownership from 76.9% to 56.6% (retention 73.6%, a $`-20.3`$ pp effect). The agent overweights the probability of dying before recovering the premium.
 
-##### Pricing loads.
+#### Pricing loads.
 
 Repricing the annuity at MWR $`= 0.87`$ and adding a \$2,500 fixed purchase cost produces the largest single reduction, from 56.6% to 16.3% (retention 28.8%). An 13% load eliminates the surplus that marginally willing buyers retained after accounting for health risk and survival pessimism.
 
-##### Inflation erosion.
+#### Inflation erosion.
 
 Converting the annuity from real to nominal at 2% annual inflation reduces ownership from 16.3% to 14.0% (retention 85.5%). This step is a product counterfactual: the previous steps priced a real annuity (constant purchasing power); this step switches to a nominal annuity whose real value erodes over time. Social Security income is COLA-protected and does not erode, but the private annuity payment loses purchasing power: at 2% inflation, real income from the annuity falls by 39% over 25 years.
 
-##### Summary.
+#### Summary.
 
-The six standard rational channels predict 14.0% ownership relative to a frictionless population benchmark of 46.5%. Pricing loads (retention 28.8%) and the combined Med+R-S channel (retention 76.9%, reported as two separate steps in Table <a href="#tab:retention" data-reference-type="ref" data-reference="tab:retention">3</a> for narrative transparency) are the two most powerful channels in this sequential ordering. The key implication is that the standard rational literature substantially overshoots both empirical targets—a gap the preference channels and the structural public-care aversion channel narrow further, and which the exploratory behavioral channels in Section <a href="#sec:behavioral_results" data-reference-type="ref" data-reference="sec:behavioral_results">4.3</a> examine at literature magnitudes.
+The six standard rational channels predict 14.0% ownership relative to a frictionless population benchmark of 46.5%. Pricing loads (retention 28.8%) and the combined Med+R-S channel (retention 76.9%, reported as two separate steps in Table <a href="#tab:retention" data-reference-type="ref" data-reference="tab:retention">3</a> for narrative transparency) are the two largest single-step percentage-point reductions in this sequential ordering. The key implication is that the standard rational literature substantially overshoots both empirical targets—a gap the preference channels and the structural public-care aversion channel narrow further, and which the exploratory behavioral channels in Section <a href="#sec:behavioral_results" data-reference-type="ref" data-reference="sec:behavioral_results">4.3</a> examine at literature magnitudes.
 
-### Preference Channel Extensions
+## Preference Channel Extensions
 
 Table <a href="#tab:extension_path" data-reference-type="ref" data-reference="tab:extension_path">4</a> isolates the incremental effect of the two added preference channels.
 
@@ -564,31 +547,31 @@ The table is the structural multi-channel decomposition. Layer 1 covers rational
 
 Adding age-varying consumption needs ($`\delta_c = 0.02`$, calibrated to (Aguiar and Hurst 2013)) reduces predicted ownership from 14.0% to 7.3%. This is the quantitatively important extension beyond the six-channel rational model: if late-life consumption needs decline, the insurance value of a level annuity stream declines as well. The resulting reduction is comparable in magnitude to survival pessimism or inflation erosion.
 
-Adding state-dependent utility ($`\varphi = [1.00, 0.92, 0.82]`$, taken directly from the central estimates of (Finkelstein et al. 2013)) produces only a small additional reduction, from 7.3% to 5.6%. The channel’s effect is insensitive to the specific mapping within the range the literature supports: under the softer translation $`\varphi = [1.00, 0.95, 0.85]`$ used by Reichling and Smetters (2015), the full-model prediction shifts to 6.6%, a difference of 1.0 pp. In either calibration, this channel is best interpreted as a completeness check rather than a load-bearing mechanism.
+Adding state-dependent utility ($`\varphi = [1.00, 0.92, 0.82]`$, the central midpoint of the (Finkelstein et al. 2013) estimates) produces only a small additional reduction, from 7.3% to 6.2%. The channel’s effect is insensitive to the specific mapping within the range the literature supports: the harsher FLN raw endpoint $`\varphi = [1.00, 0.90, 0.75]`$ yields 5.6% and the softer translation $`\varphi = [1.00, 0.95, 0.85]`$ used by Reichling and Smetters (2015) yields 6.6%, a spread of 1.0 pp around the production value 6.2%. In either calibration, this channel is best interpreted as a completeness check rather than a load-bearing mechanism.
 
-The full eight-channel rational+preference model therefore predicts 5.6% ownership under the FLN central mapping and 6.6% under the Reichling–Smetters translation, a reduction from the 46.5% frictionless benchmark but still above both empirical targets ($`5.21\%`$ on the conventional any-annuity income proxy; $`3.11\%`$ on the cleaner lifetime contract indicator). Adding the structural public-care aversion channel ($`\chi_{\text{LTC}} = 0.49`$) yields the nine-channel structural baseline of 7.9%, modestly above both HRS measures. The remainder of the paper uses the FLN mapping as the production calibration.
+The full eight-channel rational+preference model therefore predicts 6.2% ownership, a reduction from the 46.5% frictionless benchmark but still above both empirical targets ($`5.21\%`$ on the conventional any-annuity income proxy; $`3.11\%`$ on the cleaner lifetime contract indicator). Adding the structural public-care aversion channel ($`\chi_{\text{LTC}} = 0.49`$) yields the nine-channel structural baseline of 7.9%, modestly above both HRS measures. The remainder of the paper uses the FLN central mapping as the production calibration.
 
-### Behavioral extensions
+## Behavioral extensions
 
-The eight-channel rational+preference model predicts 6.2% ownership. Adding the structural public-care aversion channel ($`\chi_{\text{LTC}} = 0.49`$) yields the nine-channel structural baseline of 7.9%, modestly above the two HRS measures ($`3.11\%`$ on the lifetime contract indicator, $`5.21\%`$ on the conventional any-annuity income proxy). Structural mechanisms alone bring predicted ownership into the same neighborhood as the HRS measures, modestly above both.
+The eight-channel rational+preference model predicts 6.2% ownership. Adding the structural public-care aversion channel ($`\chi_{\text{LTC}} = 0.49`$) yields the nine-channel structural baseline of 7.9%, modestly above the two HRS measures ($`3.11\%`$ on the lifetime contract indicator, $`5.21\%`$ on the conventional any-annuity income proxy). Structural mechanisms alone bring predicted ownership modestly above the two HRS measures.
 
-##### Literature-magnitude behavioral channels.
+#### Literature-magnitude behavioral channels.
 
 The nine-channel result does not imply that behavioral factors do not matter. To examine their potential role, I layer two behavioral channels onto the nine-channel baseline as an exploratory analysis: source-dependent utility ($`\lambda_W = 0.625`$) and a narrow-framing at-purchase penalty ($`\psi_{\text{purchase}} = 0.05`$). Both parameters are exploratory best guesses anchored to literature magnitudes rather than moment-matched to US targets. The headline reading remains the nine-channel structural baseline. With both channels active at these values, SDU raises predicted ownership to 56.5% by transforming portfolio drawdowns into a lower-utility-weight consumption category, and PED then saturates participation, yielding the eleven-channel prediction 0.1%.
 
 At the chosen values, each behavioral channel individually moves ownership by more than almost any single rational, preference, or structural channel in the model. In absolute magnitude the Shapley contributions for PED (46.6 pp) and SDU (-26.5 pp, entering with a negative sign because it is a booster) exceed pricing loads (12.8 pp), the combined Med+R-S channel (14.5 pp), and survival pessimism (4.4 pp; see Section <a href="#sec:shapley" data-reference-type="ref" data-reference="sec:shapley">4.4</a>). The two channels operate in opposite directions and largely offset: SDU pulls demand up, PED pulls it down, and the net effect on ownership depends sensitively on the chosen parameters. Sensitivity sweeps across $`\lambda_W \in \{0.5, 0.625, 0.75, 0.85\}`$ and $`\psi_{\text{purchase}} \in \{0.01, 0.05, 0.09\}`$ in Section <a href="#sec:robustness" data-reference-type="ref" data-reference="sec:robustness">5</a> show that small shifts within the literature-defensible range move the eleven-channel prediction substantially in either direction.
 
-##### Out-of-sample comparison.
+#### Out-of-sample comparison.
 
 The conventional any-annuity income proxy ($`5.21\%`$, Wilson 95% CI $`[4.45\%, 6.09\%]`$) and the cleaner lifetime-contract indicator ($`3.11\%`$, Wilson 95% CI $`[2.54\%, 3.81\%]`$) are reported as out-of-sample comparisons against the nine-channel baseline (7.9%). No US annuitization moment enters the calibration.
 
-### Exact Shapley decomposition
+## Exact Shapley decomposition
 
 The sequential decomposition is order-dependent: the contribution attributed to each channel depends on which channels precede it. To obtain order-independent attributions, I compute exact Shapley values across two parallel cooperative games. The disciplined headline attribution is the *nine-channel structural Shapley*, computed over all $`2^9 = 512`$ subsets of the rational, preference, and structural-LTC channels (with SDU and PED held off). An exploratory *eleven-channel extended Shapley*, computed over all $`2^{11} = 2{,}048`$ subsets that additionally enumerate the two behavioral parameters at their literature magnitudes, is reported separately at the end of this subsection. Medical expenditure risk and the Reichling–Smetters health-mortality correlation are combined into a single channel because the R-S mechanism’s quantitative bite operates through the interaction with medical risk: without competing demand for liquid wealth in sick states, the lower expected annuity NPV does not translate into a precautionary motive against annuitization.
 
-##### Nine-channel structural Shapley (headline).
+#### Nine-channel structural Shapley (headline).
 
-Table <a href="#tab:shapley_nine" data-reference-type="ref" data-reference="tab:shapley_nine">5</a> reports the disciplined attribution. Pricing loads are the dominant demand suppressor, contributing 31.4 pp—81% of the total demand drop on their own. Subjective survival pessimism (10.9 pp, 28%) and the combined Med+R-S health-mortality channel (9.4 pp, 24%) form the co-leading second tier. Bequest motives—the single most-cited explanation for the puzzle—contribute 5.8 pp (15%), mid-pack, ahead of age-varying consumption needs (4.4 pp); state-dependent utility (0.4 pp) and inflation erosion (-0.2 pp) contribute small magnitudes, while public-care aversion enters with a small *negative* (demand-boosting) value (-2.4 pp), mildly raising annuitization on net. Social Security enters with a large negative Shapley value ($`-21.1`$ pp, $`-55\%`$): it is the largest-magnitude force in the game, but it raises annuitization at the margin rather than suppressing it, because the income floor it provides is what makes a private annuity rational. The ranking inverts the most prominent claim in the prior literature: bequest motives, often cast as the leading explanation, are a mid-tier channel here, while pricing loads dominate.
+Table <a href="#tab:shapley_nine" data-reference-type="ref" data-reference="tab:shapley_nine">5</a> reports the disciplined attribution. Pricing loads are the dominant demand suppressor, contributing 31.4 pp—81% of the total demand drop on their own. Subjective survival pessimism (10.9 pp, 28%) and the combined Med+R-S health-mortality channel (9.4 pp, 24%) form the co-leading second tier. Bequest motives—the single most-cited explanation for the puzzle—contribute 5.8 pp (15%), mid-pack, ahead of age-varying consumption needs (4.4 pp); state-dependent utility (0.4 pp) and inflation erosion (-0.2 pp) contribute small magnitudes, while public-care aversion enters with a small *negative* (demand-boosting) value (-2.4 pp), mildly raising annuitization on net. Social Security enters with a large negative Shapley value ($`-21.1`$ pp, $`-55\%`$): it is the largest-magnitude demand-boosting force in the game, but it raises annuitization at the margin rather than suppressing it, because the income floor it provides is what makes a private annuity rational. The ranking inverts the most prominent claim in the prior literature: bequest motives, often cast as the leading explanation, are a mid-tier channel here, while pricing loads dominate.
 
 <div class="threeparttable">
 
@@ -625,11 +608,11 @@ The eleven-channel exploratory Shapley (Table <a href="#tab:shapley_exact" data
 
 The nine-channel Shapley sharpens two findings from the sequential decomposition. First, pricing loads are the dominant demand-suppressing contributor regardless of ordering, with survival pessimism and the combined Med+R-S correlation as the co-leading second tier. Second, the channels not jointly incorporated in the earlier multi-channel literature—the combined Med+R-S correlation, survival pessimism, and age-varying consumption needs—collectively account for a meaningful fraction of the structural demand suppression, comparable in scale to pricing loads.
 
-##### The ranking is stable; the level is not.
+#### The ranking is stable; the level is not.
 
 The order-independence of the Shapley value removes one source of fragility, but a referee will reasonably ask whether the attribution survives the two perturbations to which calibrated annuity models are most sensitive: the risk-aversion parameter and the discrete extensive-margin statistic. It does. As $`\gamma`$ ranges over $`[2.0, 3.0]`$, predicted full-model ownership moves from 0.0% to 21.9% (a knife-edge driven by the minimum-purchase and fixed-cost thresholds), yet Loads remain the top suppressor at all 5 values of $`\gamma`$, and the second-tier set $`\{`$survival pessimism, Med+R-S$`\}`$ is preserved (their internal order swaps once across the range). Recomputing the Shapley on the continuous mean-purchase share rather than the discontinuous ownership indicator leaves the suppressor ranking essentially unchanged (rank correlation 1.00 at the production calibration). The ranking is therefore the reportable object. The level is a fragile by-product of where the population sits relative to the purchase threshold, and is best read as a range rather than a point.
 
-##### Eleven-channel extended Shapley (exploratory).
+#### Eleven-channel extended Shapley (exploratory).
 
 Table <a href="#tab:shapley_exact" data-reference-type="ref" data-reference="tab:shapley_exact">6</a> reports the exploratory extension. The eleven-channel cooperative game adds source-dependent utility ($`\lambda_W = 0.625`$) and the at-purchase penalty ($`\psi_{\text{purchase}} = 0.05`$) as additional players. Under the literature-magnitude parameterization, PED carries the largest absolute Shapley contribution (46.6 pp, 101%), and SDU carries a large negative Shapley contribution (-26.5 pp, -57%) because it operates as an ownership booster. These behavioral Shapley values reflect the chosen literature-magnitude parameters within the eleven-channel cooperative game; because $`\lambda_W`$ and $`\psi_{\text{purchase}}`$ are exploratory rather than moment-matched, the attributions should be read as illustrative of where standard behavioral parameters would land in the channel ranking, not as identification of the magnitudes themselves.
 
@@ -660,7 +643,7 @@ Exact Shapley values computed from all 2048 channel subsets. Each value represen
 
 </div>
 
-### Pairwise channel interactions
+## Pairwise channel interactions
 
 Table <a href="#tab:pairwise" data-reference-type="ref" data-reference="tab:pairwise">7</a> reports the pairwise interaction strength for the eight rational and preference channels. For each pair (A, B), the interaction is defined as the difference between the ownership drop when both are active simultaneously and the sum of their individual drops. A negative interaction indicates super-additivity: the channels reinforce each other. The order-independent contributions of the eleven channels are reported in the exact Shapley decomposition (Section <a href="#sec:shapley" data-reference-type="ref" data-reference="sec:shapley">4.4</a>).
 
@@ -689,7 +672,7 @@ Each cell shows the interaction: ownership with both channels minus the additive
 
 The strongest interaction is between Social Security and pricing loads ($`-29.9`$ pp). SS raises demand by providing an income floor, and loads destroy demand by eliminating the surplus; when combined, the effect of loads is amplified by the elevated demand that SS creates. The combined Med+R-S health-mortality channel and pricing loads interact at $`-3.8`$ pp, reflecting the economic complementarity between valuation risk and pricing frictions. Bequest interactions are near zero across the board, consistent with the modest isolated effect of the DFJ luxury-good specification.
 
-### Comparison with prior work
+## Comparison with prior work
 
 Table <a href="#tab:pashchenko" data-reference-type="ref" data-reference="tab:pashchenko">8</a> evaluates the channels that Pashchenko (2013) emphasized—bequest motives, minimum purchase requirements, and pricing loads—within the present framework. This is not a replication of her model, which differs in preference specification, health dynamics, and solution method. Rather, it quantifies how much of the ownership gap those channels account for in the unified model, and how much additional reduction the present paper obtains from the broader channel set. Her model predicted approximately 20% participation; the six-channel rational model here predicts 14.0%, the added preference channels bring the prediction to 6.2%, and the structural public-care aversion channel yields the nine-channel baseline of 7.9%, modestly above both HRS measures.
 
@@ -717,11 +700,11 @@ Steps 0–3 incorporate the channels Pashchenko (2013) identified (SS, bequests,
 
 </div>
 
-Peijnenburg et al. (2016) found that full annuitization remains approximately optimal in their framework. Their model includes background risk and default risk but omits the health-mortality correlation that drives the Reichling–Smetters mechanism. Without the specific correlation between health shocks, survival, and medical costs, medical expenditure risk alone may increase annuity demand. The combined Med+R-S channel in the present model contributes 23.1 pp in the sequential decomposition (and 14.5 pp in the order-independent Shapley attribution), confirming that the correlation is a quantitatively important channel that prior work omitted.
+Peijnenburg et al. (2016) found that full annuitization remains approximately optimal in their framework. Their model includes background risk and default risk but omits the health-mortality correlation that drives the Reichling–Smetters mechanism. Without the specific correlation between health shocks, survival, and medical costs, medical expenditure risk alone may increase annuity demand. The combined Med+R-S channel in the present model contributes 23.1 pp in the sequential decomposition (and 9.4 pp in the order-independent nine-channel Shapley attribution), confirming that the correlation is a quantitatively important channel that prior work omitted.
 
-### Sensitivity to risk aversion
+## Sensitivity to risk aversion
 
-The decomposition results depend on calibrated parameters, particularly risk aversion $`\gamma`$. Table <a href="#tab:robustness_gamma_inflation" data-reference-type="ref" data-reference="tab:robustness_gamma_inflation">9</a> reports predicted ownership across a range of $`\gamma`$ values and inflation rates for the six-channel rational model.
+The decomposition results depend on calibrated parameters, particularly risk aversion $`\gamma`$. Table <a href="#tab:robustness_gamma_inflation" data-reference-type="ref" data-reference="tab:robustness_gamma_inflation">9</a> reports predicted ownership across a range of $`\gamma`$ values and inflation rates for the eight-channel rational+preference model.
 
 <div id="tab:robustness_gamma_inflation">
 
@@ -742,13 +725,13 @@ Baseline: $`\gamma = 2.5`$, $`\pi = 2\%`$, DFJ bequests, MWR = 0.87, hazard mult
 
 </div>
 
-At the baseline $`\gamma = 2.5`$, the six-channel rational model predicts 14.0%. Predicted ownership rises with $`\gamma`$: 0.0% at $`\gamma = 2.0`$, 0.4% at $`\gamma = 2.4`$, and 22.7% at $`\gamma = 3.0`$. The eight-channel rational+preference model (with age-varying needs and state-dependent utility) predicts 6.2% at the baseline $`\gamma = 2.5`$. Adding the structural public-care aversion channel ($`\chi_{\text{LTC}}`$) yields the nine-channel structural baseline of 7.9%.
+At the baseline $`\gamma = 2.5`$, the eight-channel rational+preference model predicts 6.2%. Predicted ownership rises with $`\gamma`$: 0.0% at $`\gamma = 2.0`$, 0.4% at $`\gamma = 2.4`$, and 22.7% at $`\gamma = 3.0`$. The six-channel rational model, which omits the two preference channels, predicts a higher 14.0%. Adding the structural public-care aversion channel ($`\chi_{\text{LTC}}`$) to the eight-channel model yields the nine-channel structural baseline of 7.9%.
 
 The sensitivity to $`\gamma`$ is not unique to this model. It is shared by all lifecycle annuitization models and reflects the near-margin-of-indifference nature of the annuity purchase decision. The mortality credit is modest for healthy 65-year-olds, so the net surplus from annuitization sits near zero for many households. Small changes in risk aversion tip the optimal decision from non-purchase to purchase.
 
 A multi-gamma diagnostic decomposition (run at $`\gamma = 2.0`$, $`2.5`$, and $`3.0`$) locates where the gamma-sensitivity of the predicted *level* enters. Through the health-mortality correlation step the three decompositions stay close (68.2% to 77.6% ownership across the three values of $`\gamma`$), but survival pessimism splits them sharply: post-pessimism ownership is 10.0%, 56.6%, and 63.5% at $`\gamma = 2.0`$, $`2.5`$, and $`3.0`$. Pricing loads then compress all three further. The knife-edged participation level documented in Section <a href="#sec:results" data-reference-type="ref" data-reference="sec:results">4</a> thus originates in the interaction of survival pessimism and pricing loads with risk aversion, not in the rational channels through the R-S correlation.
 
-### Joint parameter uncertainty
+## Joint parameter uncertainty
 
 The single-parameter sweeps above hold all other parameters at their calibrated values. To assess robustness to joint calibration uncertainty within the model-internal parameters, I draw 1,000 parameter vectors from independent uniform distributions on the empirically supported ranges: $`\mu_P \sim U(2.5, 5.0)`$, $`\pi \sim U(0.015, 0.025)`$, MWR $`\sim U(0.83, 0.91)`$, $`\psi \sim U(0.92, 1.00)`$, $`\delta_c \sim U(0.01, 0.03)`$. Risk aversion is held fixed at the baseline. For each draw the model is solved on the production grid and the structural-baseline ownership prediction is recorded.
 
@@ -775,19 +758,19 @@ Risk aversion fixed at $`\gamma = 2.5`$. Joint draws over five calibration-uncer
 
 </div>
 
-The nine-channel structural prediction of 7.9% sits inside the IQR of a joint parameter uncertainty draw over five rational and preference nuisance parameters (median 10.2%, IQR \[2.2%, 21.2%\], 90% CI \[0.0%, 32.0%\]). The draw is constructed so each parameter’s range is symmetric around its production value (e.g., $`\psi \sim U(0.92, 1.00)`$ around production $`0.960`$; hazard multiplier on Poor health $`\sim U(2.5, 5.0)`$ around production $`3.8`$), so the central calibration is the central tendency of the parameter draw. The 90% ownership interval is nonetheless wide because ownership is a strongly non-linear function of the joint draw: combinations toward the demand-supporting corners (low pricing load, weak pessimism, weak Reichling–Smetters effect) generate large positive ownership, while corners toward demand-suppression generate corner-solution zero ownership. Both HRS measures ($`3.11\%`$ on the lifetime contract indicator, $`5.21\%`$ on the conventional any-annuity income proxy) are reported as out-of-sample comparisons against this range.
+The nine-channel structural prediction of 7.9% sits inside the IQR of a joint parameter uncertainty draw over five rational and preference nuisance parameters (median 10.2%, IQR \[2.2%, 21.2%\], 90% sensitivity interval \[0.0%, 32.0%\]). The draw is constructed so each parameter’s range is symmetric around its production value (e.g., $`\psi \sim U(0.92, 1.00)`$ around production $`0.960`$; hazard multiplier on Poor health $`\sim U(2.5, 5.0)`$ around production $`3.75`$), so the central calibration is the central tendency of the parameter draw. The 90% ownership interval is nonetheless wide because ownership is a strongly non-linear function of the joint draw: combinations toward the demand-supporting corners (low pricing load, weak pessimism, weak Reichling–Smetters effect) generate large positive ownership, while corners toward demand-suppression generate corner-solution zero ownership. Both HRS measures ($`3.11\%`$ on the lifetime contract indicator, $`5.21\%`$ on the conventional any-annuity income proxy) are reported as out-of-sample comparisons against this range.
 
-### Ownership across the wealth distribution
+## Ownership across the wealth distribution
 
 The aggregate ownership prediction masks a sharp distributional structure. Solving the full structural model and evaluating ownership separately within each wealth bin, predicted ownership is 0.0% in the bottom quartile (non-housing wealth below \$30,000) and remains near zero through the third quartile, then rises to 33.5% in the top quartile (above \$350,000). The aggregate prediction of 7.9% is, almost entirely, a top-quartile phenomenon. The bottom half of the distribution does not puzzlingly forgo annuitization: these households are already heavily annuitized through Social Security relative to their liquid wealth, often fall below the \$10,000 minimum-purchase threshold, and rationally retain precautionary liquidity against the Medicaid consumption floor. For them, optimal private annuitization is zero, and the observed near-zero ownership is the model’s prediction, not a deviation from it.
 
-This concentration raises an identification concern: if predicted ownership lives in one quartile, is the channel ranking merely a description of that quartile? It is not. Recomputing the nine-channel Shapley separately within each wealth bin, pricing loads are the top demand suppressor in all 4 quartiles. The second-tier composition shifts with wealth—survival pessimism leads the second tier in the lower bins, the Med+R-S correlation in the upper bins, and Social Security flips from a demand booster to a mild suppressor in the top quartile, where households hold enough liquid wealth that the public floor no longer drives the annuitization margin—but the dominance of pricing loads is invariant across the distribution. The ranking is a property of the model, not an artifact of where ownership happens to concentrate.
+This concentration raises an identification concern: if predicted ownership lives in one quartile, is the channel ranking merely a description of that quartile? It is not. Recomputing the nine-channel Shapley separately within each wealth bin, pricing loads are the top demand suppressor in all 4 quartiles. The second-tier composition shifts with wealth—survival pessimism leads the second tier in the bottom two quartiles, the Med+R-S correlation in the third, and bequest motives in the top quartile, where Social Security also flips from a demand booster to a mild suppressor as households hold enough liquid wealth that the public floor no longer drives the annuitization margin—but the dominance of pricing loads is invariant across the distribution. The ranking is a property of the model, not an artifact of where ownership happens to concentrate.
 
-### Empirical validation of the channel predictions
+## Empirical validation of the channel predictions
 
 The ranking implies testable cross-sectional patterns in observed ownership, which I evaluate in the same HRS sample used to discipline the model (single nonworking retirees aged 65–69, waves 5–9). The resource and health channels predict that ownership rises with wealth (feasibility and the fixed-cost margin), falls with poor health at the purchase age (the Med+R-S valuation-risk channel), and falls with pre-existing annuitized income conditional on wealth (Social Security crowd-out). A weighted logit with person-clustered standard errors reproduces all three: the wealth gradient is positive and significant, the poor-health coefficient is negative, and pre-existing SS+DB income enters negatively conditional on wealth. Of the 7 channel-implied signs, 5 match the data. The two exceptions are the expectation-based channels: subjective survival optimism (from the HRS subjective-survival probability) enters with the wrong sign, and bequest intention (the self-reported probability of leaving a \$100,000 bequest) enters positively rather than negatively. Both survey proxies are confounded—bequest intention is strongly collinear with housing wealth, which itself predicts ownership, and subjective-survival reports are noisy and weakly correlated with realized mortality risk. These are exactly the channels whose identification the structural calibration is designed to bypass, and their failure to separate in a reduced-form regression is consistent with, rather than evidence against, the structural attribution.
 
-### Heterogeneous welfare
+## Heterogeneous welfare
 
 Table <a href="#tab:cev_grid" data-reference-type="ref" data-reference="tab:cev_grid">11</a> reports the consumption-equivalent variation (CEV) from annuity market access under baseline pricing, across household types defined by initial wealth, health status, and bequest motive intensity.
 
@@ -833,21 +816,21 @@ CEV: consumption-equivalent variation (%). Positive values indicate welfare gain
 
 </div>
 
-##### Interpretation caveat.
+#### Interpretation caveat.
 
 The reported CEVs use the standard CRRA value-ratio approximation, $`\lambda = (V_{\text{with}}/V_{\text{without}})^{1/(1-\gamma)} - 1`$. This is exact under pure CRRA preferences with no non-homothetic terms. In this model, the bequest shifter $`\kappa`$, the consumption floor $`c_{\text{floor}}`$, source-dependent utility, the state-dependent $`\chi_{\text{LTC}}`$ consumption transformation in the Medicaid-binding Poor state, and the at-purchase penalty are non-CRRA value contributions, so the ratio formula is an approximation rather than exact compensating variation. The signs and ordering of CEV across cells are preserved by the approximation, though the reported magnitudes should be read as directional access-value statistics rather than exact welfare measures. Computing exact compensating variation would require solving $`V_{\text{without\_access}}(c \cdot (1+\lambda)) = V_{\text{with\_access}}`$ for $`\lambda`$ at each cell, which is left to future work.
 
-Under the nine-channel structural baseline, the welfare gain from annuity market access is zero for most households and positive only at high wealth in good health with weak bequest motives. The largest single-cell CEV is 4.7% at \$1,000,000 in Good health under no bequests, falling to 0.3% under DFJ bequests at the same cell. At and below \$200,000, and at all Poor-health cells, CEV is essentially zero across bequest specifications. At the population level, mean CEV under DFJ bequests is 0.0%, with 7.7% of households deriving any positive welfare gain and 0.0% deriving gains exceeding 1% of consumption.
+Under the nine-channel structural baseline, the welfare gain from annuity market access is zero for most households and positive only at high wealth with weak bequest motives, where it is largest in good health. The largest single-cell CEV is 4.7% at \$1,000,000 in Good health under no bequests, falling to 0.3% under DFJ bequests at the same cell. At and below \$200,000, and at all Poor-health cells under DFJ or strong bequests, CEV is essentially zero; the one exception is the highest-wealth Poor-health cell under no bequest motive (Table <a href="#tab:cev_grid" data-reference-type="ref" data-reference="tab:cev_grid">11</a>). At the population level, mean CEV under DFJ bequests is 0.0%, with 7.7% of households deriving any positive welfare gain and 0.0% deriving gains exceeding 1% of consumption.
 
 The economic content of these small CEVs is the same as the low predicted ownership rate: most households would not optimally purchase an annuity at current prices, so giving them access to the market provides little marginal value. The CEV grid is therefore the welfare counterpart of the ownership prediction—both confirm that the marginal household is approximately indifferent at the no-purchase margin. Larger welfare gains appear only when policy changes the optimal choice: lowering the load (group pricing) or modifying the choice architecture so that annuitization is the default, reported in Section <a href="#sec:counterfactuals" data-reference-type="ref" data-reference="sec:counterfactuals">4.12</a>.
 
 Section <a href="#sec:counterfactuals" data-reference-type="ref" data-reference="sec:counterfactuals">4.12</a> examines how supply-side reforms change these welfare results.
 
-##### Normative interpretation of the behavioral channels.
+#### Normative interpretation of the behavioral channels.
 
 The exploratory behavioral channels (SDU, PED) carry a normatively contingent welfare interpretation (Bernheim and Rangel 2009; Beshears et al. 2008): under a preference interpretation of the underlying phenomena (welfare-relevant), agents already incorporate them into their utility function and “removing” them does not increase welfare; under a bias interpretation (welfare-irrelevant), removing them captures the full rational-utility gain. The empirical exercise in this paper does not adjudicate the preference-vs-bias choice; welfare claims involving the behavioral channels are reported with this caveat made explicit.
 
-### Policy counterfactuals
+## Policy counterfactuals
 
 Table <a href="#tab:counterfactuals" data-reference-type="ref" data-reference="tab:counterfactuals">12</a> reports predicted ownership under twelve policy scenarios that vary pricing, inflation protection, survival beliefs, and Social Security generosity. Table <a href="#tab:cev_counterfactuals" data-reference-type="ref" data-reference="tab:cev_counterfactuals">14</a> reports the corresponding welfare gains.
 
@@ -879,15 +862,15 @@ Baseline: $`\gamma=2.5`$, $`\beta=0.97`$, DFJ bequests ($`\theta=56.96`$, $`\kap
 
 </div>
 
-##### Pricing loads as a dominant supply-side lever.
+#### Pricing loads as a dominant supply-side lever.
 
 Group annuity pricing (MWR $`= 0.90`$), achievable through employer plans or government-sponsored pools (James and Song 2006), raises predicted ownership to 12.1%. A public option at MWR $`= 0.95`$ reaches 21.4%, and an actuarially fair benchmark at MWR $`= 1.00`$ reaches 31.5%. These results quantify the pricing channel’s importance: a modest improvement in the money’s worth ratio—from 0.87 to 0.90—raises participation by roughly four percentage points relative to the nine-channel baseline.
 
-##### Inflation protection.
+#### Inflation protection.
 
 A real annuity at the same MWR (0.87) leaves ownership essentially unchanged at 9.7%, while a TIPS-backed real annuity at MWR $`= 0.78`$ falls to 0.0%, illustrating that the pricing penalty for inflation indexing offsets most of the gain from removing inflation erosion. Combining inflation protection with fair pricing reaches 28.0%.
 
-##### Social Security and the incidence of a benefit cut.
+#### Social Security and the incidence of a benefit cut.
 
 A 23% Social Security benefit cut—approximating the projected shortfall in the Old-Age and Survivors Insurance (OASI) trust fund, whose reserves the Social Security Trustees project to deplete in 2033, after which roughly 77% of scheduled benefits would be payable from continuing payroll-tax revenue (Board of Trustees, Federal Old-Age and Survivors Insurance and Federal Disability Insurance Trust Funds 2025); implemented as a permanent reduction to the Social Security component of the income floor with defined-benefit pension income held fixed—raises aggregate private annuity demand to 10.9%. Table <a href="#tab:ss_cut" data-reference-type="ref" data-reference="tab:ss_cut">13</a> reports the full schedule. The aggregate figure masks a sharp incidence across the wealth distribution (Section <a href="#sec:bywealth" data-reference-type="ref" data-reference="sec:bywealth">4.9</a>): the response is concentrated entirely in the top wealth quartile, where predicted ownership rises from 33.5% to 46.3% under the cut, while the bottom three quartiles show no response at all (0.0%), because the households most exposed to the cut are precisely those excluded from private annuitization by the minimum-purchase threshold and the binding consumption floor. Privatized longevity insurance does not backfill the public benefit cut where it bites hardest. It expands annuitization only among the wealthy, who least need the substitution. This is a stylized permanent reduction known at age 65, abstracting from transition uncertainty, announcement effects, and variation by claiming history and cohort.
 
@@ -915,11 +898,11 @@ Structural model (rational, preference, and public-care aversion channels; behav
 
 </div>
 
-##### Best feasible (supply-side + information) package.
+#### Best feasible (supply-side + information) package.
 
 For ownership counterfactuals, the “best feasible” scenario combines group pricing (MWR $`= 0.90`$), inflation protection (real annuity), and corrected survival beliefs ($`\psi = 1.0`$), producing 30.1% ownership at the nine-channel structural baseline. This is the upper bound of the supply-side and information interventions on the model-internal channels, not a realistic forecast of market participation.
 
-##### Demand-side architecture.
+#### Demand-side architecture.
 
 A demand-side lever distinct from pricing reform is changing the choice architecture so that annuitization is the default rather than an opt-in decision. Defaults are among the most powerful levers in retirement saving: automatic enrollment raises 401(k) participation by tens of percentage points (Madrian and Shea 2001). Whether comparable effects extend to annuitization is an open empirical question—no large-scale annuity-default experiment exists—but the analogy suggests demand-side architecture could rival the largest supply-side reforms considered here, while requiring no change to insurer pricing or product design.
 
@@ -1062,27 +1045,27 @@ CEV: consumption-equivalent variation (% of lifetime consumption agent would pay
 
 </div>
 
-##### Welfare under reform.
+#### Welfare under reform.
 
 Under baseline pricing, the welfare gain from market access is zero at and below \$200,000 across all bequest specifications and is positive only at high wealth (0.3% at \$1,000,000 in Good health with DFJ bequests, 4.7% without a bequest motive). Policy interventions that change the optimal choice raise these high-wealth gains. Group pricing (MWR $`= 0.90`$) lifts the \$1,000,000 Good/DFJ cell to 0.8%, and the “best feasible” package—group pricing, inflation protection, and corrected survival beliefs—reaches 2.5% at \$500,000 and 4.2% at \$1,000,000 (Good health, DFJ), higher still without a bequest motive (Table <a href="#tab:cev_counterfactuals" data-reference-type="ref" data-reference="tab:cev_counterfactuals">14</a>, Panel C). At and below \$200,000, CEV remains near zero even under the best-feasible package, consistent with annuitization being a high-wealth phenomenon. The values reported in the welfare table are a CRRA value-ratio welfare index. Because the model includes non-homothetic bequests and a consumption floor, these values should be read as directional access-value statistics rather than exact compensating variation. The ranking and signs across scenarios are preserved by the approximation.
 
 The welfare analysis reframes the annuity puzzle. For the median retiree at current market conditions, non-annuitization is the correct response to loaded pricing, nominal payment erosion, correlated health and survival risk, pre-existing Social Security coverage, and declining consumption needs. The welfare case for annuitization emerges only when policy reforms also change the optimal choice: supply-side cost reductions and demand-side default architecture together raise CEV for high-wealth households in good health from near zero to as much as 4.2% of consumption, while leaving the welfare-neutral majority of the wealth distribution unaffected.
 
-## Robustness
+# Robustness
 
 Table <a href="#A-tab:full_robustness" data-reference-type="ref" data-reference="A-tab:full_robustness">[A-tab:full_robustness]</a> in the appendix reports the full sensitivity analysis. Key dimensions are summarized here.
 
-### Risk aversion
+## Risk aversion
 
-The sensitivity of predicted ownership to $`\gamma`$ is documented in Table <a href="#tab:robustness_gamma_inflation" data-reference-type="ref" data-reference="tab:robustness_gamma_inflation">9</a> and discussed in Section <a href="#sec:monte_carlo" data-reference-type="ref" data-reference="sec:monte_carlo">4.7</a>. At the baseline $`\gamma = 2.5`$, the six-channel rational model predicts 14.0%. Ownership is 0.0% for $`\gamma \leq 2.0`$, rises through 0.0% at $`\gamma = 2.3`$ and 0.4% at $`\gamma = 2.4`$, and reaches 22.7% at $`\gamma = 3.0`$. The eight-channel rational+preference model shifts these values downward, producing 6.2% at the baseline.
+The sensitivity of predicted ownership to $`\gamma`$ is documented in Table <a href="#tab:robustness_gamma_inflation" data-reference-type="ref" data-reference="tab:robustness_gamma_inflation">9</a> and discussed in Section <a href="#sec:monte_carlo" data-reference-type="ref" data-reference="sec:monte_carlo">4.7</a>. At the baseline $`\gamma = 2.5`$, the eight-channel rational+preference model predicts 6.2%. Ownership is 0.0% for $`\gamma \leq 2.0`$, rises through 0.0% at $`\gamma = 2.3`$ and 0.4% at $`\gamma = 2.4`$, and reaches 22.7% at $`\gamma = 3.0`$. The six-channel rational model, which omits the two preference channels, predicts a higher 14.0% at the baseline.
 
-Inflation has competing effects in the nominal-annuity calibration: it erodes the real value of later payments, but it also raises the initial nominal payout through the insurer’s pricing, which uses the nominal discount rate. The net effect on demand depends on which side dominates at the calibrated parameters. At the baseline $`\gamma = 2.5`$, predicted ownership rises monotonically over the empirically defensible range, from 6.8% at $`\pi = 1\%`$ to 5.1% at $`\pi = 3\%`$, indicating that the higher initial nominal payout dominates payment erosion at the calibrated margin.
+Inflation has competing effects in the nominal-annuity calibration: it erodes the real value of later payments, but it also raises the initial nominal payout through the insurer’s pricing, which uses the nominal discount rate. The net effect on demand depends on which side dominates at the calibrated parameters. At the baseline $`\gamma = 2.5`$, predicted ownership falls monotonically over the empirically defensible range, from 6.8% at $`\pi = 1\%`$ to 5.1% at $`\pi = 3\%`$, indicating that payment erosion dominates the higher initial nominal payout at the calibrated margin.
 
-### Health-mortality correlation
+## Health-mortality correlation
 
 The hazard multipliers govern the strength of the Reichling–Smetters mechanism. The R-S functional estimates ($`[0.45, 1.0, 3.5]`$) produce 8.2% ownership; the HRS self-reported health estimates ($`[0.57, 1.0, 2.7]`$) produce 11.9%; the conservative specification ($`[0.60, 1.0, 2.0]`$) produces 17.2%. An age-varying specification that linearly interpolates the HRS estimates across the three age bands in Section <a href="#sec:calibration" data-reference-type="ref" data-reference="sec:calibration">3</a> produces 12.5%, reflecting the compression of the health-mortality gradient at older ages (the Poor-health multiplier falls from 3.29 at ages 65–74 to 1.82 at 85+). The qualitative pattern, that wider health gradients reduce annuity demand, holds across all parameterizations.
 
-### Money’s worth ratio
+## Money’s worth ratio
 
 Table <a href="#tab:mwr_sensitivity" data-reference-type="ref" data-reference="tab:mwr_sensitivity">15</a> reports ownership under MWR values from the policy counterfactual exercise.
 
@@ -1110,33 +1093,33 @@ Nine-channel structural baseline (rational + preferences + $`\chi_{\text{LTC}} =
 
 </div>
 
-### Survival pessimism
+## Survival pessimism
 
-Varying $`\psi`$ from 0.970 to 1.000 (objective beliefs) shifts predicted ownership from 10.7% to 26.2%. At the baseline $`\psi = 0.960`$, the model predicts 6.2%. The steep sensitivity confirms that survival pessimism is a quantitatively meaningful channel, consistent with its Shapley value of 4.4 pp.
+Varying $`\psi`$ from 0.970 to 1.000 (objective beliefs) shifts predicted ownership from 10.7% to 26.2%. At the baseline $`\psi = 0.960`$, the model predicts 6.2%. The steep sensitivity confirms that survival pessimism is a quantitatively meaningful channel, consistent with its Shapley value of 10.9 pp.
 
-### Additional robustness checks
+## Additional robustness checks
 
-##### Grid convergence.
+#### Grid convergence.
 
 On the mean-Social-Security diagnostic, predicted ownership ranges from 21.1% at the medium grid ($`60 \times 20`$) to 20.8% at the fine grid ($`100 \times 40`$), bracketing the production grid ($`80 \times 30`$, 20.0%; Table <a href="#A-tab:grid_convergence" data-reference-type="ref" data-reference="A-tab:grid_convergence">[A-tab:grid_convergence]</a>). The roughly 1.0 pp variation across grid resolutions is small relative to the Shapley channel contributions.
 
-##### Quadrature convergence.
+#### Quadrature convergence.
 
 Binary ownership rises gradually with quadrature order (Table <a href="#A-tab:grid_convergence" data-reference-type="ref" data-reference="A-tab:grid_convergence">[A-tab:grid_convergence]</a>, Panel B): values at $`n_{\text{quad}} \in \{9, 11, 13, 15\}`$ are 20.0%, 20.5%, 21.1%, and 21.2% at the diagnostic specification, a range of 1.2 pp. Lower-order rules ($`n_{\text{quad}} \leq 7`$) deviate by up to 2 pp because the heavy lognormal medical-expense tail interacts with the Medicaid floor. Nine-node quadrature is adopted as a balance of accuracy and computational cost; Appendix <a href="#A-app:quadrature" data-reference-type="ref" data-reference="A-app:quadrature">[A-app:quadrature]</a> provides details.
 
-##### Bequest specification.
+#### Bequest specification.
 
 Under the nine-channel structural baseline, the DFJ luxury-good specification ($`\theta = 56.96`$, $`\kappa = \$272{,}628`$) produces 7.9% ownership; removing bequests raises this to 26.1%. See Section <a href="#sec:model" data-reference-type="ref" data-reference="sec:model">2</a> for discussion of why $`\theta`$ and $`\kappa`$ must be interpreted jointly.
 
-##### Behavioral parameter sensitivity.
+#### Behavioral parameter sensitivity.
 
 The eleven-channel extended specification is sensitive to the literature-magnitude calibrations of $`\lambda_W`$ and $`\psi_{\text{purchase}}`$. The reported sweeps span $`\lambda_W \in \{0.5, 0.625, 0.75, 0.85\}`$ and $`\psi_{\text{purchase}} \in \{0.01, 0.05, 0.09\}`$. At the production magnitudes, the at-purchase penalty saturates participation, which is why the nine-channel structural baseline—not the eleven-channel extended specification—is reported as the disciplined reading.
 
-##### Numerical accuracy.
+#### Numerical accuracy.
 
 Euler equation residuals, grid convergence, and quadrature convergence diagnostics are reported in Appendices <a href="#A-app:grid_convergence" data-reference-type="ref" data-reference="A-app:grid_convergence">[A-app:grid_convergence]</a>, <a href="#A-app:quadrature" data-reference-type="ref" data-reference="A-app:quadrature">[A-app:quadrature]</a>, and <a href="#A-app:euler" data-reference-type="ref" data-reference="A-app:euler">[A-app:euler]</a>.
 
-## Discussion
+# Discussion
 
 This paper is a calibrated structural exercise, not a formal estimation. All parameters are drawn from published sources. The main contribution is therefore quantitative accounting: how far the standard rational channels go, what the added preference channels contribute, and which mechanisms matter most once they are evaluated together.
 
@@ -1148,7 +1131,7 @@ Two features of the exploratory behavioral results deserve emphasis because they
 
 The Social Security results illustrate the complement-substitute duality. In the frictionless environment, SS crowds *in* private annuity demand by providing an income floor that makes annuitization feasible. Once pricing loads and inflation erosion are active, the same SS income crowds *out* private annuity demand. The public-finance payoff is the incidence of a benefit cut: a 23% Social Security reduction raises private annuitization only in the top wealth quartile, while the households the cut most exposes cannot substitute at all. That asymmetry—privatized longevity insurance backfilling a public cut only for those who least need it—is a substantive result, not just a robustness check.
 
-The baseline MWR of 0.87 is drawn from Mitchell et al. (1999) and Wettstein et al. (2021). Recent evidence suggests that annuity pricing has improved, with population-table MWRs of approximately 0.87 for age-65 immediate annuities in 2024 market conditions. At MWR $`= 0.85`$, the model predicts 2.1% ownership (Table <a href="#tab:mwr_sensitivity" data-reference-type="ref" data-reference="tab:mwr_sensitivity">15</a>). Pricing remains the highest-leverage supply-side policy margin in this market.
+The baseline MWR of 0.87 is drawn from Mitchell et al. (1999) and Wettstein et al. (2021). Recent evidence suggests that annuity pricing has improved, with population-table MWRs near the baseline 0.87 for age-65 immediate annuities in recent market conditions. At MWR $`= 0.85`$, the model predicts 2.1% ownership (Table <a href="#tab:mwr_sensitivity" data-reference-type="ref" data-reference="tab:mwr_sensitivity">15</a>). Pricing remains the highest-leverage supply-side policy margin in this market.
 
 Several modeling choices condition the results.
 
@@ -1168,7 +1151,7 @@ Deferred income annuities (DIAs) and qualified longevity annuity contracts (QLAC
 
 For policy, the counterfactual analysis identifies two distinct levers operating on different margins. Supply-side reform (group pricing at MWR $`= 0.90`$) raises the value of annuitization at the structural baseline. Demand-side reform (annuitization as default) is motivated by the broader evidence on the power of defaults in retirement saving (Madrian and Shea 2001), though no large-scale annuity-default experiment yet exists. These levers are not substitutes: pricing reform leaves the demand-side default-vs-opt-in margin unaddressed, and default architecture without pricing reform fails to capture households for whom the rational valuation gap is binding.
 
-## Conclusion
+# Conclusion
 
 This paper developed a structural lifecycle decomposition of the annuity puzzle. A nine-channel rational-plus-preference baseline predicts 7.9% US voluntary annuity ownership, modestly above the two HRS measures ($`5.21\%`$ on the conventional any-annuity income proxy, 95% CI $`[4.45\%, 6.09\%]`$; $`3.11\%`$ on the cleaner lifetime-contract indicator, 95% CI $`[2.54\%, 3.81\%]`$). This does not imply that behavioral factors do not matter. As an exploratory exercise, an eleven-channel extended specification layers two behavioral channels—source-dependent utility ($`\lambda_W = 0.625`$) and a narrow-framing at-purchase penalty ($`\psi_{\text{purchase}} = 0.05`$)—onto the baseline at literature-magnitude parameters. At these values each behavioral channel individually moves predicted ownership by more than almost any single rational, preference, or structural channel, but the two operate in opposite directions and largely offset. The eleven-channel prediction is 0.1% and is sensitive to assumptions—small shifts within the literature-defensible parameter range move predictions substantially in either direction—so the nine-channel structural baseline is the disciplined reading.
 
@@ -1178,7 +1161,7 @@ Welfare and policy implications follow from the same calibration. Under current 
 
 Research framing should therefore shift from “why don’t retirees annuitize?” to “which channels matter most, and what mix of supply-side and demand-side interventions would make annuitization welfare-improving, and for whom?”
 
-## Data Availability
+# Data Availability
 
 Replication code (Julia) and processed calibration data are available at <https://github.com/DerekTharp/annuity-puzzle-model>. Health transition matrices and wealth distributions are computed from the RAND HRS Longitudinal File (public use, available at <https://hrsdata.isr.umich.edu>). All other calibration parameters are taken from published sources cited in the text.
 

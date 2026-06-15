@@ -371,6 +371,49 @@ function gate_no_fallback_only_literals()
 end
 
 # ---------------------------------------------------------------------------
+# Gate 2b: figures. Every \includegraphics target in the manuscript must exist
+# on disk. Figure content is regenerated at run_all.jl Stage 14 from the same
+# CSVs the tables draw on; this gate catches a missing or renamed figure file
+# (which otherwise surfaces only at LaTeX compile time) and reports figure age
+# relative to the newest table CSV for transparency.
+# ---------------------------------------------------------------------------
+function gate_figures()
+    missing_figs = String[]
+    figs = String[]
+    for mf in MANUSCRIPT_FILES
+        path = joinpath(PAPER_DIR, mf)
+        isfile(path) || continue
+        for m in eachmatch(r"\\includegraphics(?:\[[^\]]*\])?\{([^}]*)\}", read(path, String))
+            ref = m.captures[1]
+            (endswith(ref, ".pdf") || endswith(ref, ".png")) || (ref *= ".pdf")
+            push!(figs, ref)
+            isfile(normpath(joinpath(PAPER_DIR, ref))) || push!(missing_figs, ref)
+        end
+    end
+    if !isempty(missing_figs)
+        println("\n[GATE 2b: FIGURES] FAIL ($(length(unique(missing_figs))) missing)")
+        println("  The manuscript \\includegraphics these files, which do not exist:")
+        for f in unique(missing_figs)
+            println("    - $f")
+        end
+        println("  Run scripts/generate_figures.jl (run_all.jl Stage 14).")
+        return false
+    end
+    csv_dir = joinpath(PROJECT_DIR, "tables", "csv")
+    note = ""
+    if isdir(csv_dir) && !isempty(figs)
+        csvs = filter(f -> endswith(f, ".csv"), readdir(csv_dir; join=true))
+        if !isempty(csvs)
+            newest_csv = maximum(mtime, csvs)
+            oldest_fig = minimum(f -> mtime(normpath(joinpath(PAPER_DIR, f))), unique(figs))
+            oldest_fig < newest_csv && (note = "; note: a figure predates the newest table CSV — confirm figures were regenerated on the production run")
+        end
+    end
+    println("[GATE 2b: FIGURES] OK ($(length(unique(figs))) figures present$note)")
+    return true
+end
+
+# ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
 
@@ -380,12 +423,13 @@ println("=" ^ 70)
 
 ok1 = gate_manifest()
 ok2 = gate_freshness()
+ok2b = gate_figures()
 ok3 = gate_hardcoded_staleness()
 ok4 = gate_macro_definedness()
 ok4b = gate_no_fallback_only_literals()
 ok3 = ok3 && ok4 && ok4b
 
-if !(ok1 && ok2 && ok3)
+if !(ok1 && ok2 && ok2b && ok3)
     println("\n" * "=" ^ 70)
     println("  PIPELINE VALIDATION: FAIL")
     println("=" ^ 70)
