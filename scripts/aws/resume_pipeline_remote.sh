@@ -72,6 +72,9 @@ run_stage "12. Robustness and Sensitivity Analysis" scripts/run_robustness.jl pa
 # Stage 14c — grid and quadrature convergence diagnostics (writes convergence_diagnostics.csv)
 [ "$OVERALL_RC" = "0" ] && { run_stage "14c. Grid and Quadrature Convergence Diagnostics" scripts/grid_convergence_full.jl parallel || OVERALL_RC=$?; }
 
+# Stage 14c2 — annuitization-grid (alpha) convergence (writes alpha_grid_diagnostics.csv)
+[ "$OVERALL_RC" = "0" ] && { run_stage "14c2. Annuitization-Grid (alpha) Convergence" scripts/alpha_grid_diagnostics.jl parallel || OVERALL_RC=$?; }
+
 # Stage 14d — Euler equation residual diagnostics (writes euler_residuals.csv)
 [ "$OVERALL_RC" = "0" ] && { run_stage "14d. Euler Equation Residual Diagnostics" scripts/run_euler_diagnostics.jl parallel || OVERALL_RC=$?; }
 

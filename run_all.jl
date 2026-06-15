@@ -286,6 +286,16 @@ function main()
         joinpath(SCRIPTS_DIR, "grid_convergence_full.jl"); parallel=true)
     push!(timings, "Convergence diagnostics" => t)
 
+    # --- Stage 14c2: Annuitization-grid (alpha) convergence diagnostic ---
+    # Produces: tables/csv/alpha_grid_diagnostics.csv. Backs Panel D of the
+    # grid-convergence table (ownership stability across the n_alpha grid). Kept
+    # separate from convergence_diagnostics.csv so it does not regenerate the
+    # production-locked grid/quadrature rows.
+    t = run_stage(
+        "14c2. Annuitization-Grid (alpha) Convergence",
+        joinpath(SCRIPTS_DIR, "alpha_grid_diagnostics.jl"); parallel=true)
+    push!(timings, "Alpha-grid diagnostic" => t)
+
     # --- Stage 14d: Euler equation residual diagnostics ---
     # Produces: tables/csv/euler_residuals.csv. Backs the Euler-residual
     # table in the appendix (solver-accuracy check).

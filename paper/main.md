@@ -1107,6 +1107,10 @@ On the mean-Social-Security diagnostic, predicted ownership ranges from 21.1% at
 
 Binary ownership rises gradually with quadrature order (Table <a href="#A-tab:grid_convergence" data-reference-type="ref" data-reference="A-tab:grid_convergence">[A-tab:grid_convergence]</a>, Panel B): values at $`n_{\text{quad}} \in \{9, 11, 13, 15\}`$ are 20.0%, 20.5%, 21.1%, and 21.2% at the diagnostic specification, a range of 1.2 pp. Lower-order rules ($`n_{\text{quad}} \leq 7`$) deviate by up to 2 pp because the heavy lognormal medical-expense tail interacts with the Medicaid floor. Nine-node quadrature is adopted as a balance of accuracy and computational cost; Appendix <a href="#A-app:quadrature" data-reference-type="ref" data-reference="A-app:quadrature">[A-app:quadrature]</a> provides details.
 
+#### Annuitization grid.
+
+Because ownership is the discontinuous indicator $`\alpha^* > 0`$, the resolution of the age-65 annuitization grid could in principle shift marginal households across the participation threshold. Holding the wealth grid and quadrature at production resolution and varying $`n_\alpha`$ over $`\{51, 101, 201, 401\}`$ leaves predicted ownership within a 0.2 pp band (19.9% to 20.1%, 20.0% at the production $`n_\alpha = 101`$; Table <a href="#A-tab:grid_convergence" data-reference-type="ref" data-reference="A-tab:grid_convergence">[A-tab:grid_convergence]</a>, Panel D), so the participation level is not an artifact of the annuitization-grid resolution.
+
 #### Bequest specification.
 
 Under the nine-channel structural baseline, the DFJ luxury-good specification ($`\theta = 56.96`$, $`\kappa = \$272{,}628`$) produces 7.9% ownership; removing bequests raises this to 26.1%. See Section <a href="#sec:model" data-reference-type="ref" data-reference="sec:model">2</a> for discussion of why $`\theta`$ and $`\kappa`$ must be interpreted jointly.

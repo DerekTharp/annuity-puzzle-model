@@ -31,7 +31,7 @@ function emit_grid_convergence()
     io = IOBuffer()
     raw_(io, raw"\begin{table}[htbp]")
     raw_(io, raw"\centering")
-    raw_(io, raw"\caption{Grid and Quadrature Convergence (Mean-SS Diagnostic Exercise)}")
+    raw_(io, raw"\caption{Grid, Quadrature, and Annuitization-Grid Convergence (Mean-SS Diagnostic Exercise)}")
     raw_(io, raw"\label{tab:grid_convergence}")
     raw_(io, raw"\begin{threeparttable}")
     raw_(io, raw"\begin{tabular}{lcccc}")
@@ -63,11 +63,31 @@ function emit_grid_convergence()
     raw_(io, raw"\midrule")
     nl(io, raw"\multicolumn{5}{l}{\textit{Panel C: Reference}} ")
     nl(io, @sprintf(" & \$120 \\times 50\$ & 11 & %.2f & %.4f ", ref[1], ref[2]))
+    apath = joinpath(CSV_DIR, "alpha_grid_diagnostics.csv")
+    if isfile(apath)
+        arows, _ = read_csv("alpha_grid_diagnostics.csv")
+        ag(spec) = begin
+            for r in eachrow(arows)
+                strip(string(r[1])) == spec && return Float64(r[2]), Float64(r[3])
+            end
+            error("alpha row not found: $spec")
+        end
+        raw_(io, raw"\midrule")
+        nl(io, raw"\multicolumn{5}{l}{\textit{Panel D: Annuitization grid ($80 \times 30$ grid, 9-node GH)}} ")
+        for n in [51, 101, 201, 401]
+            o, a = ag("n_alpha=$n")
+            if n == 101
+                nl(io, @sprintf("\\textbf{\$n_\\alpha = %d\$} & \\textbf{\$80 \\times 30\$} & \\textbf{9} & \\textbf{%.2f} & \\textbf{%.4f} ", n, o, a))
+            else
+                nl(io, @sprintf("\$n_\\alpha = %d\$ & \$80 \\times 30\$ & 9 & %.2f & %.4f ", n, o, a))
+            end
+        end
+    end
     raw_(io, raw"\bottomrule")
     raw_(io, raw"\end{tabular}")
     raw_(io, raw"\begin{tablenotes}")
     raw_(io, raw"\small")
-    raw_(io, raw"\item All specifications use baseline parameters ($\gamma = \pGamma$, DFJ bequests, MWR $= \pMwrBaseline$, $\pi = \pInflation$, $\psi = \pPessimism$) with mean Social Security. $n_\alpha = \pNAlpha$ throughout.")
+    raw_(io, raw"\item All specifications use baseline parameters ($\gamma = \pGamma$, DFJ bequests, MWR $= \pMwrBaseline$, $\pi = \pInflation$, $\psi = \pPessimism$) with mean Social Security. $n_\alpha = \pNAlpha$ in Panels A--C; Panel D varies it.")
     raw_(io, raw"\end{tablenotes}")
     raw_(io, raw"\end{threeparttable}")
     raw_(io, raw"\end{table}")

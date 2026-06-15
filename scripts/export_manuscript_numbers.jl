@@ -776,6 +776,27 @@ function build_macros!()
         def!("quadBand",     fmt_num(cq(15) - cq(9); digits=1))
     end
 
+    # Annuitization-grid (alpha) convergence macros for prose.
+    let apath = joinpath(CSV_DIR, "alpha_grid_diagnostics.csv")
+        if isfile(apath)
+            arows = read_csv("alpha_grid_diagnostics.csv")[1]
+            av(spec) = begin
+                for r in eachrow(arows)
+                    strip(string(r[1])) == spec && return Float64(r[2])
+                end
+                error("alpha $spec")
+            end
+            vals = [av("n_alpha=$n") for n in (51, 101, 201, 401)]
+            def!("alphaGridCoarse",   fmt_pct(vals[1]; digits=1))
+            def!("alphaGridProd",     fmt_pct(vals[2]; digits=1))
+            def!("alphaGridFine",     fmt_pct(vals[3]; digits=1))
+            def!("alphaGridVeryFine", fmt_pct(vals[4]; digits=1))
+            def!("alphaGridBand",     fmt_num(maximum(vals) - minimum(vals); digits=1))
+        else
+            @warn "Skipping alpha-grid macros (alpha_grid_diagnostics.csv not present)"
+        end
+    end
+
     # Euler-residual summary stats for prose.
     let erows = read_csv("euler_residuals.csv")[1]
         eb(label, col) = begin
