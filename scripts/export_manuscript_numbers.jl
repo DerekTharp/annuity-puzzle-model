@@ -791,6 +791,17 @@ function build_macros!()
         def!("eulerPctOneFine",   fmt_pct(eb("Grid 100x40 (9-node)", 5); digits=1))
     end
 
+    # Medical-expenditure moment fits: analytic implications of the calibrated
+    # lognormal process, deterministic given the medical params in parameters.jl.
+    let ptext = read(joinpath(@__DIR__, "..", "src", "parameters.jl"), String)
+        getp(nm) = parse(Float64, match(Regex("$(nm)::Float64 = ([0-9.]+)"), ptext).captures[1])
+        mu0, gr, sig = getp("medical_mu_base"), getp("medical_mu_growth"), getp("medical_sigma")
+        muT(t) = mu0 + gr * (t - 65)
+        def!("medMeanSeventy", fmt_dollar(exp(muT(70) + sig^2 / 2)))
+        def!("medMeanHundred", fmt_dollar(exp(muT(100) + sig^2 / 2)))
+        def!("medPctNinetyFive", fmt_dollar(exp(muT(100) + 1.6449 * sig)))
+    end
+
     # Inflation is reported via the combined Gamma×Inflation sweep
     for (key, spec) in [
         ("One",   "g=2.5,pi=1%"),
