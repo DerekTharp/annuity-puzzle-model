@@ -1135,7 +1135,7 @@ function write_shapley_nine_table()
         @printf(f, "\\item Exact Shapley values over all \$2^9 = 512\$ subsets of the nine structural channels (SDU and PED held off). Positive values are demand-suppressing contributions; negative values are demand-boosting (Social Security raises annuitization at the margin by providing the income floor).\n")
         @printf(f, "\\item Frictionless baseline: %.1f\\%%. Nine-channel structural prediction: %.1f\\%%. Total demand drop: %.1f pp.\n",
                 own_frictionless_pct, own_full_pct, total_drop_pp)
-        println(f, raw"\item The eleven-channel exploratory Shapley (Table~\ref{tab:shapley_exact}) layers the two behavioral channels (SDU, PED) and is reported as a sensitivity exercise rather than the disciplined attribution.")
+        println(f, raw"\item The eleven-channel exploratory Shapley (Table~\ref{A-tab:shapley_exact}, appendix) layers the two behavioral channels (SDU, PED) and is reported as a sensitivity exercise rather than the disciplined attribution.")
         println(f, raw"\end{tablenotes}")
         println(f, raw"\end{threeparttable}")
         println(f, raw"\end{table}")
