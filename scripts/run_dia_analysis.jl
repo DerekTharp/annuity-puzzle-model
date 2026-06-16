@@ -158,7 +158,8 @@ for (ib, bspec) in enumerate(bequest_specs)
             grid_kw...)
 
         t0 = time()
-        sol = solve_lifecycle_health(p_model, grids, base_surv, ss_zero)
+        sol = solve_lifecycle_health(p_model, grids, base_surv, ss_zero;
+                                     compute_bequest_decomp=true)
         solve_time = time() - t0
 
         # Ownership rate (disable age-specific repricing for DIA products —

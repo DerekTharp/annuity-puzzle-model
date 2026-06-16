@@ -30,7 +30,16 @@ struct HealthSolution
     params::ModelParams
     base_surv::Vector{Float64}  # period-survival hazards (kept for narrow-framing
                                  # NPV calculation at the age-65 alpha search)
+    B::Array{Float64, 4}        # bequest component of V (V = U_c + B, additive).
+                                 # Empty unless solve was called with
+                                 # compute_bequest_decomp=true (used for exact CV).
 end
+
+# Backward-compatible constructor: callers that do not request the bequest
+# decomposition leave B empty; exact-CV then falls back to the value-ratio form.
+HealthSolution(V, c_policy, grids, params, base_surv) =
+    HealthSolution(V, c_policy, grids, params, base_surv,
+                   Array{Float64, 4}(undef, 0, 0, 0, 0))
 
 """
 Solve the lifecycle problem by backward induction (no health dimension).
@@ -112,7 +121,8 @@ function solve_lifecycle_health(
     p::ModelParams,
     grids::Grids,
     base_surv::Vector{Float64},
-    ss_func::Function,
+    ss_func::Function;
+    compute_bequest_decomp::Bool=false,
 )
     nW = length(grids.W)
     nA = length(grids.A)
@@ -121,6 +131,14 @@ function solve_lifecycle_health(
 
     V = fill(-Inf, nW, nA, nH, T)
     c_policy = fill(0.0, nW, nA, nH, T)
+
+    # Bequest-component array B (V = U_c + B). Computed only when requested
+    # (welfare exact-CV path); the decomposition path mirrors the V recursion
+    # exactly, so the V/c_policy computation below is left untouched and the
+    # default-off path is bit-identical. B contributes nothing when theta = 0
+    # (bequest_utility returns 0), so it is left as zeros in that case.
+    compute_B = compute_bequest_decomp
+    B = compute_B ? fill(0.0, nW, nA, nH, T) : Array{Float64, 4}(undef, 0, 0, 0, 0)
 
     # Precompute health-dependent survival
     surv_health = build_health_survival(base_surv, p)
@@ -151,6 +169,7 @@ function solve_lifecycle_health(
                     inc_gross = ss_val + A_real
                     V_total = 0.0
                     c_total = 0.0
+                    B_total = 0.0
                     for iq in 1:p.n_quad
                         m = exp(mu_m + sigma_m * gh_nodes[iq])
                         inc_after  = max(0.0, inc_gross - m)
@@ -161,6 +180,14 @@ function solve_lifecycle_health(
                             inc_after = p.c_floor - W_after
                         end
                         V_k, c_k = terminal_value(W_after, 0.0, inc_after, p, T, ih)
+                        if compute_B
+                            # Terminal bequest = beta * V_bequest(leftover) at the
+                            # optimum, mirroring terminal_value's cash clamp.
+                            cash_node = max(W_after + inc_after, p.c_floor)
+                            leftover = max(cash_node - c_k, 0.0)
+                            B_total += gh_weights[iq] * p.beta *
+                                bequest_utility(leftover, p.gamma, p.theta, p.kappa)
+                        end
                         # Public-care aversion at terminal period: swap the
                         # flow utility from flow_utility_sdu(c_k) to
                         # flow_utility_sdu_chi_ltc(c_k), which applies
@@ -180,9 +207,16 @@ function solve_lifecycle_health(
                     end
                     V[iw, ia, ih, T] = V_total
                     c_policy[iw, ia, ih, T] = c_total
+                    compute_B && (B[iw, ia, ih, T] = B_total)
                 else
                     (V[iw, ia, ih, T], c_policy[iw, ia, ih, T]) =
                         terminal_value(W_val, A_real, ss_val, p, T, ih)
+                    if compute_B
+                        cash_node = max(cash_before, p.c_floor)
+                        leftover = max(cash_node - c_policy[iw, ia, ih, T], 0.0)
+                        B[iw, ia, ih, T] = p.beta *
+                            bequest_utility(leftover, p.gamma, p.theta, p.kappa)
+                    end
                 end
             end
         end
@@ -199,6 +233,7 @@ function solve_lifecycle_health(
             ih = div(idx - 1, nA) + 1
             ia = mod(idx - 1, nA) + 1
             V_hw = Vector{Float64}(undef, nW)
+            B_hw = compute_B ? Vector{Float64}(undef, nW) : Float64[]
 
             s_t_h = surv_health[t, ih]
             A_val = grids.A[ia]
@@ -206,10 +241,18 @@ function solve_lifecycle_health(
 
             # Precompute health-weighted continuation value at t+1:
             # V_hw[iw] = Σ_{ih'} π(ih, ih', t) × V[iw, ia, ih', t+1]
+            # B_hw mirrors this for the bequest component continuation.
             for iw in 1:nW
                 V_hw[iw] = 0.0
                 for ih_next in 1:nH
                     V_hw[iw] += trans[ih, ih_next] * V[iw, ia, ih_next, t + 1]
+                end
+                if compute_B
+                    bhw = 0.0
+                    for ih_next in 1:nH
+                        bhw += trans[ih, ih_next] * B[iw, ia, ih_next, t + 1]
+                    end
+                    B_hw[iw] = bhw
                 end
             end
 
@@ -218,6 +261,10 @@ function solve_lifecycle_health(
                 grids.W, V_hw,
                 extrapolation_bc=Interpolations.Flat(),
             )
+            B_hw_interp = compute_B ? linear_interpolation(
+                grids.W, B_hw,
+                extrapolation_bc=Interpolations.Flat(),
+            ) : nothing
 
             for iw in 1:nW
                 W_val = grids.W[iw]
@@ -252,6 +299,7 @@ function solve_lifecycle_health(
                     inc_gross = ss_val + A_real
                     V_total = 0.0
                     c_total = 0.0
+                    B_total = 0.0
                     for iq in 1:p.n_quad
                         m = exp(mu_m + sigma_m * gh_nodes[iq])
                         # Medical paid from income first, then portfolio
@@ -269,6 +317,18 @@ function solve_lifecycle_health(
                             W_after, 0.0, inc_after,
                             V_hw_interp, s_t_h, p, t, ih,
                         )
+                        if compute_B
+                            # Mirror solve_consumption's W_next at the optimum
+                            # (cash = W_after + inc_after, A = 0). Bequest
+                            # continuation parallels V's: discounted, with the
+                            # death branch on V_bequest(W_next) and the survival
+                            # branch on the bequest continuation B.
+                            cash_node = W_after + inc_after
+                            W_next_k = max((1.0 + p.r) * (cash_node - c_k), 0.0)
+                            B_total += gh_weights[iq] * p.beta * (
+                                (1.0 - s_t_h) * bequest_utility(W_next_k, p.gamma, p.theta, p.kappa)
+                                + s_t_h * B_hw_interp(W_next_k))
+                        end
                         # Public-care aversion (Ameriks 2011 JF; 2020 JPE):
                         # when the agent must rely on Medicaid AND is in Poor
                         # health (proxy for LTC need), the realized consumption
@@ -295,17 +355,25 @@ function solve_lifecycle_health(
                     end
                     V[iw, ia, ih, t] = V_total
                     c_policy[iw, ia, ih, t] = c_total
+                    compute_B && (B[iw, ia, ih, t] = B_total)
                 else
                     V[iw, ia, ih, t], c_policy[iw, ia, ih, t] = solve_consumption(
                         W_val, A_real, ss_val,
                         V_hw_interp, s_t_h, p, t, ih,
                     )
+                    if compute_B
+                        c_star = c_policy[iw, ia, ih, t]
+                        W_next = max((1.0 + p.r) * (cash_before - c_star), 0.0)
+                        B[iw, ia, ih, t] = p.beta * (
+                            (1.0 - s_t_h) * bequest_utility(W_next, p.gamma, p.theta, p.kappa)
+                            + s_t_h * B_hw_interp(W_next))
+                    end
                 end
             end
         end
     end
 
-    return HealthSolution(V, c_policy, grids, p, base_surv)
+    return HealthSolution(V, c_policy, grids, p, base_surv, B)
 end
 
 """

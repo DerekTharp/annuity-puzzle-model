@@ -20,6 +20,7 @@
 # Input:  data/processed/hrs_validation_sample.csv
 # Output: tables/csv/empirical_gradients_cells.csv
 #         tables/csv/empirical_gradients_logit.csv
+#         tables/tex/empirical_gradients_logit.tex  (manuscript Section 5.10)
 # Usage:  julia --project=. scripts/run_empirical_validation.jl
 
 using Printf
@@ -214,4 +215,69 @@ open(logit_path, "w") do f
 end
 println("\n  Saved: $cells_path")
 println("  Saved: $logit_path")
+
+# ===================================================================
+# LaTeX table for the manuscript (Section 5.10 empirical validation)
+# ===================================================================
+# Display labels and the channel each predicted-sign covariate proxies.
+tex_label = Dict(
+    "const"                  => "Constant",
+    "wealth 30-120k"         => "Liquid wealth \\\$30--120k",
+    "wealth 120-350k"        => "Liquid wealth \\\$120--350k",
+    "wealth >350k"           => "Liquid wealth \${>}\\\$350\$k",
+    "log(1+wealth)/10"       => "\$\\log(1+\\text{wealth})/10\$",
+    "log(1+housing)/10"      => "\$\\log(1+\\text{housing})/10\$",
+    "ss_db (\$10k)"          => "SS+DB income (per \\\$10k)",
+    "surv optimism (liv10r)" => "Subjective survival optimism",
+    "beq100 (0-1)"           => "Bequest intention (\\\$100k)",
+    "health Fair"            => "Health: Fair",
+    "health Poor"            => "Health: Poor",
+    "female"                 => "Female",
+    "age - 67"               => "Age \${-}\\,67\$",
+)
+# names_x uses "ss_db (per \$10k)"; normalize the lookup key.
+disp(name) = get(tex_label, replace(name, "per " => ""), name)
+texsign(s) = s == "+" ? "\$+\$" : s == "-" ? "\$-\$" : ""
+
+tex_dir = joinpath(ROOT, "tables", "tex"); mkpath(tex_dir)
+tex_path = joinpath(tex_dir, "empirical_gradients_logit.tex")
+open(tex_path, "w") do f
+    rowfor(j) = @sprintf("%s & %.3f & %.3f & %.2f & %.2f & %s & %s",
+        disp(names_x[j]), beta[j], se[j], z[j], ame[j] * 100,
+        texsign(pred_sign[j]),
+        pred_sign[j] == "" ? "" :
+            (((pred_sign[j] == "+" && beta[j] > 0) ||
+              (pred_sign[j] == "-" && beta[j] < 0)) ? "Yes" : "No"))
+    chan = [j for j in 1:k if pred_sign[j] != ""]
+    ctrl = [j for j in 1:k if pred_sign[j] == ""]
+    println(f, raw"\begin{table}[htbp]")
+    println(f, raw"\centering")
+    println(f, raw"\caption{Cross-Sectional Ownership Gradients versus Channel-Implied Signs (HRS)}")
+    println(f, raw"\label{tab:empirical_gradients}")
+    println(f, raw"\begin{threeparttable}")
+    println(f, raw"\begin{tabular}{lrrrrcc}")
+    rt = "\\\\"   # LaTeX row terminator (two backslashes)
+    println(f, raw"\toprule")
+    println(f, raw"Covariate & Coef. & Cluster SE & $z$ & AME (pp) & Pred. & Match " * rt)
+    println(f, raw"\midrule")
+    println(f, raw"\multicolumn{7}{l}{\textit{Panel A: Channel-implied gradients}} " * rt)
+    for j in chan
+        println(f, rowfor(j) * " " * rt)
+    end
+    println(f, raw"\midrule")
+    println(f, raw"\multicolumn{7}{l}{\textit{Panel B: Demographic and functional-form controls}} " * rt)
+    for j in ctrl
+        println(f, rowfor(j) * " " * rt)
+    end
+    println(f, raw"\bottomrule")
+    println(f, raw"\end{tabular}")
+    println(f, raw"\begin{tablenotes}")
+    println(f, raw"\small")
+    @printf(f, "\\item Weighted logit with person-clustered (hhidpn) sandwich standard errors over %d complete-case person-wave observations (%d distinct persons), single nonworking retirees aged 65--69, HRS waves 5--9. Dependent variable: the lifetime annuity contract indicator (q286 series). AME is the average marginal effect in percentage points. ``Pred.'' is the sign the structural channel ranking implies for each channel proxy; the controls in Panel B carry no channel prediction. Of the \\empSignTotal{} channel-implied signs, \\empSignMatch{} match (Panel A ``Match'' column). The two mismatches---subjective survival optimism and bequest intention---are the expectation-based survey proxies whose identification the structural calibration is designed to bypass; bequest intention is the only channel coefficient individually distinguishable from zero. Wealth bins are relative to the omitted \$<\$\\\$30k category.\n",
+        length(y), length(unique(clus)))
+    println(f, raw"\end{tablenotes}")
+    println(f, raw"\end{threeparttable}")
+    println(f, raw"\end{table}")
+end
+println("  Saved: $tex_path")
 flush(stdout)

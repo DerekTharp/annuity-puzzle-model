@@ -45,6 +45,7 @@ const EXPECTED_TEX_FILES = Set([
     "bequest_recalibration.tex",
     "cev_counterfactuals.tex",
     "dia_comparison.tex",
+    "empirical_gradients_logit.tex",
     "euler_residuals_table.tex",
     "extension_path.tex",
     "grid_convergence.tex",

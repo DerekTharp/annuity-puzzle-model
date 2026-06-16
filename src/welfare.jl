@@ -44,16 +44,48 @@ CEVResult(cev, alpha_star, V_no_ann, V_with_ann) =
     CEVResult(cev, alpha_star, V_no_ann, V_with_ann, false)
 
 """
+Exact compensating variation under the consumption-scaling thought experiment.
+
+The CEV is the fraction lambda by which the no-access consumption process must
+be scaled to reach the with-access value. Writing the no-access value as the
+sum of a consumption-felicity component U_c and an additively-separable bequest
+component B_no (V_no = U_c + B_no), scaling consumption by (1+lambda) multiplies
+U_c by (1+lambda)^(1-gamma) and leaves B_no unchanged (bequeathed wealth is a
+stock, not consumption). CRRA felicity, the age/health weights, and the chi_LTC
+consumption transformation are all homogeneous of degree (1-gamma) in c, so the
+only non-homothetic term is the bequest. The CV then solves in closed form:
+
+  (1+lambda)^(1-gamma) (V_no - B_no) + B_no = V_with
+  lambda = [(V_with - B_no) / (V_no - B_no)]^(1/(1-gamma)) - 1.
+
+With B_no = 0 (no bequest motive) this is the exact value-ratio CEV. Returns
+`nothing` when the closed form is invalid (e.g. with-access value exceeds the
+asymptotic ceiling B_no under no consumption scaling), so the caller falls back
+to the value-ratio form.
+"""
+function exact_cev_lambda(V_with::Float64, V_no::Float64, B_no::Float64,
+                          gamma::Float64)
+    gamma == 1.0 && return nothing  # log utility: B cancels; caller uses horizon form
+    U_c = V_no - B_no
+    num = V_with - B_no
+    (U_c == 0.0) && return nothing
+    ratio = num / U_c
+    ratio <= 0.0 && return nothing
+    return ratio^(1.0 / (1.0 - gamma)) - 1.0
+end
+
+"""
 Compute CEV for a single individual.
 
 Given a solved HealthSolution, evaluate the welfare gain from annuity
 market access for an individual with initial state (W_0, y_existing, H_0).
 
-The CEV formula for CRRA:
-  lambda = (V_with / V_without)^(1/(1-gamma)) - 1
-
-With DFJ bequests (kappa > 0) the formula is approximate but standard
-in the literature (Lockwood 2012, Reichling-Smetters 2015).
+When the solution carries the bequest-component decomposition (sol.B, from a
+solve with compute_bequest_decomp=true), this computes exact compensating
+variation via exact_cev_lambda. Otherwise it falls back to the value-ratio
+form lambda = (V_with / V_without)^(1/(1-gamma)) - 1, which is exact when the
+no-access value has no bequest component (theta = 0) and an approximation
+otherwise (Lockwood 2012, Reichling-Smetters 2015).
 """
 function compute_cev(
     sol::HealthSolution,
@@ -82,6 +114,17 @@ function compute_cev(
 
     # V without annuity purchase
     V_no_ann = V_interp(W_c, y_c)
+
+    # Bequest component of the no-access value, for exact CV. Empty B (no
+    # decomposition requested) leaves B_no = 0, recovering the value-ratio form.
+    B_no = 0.0
+    if !isempty(sol.B)
+        B_interp = linear_interpolation(
+            (g.W, g.A), sol.B[:, :, H_0, 1],
+            extrapolation_bc=Interpolations.Flat(),
+        )
+        B_no = B_interp(W_c, y_c)
+    end
 
     # Search over alpha grid for best V with annuity purchase. Apply the
     # behavioral purchase penalty when psi_purchase > 0 — must mirror the
@@ -133,38 +176,35 @@ function compute_cev(
         return CEVResult(0.0, 0.0, V_no_ann, V_no_ann)
     end
 
-    # CRRA value-ratio CEV approximation: lambda = (V_with / V_without)^(1/(1-gamma)) - 1.
-    #
-    # NOTE: This is an APPROXIMATION when the model includes non-CRRA value
-    # contributions — specifically the bequest shifter kappa (V_bequest is
-    # CRRA in (b + kappa), not CRRA in c), the consumption floor c_floor (a
-    # kink), source-dependent utility (lambda_w reweights consumption by
-    # source), and the narrow-framing purchase penalty (additive adjustment
-    # to V at the purchase moment, not a flow). The exact CEV would solve
-    # V_no_access(c * (1 + lambda)) = V_access for lambda. The closed-form
-    # ratio is exact only in the pure CRRA + Yaari special case and is
-    # reported here as a tractable approximation; see appendix discussion of
-    # welfare interpretation. The ranking of CEV across scenarios (and
-    # signs) is preserved by the approximation.
+    # Exact compensating variation. With the bequest component B_no separated
+    # (sol.B available), lambda solves (1+lambda)^(1-gamma)(V_no - B_no) + B_no
+    # = V_with in closed form (exact_cev_lambda). Every other felicity term
+    # (CRRA, age/health weights, chi_LTC) is homogeneous of degree (1-gamma) in
+    # consumption, so the bequest shifter kappa is the only non-homothetic term;
+    # when B_no = 0 (no bequest motive) the closed form is the value-ratio CEV.
+    # The value-ratio form is the fallback when no decomposition was requested.
     gamma = p.gamma
     if gamma == 1.0
         # Log utility: V(c*(1+lambda)) = V(c) + log(1+lambda) * D where
-        # D = sum_t beta^(t-1) * S(t). Solving V(c*(1+lambda)) = V_with for
-        # lambda: log(1+lambda) = (V_with - V_no)/D, so lambda = exp(.../D) - 1.
-        # Omitting the D divisor would overstate CEV by a factor of D in
-        # log-space.
+        # D = sum_t beta^(t-1) * S(t). The bequest component cancels in log
+        # utility, so this is exact. Solving for lambda: log(1+lambda) =
+        # (V_with - V_no)/D, so lambda = exp(.../D) - 1. Omitting the D divisor
+        # would overstate CEV by a factor of D in log-space.
         D = discounted_survival_horizon(p.beta, sol.base_surv)
         cev = exp((V_with_ann - V_no_ann) / D) - 1.0
     else
-        # V = c^(1-gamma)/(1-gamma), V < 0 for gamma > 1
-        ratio = V_with_ann / V_no_ann
-        # For gamma > 1: both V negative, ratio > 0.
-        # V_with > V_without (less negative) => ratio < 1
-        # (1-gamma) < 0 => exponent 1/(1-gamma) < 0 => ratio^(neg) > 1 => cev > 0
-        if ratio <= 0.0
-            return CEVResult(0.0, best_alpha, V_no_ann, V_with_ann)
+        lam = exact_cev_lambda(V_with_ann, V_no_ann, B_no, gamma)
+        if lam === nothing
+            # Closed form invalid (e.g. access value exceeds the B_no ceiling);
+            # fall back to the value-ratio form.
+            ratio = V_with_ann / V_no_ann
+            if ratio <= 0.0
+                return CEVResult(0.0, best_alpha, V_no_ann, V_with_ann)
+            end
+            cev = ratio^(1.0 / (1.0 - gamma)) - 1.0
+        else
+            cev = lam
         end
-        cev = ratio^(1.0 / (1.0 - gamma)) - 1.0
     end
 
     # Sanity bound: CEV shouldn't exceed 200% (numerical artifact)
@@ -198,6 +238,12 @@ function compute_cev_population(
 
     # Precompute interpolation objects keyed by (health, time)
     interp_cache = Dict{Tuple{Int,Int}, typeof(linear_interpolation(
+        (g.W, g.A), sol.V[:, :, 1, 1],
+        extrapolation_bc=Interpolations.Flat(),
+    ))}()
+    # Parallel cache for the bequest-component interpolant (exact CV).
+    has_B = !isempty(sol.B)
+    B_cache = Dict{Tuple{Int,Int}, typeof(linear_interpolation(
         (g.W, g.A), sol.V[:, :, 1, 1],
         extrapolation_bc=Interpolations.Flat(),
     ))}()
@@ -251,6 +297,18 @@ function compute_cev_population(
         y_c = clamp(y_0, g.A[1], g.A[end])
 
         V_no_ann = V_interp(W_c, y_c)
+
+        # Bequest component of the no-access value (exact CV); 0 when absent.
+        B_no = 0.0
+        if has_B
+            B_interp = get!(B_cache, (ih, t)) do
+                linear_interpolation(
+                    (g.W, g.A), sol.B[:, :, ih, t],
+                    extrapolation_bc=Interpolations.Flat(),
+                )
+            end
+            B_no = B_interp(W_c, y_c)
+        end
 
         # Optimal annuity search
         best_V = V_no_ann
@@ -308,16 +366,23 @@ function compute_cev_population(
 
         if gamma == 1.0
             # See note in compute_cev: log-utility CEV requires the discounted
-            # survival horizon as divisor.
+            # survival horizon as divisor; the bequest component cancels.
             D = discounted_survival_horizon(p.beta, base_surv === nothing ? sol.base_surv : base_surv)
             cev = exp((best_V - V_no_ann) / D) - 1.0
         else
-            ratio = best_V / V_no_ann
-            if ratio <= 0.0
-                push!(results, CEVResult(0.0, best_alpha, V_no_ann, best_V))
-                continue
+            # Exact CV with the bequest component separated (B_no = 0 recovers
+            # the value-ratio form); see exact_cev_lambda and compute_cev.
+            lam = exact_cev_lambda(best_V, V_no_ann, B_no, gamma)
+            if lam === nothing
+                ratio = best_V / V_no_ann
+                if ratio <= 0.0
+                    push!(results, CEVResult(0.0, best_alpha, V_no_ann, best_V))
+                    continue
+                end
+                cev = ratio^(1.0 / (1.0 - gamma)) - 1.0
+            else
+                cev = lam
             end
-            cev = ratio^(1.0 / (1.0 - gamma)) - 1.0
         end
         cev = clamp(cev, -1.0, 2.0)
 
@@ -470,7 +535,8 @@ function compute_cev_grid(
             grid_kw...)
 
         t0 = time()
-        sol = solve_lifecycle_health(p_model, grids, base_surv, ss_func_welfare)
+        sol = solve_lifecycle_health(p_model, grids, base_surv, ss_func_welfare;
+                                     compute_bequest_decomp=true)
         solve_time = time() - t0
 
         if verbose

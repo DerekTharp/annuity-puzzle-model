@@ -11,7 +11,7 @@
 # For faster development runs, use --skip-tests and comment out Stage 12.
 #
 # Output:
-#   tables/tex/*.tex   — LaTeX tables for paper (15 expected files)
+#   tables/tex/*.tex   — LaTeX tables for paper (manifest in expected_tex below)
 #   tables/csv/*.csv   — machine-readable results
 #   figures/pdf/*.pdf  — publication-quality figures
 #   figures/png/*.png  — quick-inspection rasters
@@ -385,6 +385,7 @@ function main()
         "bequest_recalibration.tex",
         "cev_counterfactuals.tex",
         "dia_comparison.tex",
+        "empirical_gradients_logit.tex",  # Stage 11c output; sec:empirical \input
         "euler_residuals_table.tex",  # Stage 14e output; appendix \input
         "extension_path.tex",
         "grid_convergence.tex",       # Stage 14e output; appendix \input
