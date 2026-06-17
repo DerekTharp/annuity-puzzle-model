@@ -224,8 +224,7 @@ function shapley_lookup()
     # equal the merged-player Shapley value, so synthesis is incorrect.
     if !haskey(out, "Medical+R-S")
         error("shapley_exact.csv is missing the bundled 'Medical+R-S' row. " *
-              "Re-run scripts/run_subset_enumeration.jl and " *
-              "run_shapley_decomposition.jl.")
+              "Re-run scripts/run_subset_enumeration.jl.")
     end
     out
 end

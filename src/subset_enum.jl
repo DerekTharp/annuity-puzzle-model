@@ -10,8 +10,8 @@
 # health-mortality correlation are a single combined channel CH_MED_RS, because
 # the R-S mechanism's quantitative bite operates through its interaction with
 # stochastic medical costs). These constants are module-internal (NOT exported)
-# to avoid clashing with the legacy 9-channel scheme in
-# scripts/run_shapley_decomposition.jl; build_subset_config references them.
+# to avoid clashing with other channel-index schemes in the codebase;
+# build_subset_config references them.
 const CH_SS            = 1
 const CH_BEQUESTS      = 2
 const CH_MED_RS        = 3   # Combined: medical risk + R-S correlation
