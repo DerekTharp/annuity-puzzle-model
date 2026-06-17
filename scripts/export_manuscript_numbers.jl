@@ -873,7 +873,7 @@ function build_macros!()
     def!("ownSSCutZero",       fmt_pct(ss_cut_ownership(0);   digits=1))
     def!("ownSSCutTen",        fmt_pct(ss_cut_ownership(10);  digits=1))
     def!("ownSSCutFifteen",    fmt_pct(ss_cut_ownership(15);  digits=1))
-    def!("ownSSCutTwentyThree",fmt_pct(ss_cut_ownership(23);  digits=1))
+    def!("ownSSCutTwentyTwo",  fmt_pct(ss_cut_ownership(22);  digits=1))
     def!("ownSSCutThirty",     fmt_pct(ss_cut_ownership(30);  digits=1))
     def!("ownSSCutForty",      fmt_pct(ss_cut_ownership(40);  digits=1))
     def!("ownSSCutFifty",      fmt_pct(ss_cut_ownership(50);  digits=1))
@@ -975,8 +975,8 @@ function build_macros!()
         cell(qq, cc) = (k = findfirst(i -> qv[i] == qq && isapprox(cv[i], cc; atol=1e-6), eachindex(qv));
                         k === nothing ? NaN : ov[k])
         def!("ssCutWealthQfourBase",  fmt_pct(cell(4, 0.0);  digits=1))
-        def!("ssCutWealthQfourTrust", fmt_pct(cell(4, 23.0); digits=1))
-        def!("ssCutWealthBottomResp", fmt_pct(cell(1, 23.0); digits=1))
+        def!("ssCutWealthQfourTrust", fmt_pct(cell(4, 22.0); digits=1))
+        def!("ssCutWealthBottomResp", fmt_pct(cell(1, 22.0); digits=1))
     end
 
     # Empirical-gradient validation: predicted-sign concordance (Class 1 test).

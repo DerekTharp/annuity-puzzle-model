@@ -31,7 +31,7 @@ end
 include(joinpath(@__DIR__, "config.jl"))
 
 const COARSE = get(ENV, "ANNUITY_COARSE", "0") == "1"
-const CUTS = [0.0, 0.10, 0.23, 0.30, 0.50]
+const CUTS = [0.0, 0.10, 0.22, 0.30, 0.50]
 const NW = COARSE ? 40 : N_WEALTH
 const NA = COARSE ? 12 : N_ANNUITY
 const NALPHA = COARSE ? 51 : N_ALPHA
@@ -145,25 +145,25 @@ for q in 1:4
     println()
 end
 
-println("\n  SS-cut incidence (23% SS cut response by wealth bin):")
-@printf("  %-14s  %8s  %12s  %12s\n", "wealth", "DB share", "base own", "23%cut d_pp")
+println("\n  SS-cut incidence (22% SS cut response by wealth bin):")
+@printf("  %-14s  %8s  %12s  %12s\n", "wealth", "DB share", "base own", "22%cut d_pp")
 responses = Float64[]
 for q in 1:4
     db_share = SS_OBS[q] + DB_OBS[q] > 0 ? DB_OBS[q] / (SS_OBS[q] + DB_OBS[q]) : 0.0
     base = own[(q, 0.0)] * 100
-    at23 = own[(q, 0.23)] * 100
-    push!(responses, at23 - base)
-    @printf("  %-14s  %7.2f  %11.1f%%  %+11.1f\n", labels[q], db_share, base, at23 - base)
+    at22 = own[(q, 0.22)] * 100
+    push!(responses, at22 - base)
+    @printf("  %-14s  %7.2f  %11.1f%%  %+11.1f\n", labels[q], db_share, base, at22 - base)
 end
 # Report the computed gradient; do not presuppose its direction.
 if issorted(responses)
-    println("\n  Computed gradient: the 23% SS-cut response INCREASES with wealth —")
+    println("\n  Computed gradient: the 22% SS-cut response INCREASES with wealth —")
     println("  feasibility (minimum purchase, consumption floor) dominates the DB cushion.")
 elseif issorted(responses; rev=true)
-    println("\n  Computed gradient: the 23% SS-cut response DECREASES with wealth —")
+    println("\n  Computed gradient: the 22% SS-cut response DECREASES with wealth —")
     println("  the DB cushion dominates feasibility.")
 else
-    println("\n  Computed gradient: the 23% SS-cut response is non-monotone in wealth;")
+    println("\n  Computed gradient: the 22% SS-cut response is non-monotone in wealth;")
     println("  feasibility and the DB cushion trade off across bins.")
 end
 

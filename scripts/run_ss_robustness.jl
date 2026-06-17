@@ -5,7 +5,7 @@
 # preference + structural chi_ltc; behavioral SDU/PED off) is solved at each
 # cut level. A trust-fund shortfall cuts SS only; DB pension income survives.
 #
-# Cut sizes: 0% (baseline), 10%, 15%, 23% (trust fund), 30%, 40%, 50%, 100%
+# Cut sizes: 0% (baseline), 10%, 15%, 22% (trust fund), 30%, 40%, 50%, 100%
 #
 # Usage: julia --project=. -p 8 scripts/run_ss_robustness.jl
 
@@ -84,7 +84,7 @@ flush(stdout)
 # ===================================================================
 # Define SS cut levels
 # ===================================================================
-cut_fractions = [0.0, 0.10, 0.15, 0.23, 0.30, 0.40, 0.50, 1.0]
+cut_fractions = [0.0, 0.10, 0.15, 0.22, 0.30, 0.40, 0.50, 1.0]
 
 @printf("\n  Pre-existing income SS+DB (baseline): [%s]\n",
     join([@sprintf("\$%.0fK", l / 1000) for l in SS_QUARTILE_LEVELS], ", "))
@@ -213,7 +213,7 @@ println("  " * "-" ^ 55)
 for r in cut_results
     delta = r.ownership - baseline_own
     delta_str = r.cut_pct == 0.0 ? "---" : @sprintf("%+.1f pp", delta * 100)
-    label = r.cut_pct == 23.0 ? @sprintf("%.0f (trust fund)", r.cut_pct) :
+    label = r.cut_pct == 22.0 ? @sprintf("%.0f (trust fund)", r.cut_pct) :
             r.cut_pct == 100.0 ? @sprintf("%.0f (elimination)", r.cut_pct) :
             @sprintf("%.0f", r.cut_pct)
     @printf("  %-15s  %10.1f%%  %10.3f  %12s\n",
@@ -258,8 +258,8 @@ open(tex_path, "w") do f
         delta = r.ownership - baseline_own
         label = if r.cut_pct == 0.0
             "0\\% (baseline)"
-        elseif r.cut_pct == 23.0
-            "23\\% (trust fund)"
+        elseif r.cut_pct == 22.0
+            "22\\% (trust fund)"
         elseif r.cut_pct == 100.0
             "100\\% (elimination)"
         else
@@ -282,7 +282,7 @@ open(tex_path, "w") do f
     ss_str = join([string("\\\$", round(Int, l / 1000), "K") for l in SS_OBS], ", ")
     db_str = join([string("\\\$", round(Int, l / 1000), "K") for l in DB_OBS], ", ")
     println(f, "Baseline SS = [$(ss_str)], DB = [$(db_str)].")
-    println(f, raw"23\% cut corresponds to projected trust fund exhaustion circa 2033.")
+    println(f, raw"22\% cut corresponds to projected OASI trust fund depletion in late 2032 (2026 Trustees Report).")
     println(f, raw"100\% cut eliminates Social Security entirely (DB pensions remain).")
     println(f, raw"\end{tablenotes}")
     println(f, raw"\end{table}")

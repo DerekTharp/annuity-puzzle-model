@@ -233,16 +233,32 @@ function figure_3_hazard_sensitivity()
     labels = String[]
     ownership = Float64[]
 
+    # robustness_full.csv embeds commas in the specification field (e.g.
+    # "[0.45, 1.0, 3.5] (R-S functional, age 65-75)"), so a naive comma split
+    # fractures the row. Parse by prefix-match on the category and take the
+    # ownership as the final comma-delimited token, mirroring
+    # robustness_ownership() in export_manuscript_numbers.jl.
     if isfile(csv_path)
-        raw = readdlm(csv_path, ',', Any; skipstart=1)
-        for i in 1:size(raw, 1)
-            cat = strip(string(raw[i, 1]))
-            cat != "Hazard mult" && continue
-            spec = strip(string(raw[i, 2]))
-            own_str = strip(replace(string(raw[i, 3]), "%" => ""))
-            own = tryparse(Float64, own_str)
+        prefix = "Hazard mult,"
+        for (i, line) in enumerate(eachline(csv_path))
+            i == 1 && continue
+            startswith(line, prefix) || continue
+            body = chopprefix(line, prefix)
+            j = findlast(',', body)
+            j === nothing && continue
+            own = tryparse(Float64, rstrip(strip(body[nextind(body, j):end]), '%'))
             own === nothing && continue
-            push!(labels, replace(spec, r"\(.*\)" => s"\n\0"))
+            spec = strip(body[1:prevind(body, j)])
+            # Compact two-line tick label: the bracket vector (or name) on line
+            # one, the first clause of the parenthetical descriptor on line two,
+            # so five labels fit without overlapping.
+            m = match(r"^(.*?)\s*\((.*)\)\s*$", spec)
+            if m === nothing
+                push!(labels, spec)
+            else
+                push!(labels, strip(m.captures[1]) * "\n" *
+                              strip(split(m.captures[2], ",")[1]))
+            end
             push!(ownership, own)
         end
     end
@@ -251,7 +267,7 @@ function figure_3_hazard_sensitivity()
         error("Hazard mult data missing from $csv_path; run scripts/run_robustness.jl first.")
     end
 
-    bar_colors = [CB_BLUE, CB_GREEN, CB_ORANGE, CB_RED]
+    bar_colors = [CB_BLUE, CB_GREEN, CB_ORANGE, CB_RED, CB_PURPLE]
     n_bars = length(labels)
     if n_bars > length(bar_colors)
         bar_colors = repeat([CB_BLUE], n_bars)
@@ -267,8 +283,9 @@ function figure_3_hazard_sensitivity()
         ylabel = "Predicted Ownership (%)",
         xlabel = "Hazard Multiplier Specification [Good, Fair, Poor]",
         ylims = (0, 30),
-        size = (560, 340),
+        size = (760, 360),
         bar_width = 0.6,
+        xtickfontsize = 7,
         left_margin = 5Plots.mm,
         bottom_margin = 12Plots.mm,
         top_margin = 3Plots.mm,
@@ -300,7 +317,11 @@ function figure_4_policy_functions()
     # HAZARD_MULT pulled directly from config; do not redefine here.
 
     grid_kw = (
-        n_wealth = N_WEALTH, n_annuity = N_ANNUITY, n_alpha = N_ALPHA,
+        # Finer annuity grid than the production N_ANNUITY: the policy function
+        # alpha*(W) is read off a linearly-interpolated value function in the A
+        # dimension, so a coarse A-grid makes the optimizer snap alpha* to grid
+        # nodes, producing a sawtooth. A denser grid smooths the displayed curve.
+        n_wealth = N_WEALTH, n_annuity = 80, n_alpha = N_ALPHA,
         W_max = W_MAX, age_start = AGE_START, age_end = AGE_END,
         annuity_grid_power = A_GRID_POW,
     )
@@ -318,11 +339,18 @@ function figure_4_policy_functions()
     p_base = ModelParams(age_start = AGE_START, age_end = AGE_END)
     base_surv = build_lockwood_survival(p_base)
 
-    # Payout rates
+    # Payout rates. Both panels solve with inflation active, so the annuity must
+    # be priced at the NOMINAL fair rate (nominal discounting raises the initial
+    # payout); using the real fair rate would price a nominal premium against a
+    # real payout, a dominated asset that yields alpha*=0 everywhere. Mirrors the
+    # fair_pr_nom / loaded_pr_nom convention in the production scripts.
     p_fair = ModelParams(; gamma = GAMMA, beta = BETA, r = R_RATE, mwr = 1.0, grid_kw...)
     fair_pr = compute_payout_rate(p_fair, base_surv)
-    grids = build_grids(p_fair, fair_pr)
-    loaded_pr = MWR_LOADED * fair_pr
+    p_fair_nom = ModelParams(; gamma = GAMMA, beta = BETA, r = R_RATE, mwr = 1.0,
+                             inflation_rate = INFLATION, grid_kw...)
+    fair_pr_nom = INFLATION > 0 ? compute_payout_rate(p_fair_nom, base_surv) : fair_pr
+    grids = build_grids(p_fair, max(fair_pr, fair_pr_nom))
+    loaded_pr_nom = MWR_LOADED * fair_pr_nom
 
     # --- Panel A: No bequests, loads + inflation only ---
     println("  Panel A: solving (no bequests, loads + inflation)...")
@@ -335,7 +363,7 @@ function figure_4_policy_functions()
         grid_kw...,
     )
     sol_A = solve_lifecycle_health(p_A, grids, base_surv, ss_mean)
-    alpha_A, _ = solve_annuitization_health(sol_A, loaded_pr; initial_health = 1)
+    alpha_A, _ = solve_annuitization_health(sol_A, loaded_pr_nom; initial_health = 1)
     @printf("    Solved in %.1fs\n", time() - t0)
 
     # --- Panel B: Full model (DFJ bequests + R-S + loads + inflation) ---
@@ -349,7 +377,7 @@ function figure_4_policy_functions()
         grid_kw...,
     )
     sol_B = solve_lifecycle_health(p_B, grids, base_surv, ss_mean)
-    alpha_B, _ = solve_annuitization_health(sol_B, loaded_pr; initial_health = 1)
+    alpha_B, _ = solve_annuitization_health(sol_B, loaded_pr_nom; initial_health = 1)
     @printf("    Solved in %.1fs\n", time() - t0)
 
     W_grid = grids.W
@@ -378,7 +406,7 @@ function figure_4_policy_functions()
         top_margin = 5Plots.mm,
         right_margin = 3Plots.mm,
     )
-    annotate!(500, 0.92, Plots.text("(a) No bequests, no health risk", 9, :center))
+    annotate!(500, 0.92, Plots.text("(a) No bequests, no medical risk", 9, :center))
 
     p2 = plot(
         W_disp, alpha_B_disp,

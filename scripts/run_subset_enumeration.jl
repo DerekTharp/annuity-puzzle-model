@@ -82,8 +82,7 @@ const PSI_PURCHASE_C_REF_VAL = PSI_PURCHASE_C_REF
 # the lower expected annuity NPV does not translate into a precautionary
 # motive against annuitization. Following the Owen (1977) coalition-structure
 # value, this is the cleanest mathematical treatment for two channels with a
-# strong interaction. See review_reports/ for the panel discussion that
-# motivated this reformulation.
+# strong interaction.
 @everywhere const CH_SS            = 1
 @everywhere const CH_BEQUESTS      = 2
 @everywhere const CH_MED_RS        = 3   # Combined: medical risk + R-S correlation
