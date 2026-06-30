@@ -167,7 +167,7 @@ the current pipeline run. `paper/numbers.tex` is the LAST artifact written
 by a clean run (Stage 15 = export_manuscript_numbers.jl, after every
 table-generating stage), so in a healthy run every table .tex will be
 slightly OLDER than numbers.tex but only by the time it took the
-intervening stages to finish (typically < 6 hours).
+intervening stages to finish (up to the full run duration, ~7 hours).
 
 The gate fires when a table is older than numbers.tex by MORE than
 FRESHNESS_WINDOW_SECONDS, which signals one of two real bug patterns:
@@ -179,11 +179,16 @@ FRESHNESS_WINDOW_SECONDS, which signals one of two real bug patterns:
   - A pull from AWS overwrote numbers.tex with a newer version but the
     table .tex files were left from an older bundle.
 
-The 6-hour window is generous enough to cover any single pipeline run
-(production wall time is ~4 hours on c7a.48xlarge) but tight enough to
+The window must exceed the full pipeline wall time, because the first
+table generated (the sequential-decomposition table in Stage 2) is older
+than the final numbers.tex by roughly the whole run duration. Production
+wall time is ~7 hours on c7a.48xlarge after the 2026 stage additions
+(the 2048-subset partition, the psi=0.981 Shapley, the extensive-margin
+gate, and the band diagnostics), so the window is 18 hours: generous
+enough to cover any single run with headroom, but still tight enough to
 catch the day-old or week-old stale-table failure modes.
 """
-const FRESHNESS_WINDOW_SECONDS = 6 * 60 * 60  # 6 hours
+const FRESHNESS_WINDOW_SECONDS = 18 * 60 * 60  # 18 hours (full run is ~7h)
 
 function gate_freshness()
     isfile(NUMBERS_TEX) || begin

@@ -260,7 +260,7 @@ open(tex_path, "w") do f
     end
 
     println(f, raw"\midrule")
-    println(f, raw"Observed (HRS, this sample) & \pctHRSLifetimeNum--\pctHRSIannPooledNum & & \\")
+    println(f, raw"Observed (HRS, this sample) & \pctHRSLifetimeNum--\pctHRSIannPooledNum & & " * "\\\\")
     println(f, raw"\bottomrule")
     println(f, raw"\end{tabular}")
     println(f, raw"\begin{tablenotes}")
