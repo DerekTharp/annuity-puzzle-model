@@ -5,26 +5,32 @@
 # Output: tables/csv/convergence_diagnostics.csv
 
 using Printf, DelimitedFiles
+using Distributed
 
-include(joinpath(@__DIR__, "..", "src", "AnnuityPuzzle.jl"))
-using .AnnuityPuzzle
+if nworkers() > 1
+    @everywhere include(joinpath(@__DIR__, "..", "src", "AnnuityPuzzle.jl"))
+    @everywhere using .AnnuityPuzzle
+else
+    include(joinpath(@__DIR__, "..", "src", "AnnuityPuzzle.jl"))
+    using .AnnuityPuzzle
+end
+include(joinpath(@__DIR__, "config.jl"))  # production constants (THETA_DFJ, KAPPA_DFJ, CHI_LTC, ...)
 
 println("=" ^ 70); flush(stdout)
-println("  QUADRATURE & GRID CONVERGENCE DIAGNOSTICS"); flush(stdout)
+println("  QUADRATURE & GRID CONVERGENCE (headline per-quartile config)"); flush(stdout)
 println("=" ^ 70); flush(stdout)
 
-# Setup
-const THETA_DFJ = 56.96
-const KAPPA_DFJ = 272_628.0
+# Setup: production constants come from config.jl
 
-hrs_raw = readdlm(joinpath(@__DIR__, "..", "data", "processed", "lockwood_hrs_sample.csv"),
-                   ',', Any; skipstart=1)
+hrs_path = joinpath(@__DIR__, "..", "data", "processed", "lockwood_hrs_sample.csv")
+hrs_raw = readdlm(hrs_path, ',', Any; skipstart=1)
+has_health = assert_hrs_schema(hrs_raw, hrs_path)
 n_pop = size(hrs_raw, 1)
 population = zeros(n_pop, 4)
 population[:, 1] = Float64.(hrs_raw[:, 1])
 population[:, 2] .= 0.0                      # SS enters via ss_func, not A grid
 population[:, 3] = Float64.(hrs_raw[:, 3])
-if size(hrs_raw, 2) >= 4
+if has_health
     population[:, 4] = Float64.(hrs_raw[:, 4])  # observed health (1=Good, 2=Fair, 3=Poor)
 else
     population[:, 4] .= 2.0
@@ -41,20 +47,20 @@ function solve_and_report(label, category, base_surv, population; kw...)
 
     kw_dict = Dict{Symbol,Any}(kw...)
     # Defaults
-    gamma = get(kw_dict, :gamma, 2.5)
-    beta = get(kw_dict, :beta, 0.97)
-    r = get(kw_dict, :r, 0.02)
+    gamma = get(kw_dict, :gamma, GAMMA)
+    beta = get(kw_dict, :beta, BETA)
+    r = get(kw_dict, :r, R_RATE)
     nw = get(kw_dict, :n_wealth, 80)
     na = get(kw_dict, :n_annuity, 30)
     nalpha = get(kw_dict, :n_alpha, 101)
-    wmax = get(kw_dict, :W_max, 3_000_000.0)
-    agp = get(kw_dict, :annuity_grid_power, 3.0)
-    nq = get(kw_dict, :n_quad, 5)
-    mwr_loaded = get(kw_dict, :mwr_loaded, 0.87)
-    inflation = get(kw_dict, :inflation_val, 0.02)
-    psi = get(kw_dict, :survival_pessimism, 0.96)
-    hm = get(kw_dict, :hazard_mult, [0.50, 1.0, 3.75])
-    min_wealth = get(kw_dict, :min_wealth, 5000.0)
+    wmax = get(kw_dict, :W_max, W_MAX)
+    agp = get(kw_dict, :annuity_grid_power, A_GRID_POW)
+    nq = get(kw_dict, :n_quad, N_QUAD)
+    mwr_loaded = get(kw_dict, :mwr_loaded, MWR_LOADED)
+    inflation = get(kw_dict, :inflation_val, INFLATION)
+    psi = get(kw_dict, :survival_pessimism, SURVIVAL_PESSIMISM)
+    hm = get(kw_dict, :hazard_mult, HAZARD_MULT)
+    min_wealth = get(kw_dict, :min_wealth, MIN_WEALTH)
 
     grid_kw = (n_wealth=nw, n_annuity=na, n_alpha=nalpha,
                W_max=wmax, age_start=65, age_end=110,
@@ -74,17 +80,17 @@ function solve_and_report(label, category, base_surv, population; kw...)
     p_full = ModelParams(; gamma=gamma, beta=beta, r=r,
         theta=THETA_DFJ, kappa=KAPPA_DFJ,
         stochastic_health=true, n_health_states=3, n_quad=nq,
-        c_floor=6180.0, hazard_mult=hm,
-        mwr=mwr_loaded, fixed_cost=2500.0, inflation_rate=inflation,
+        c_floor=C_FLOOR, hazard_mult=hm,
+        mwr=mwr_loaded, fixed_cost=FIXED_COST, min_purchase=MIN_PURCHASE,
+        inflation_rate=inflation,
         medical_enabled=true, health_mortality_corr=true,
         survival_pessimism=psi,
+        consumption_decline=CONSUMPTION_DECLINE,
+        health_utility=Float64.(HEALTH_UTILITY),
+        chi_ltc=CHI_LTC,
         grid_kw...)
 
-    # Mean SS
-    ss_mean_val = sum(SS_QUARTILE_LEVELS) / length(SS_QUARTILE_LEVELS)
-    ss_func(age, p) = ss_mean_val
-
-    # Filter population
+    # Filter to the model-eligible sample
     pop_filt = copy(population)
     mask = pop_filt[:, 1] .>= min_wealth
     pop_filt = pop_filt[mask, :]
@@ -92,11 +98,14 @@ function solve_and_report(label, category, base_surv, population; kw...)
         pop_filt = hcat(pop_filt, fill(2.0, size(pop_filt, 1)))
     end
 
-    sol = solve_lifecycle_health(p_full, grids, base_surv, ss_func)
-    result = compute_ownership_rate_health(sol, pop_filt, loaded_pr_nom;
-                                           base_surv=base_surv)
+    # Per-quartile SS assignment (the headline production configuration): the
+    # model is solved separately per wealth bin with its own SS level and
+    # aggregated, exactly as in the decomposition/enumeration headline path.
+    result = solve_and_evaluate(p_full, grids, base_surv,
+                                Float64.(SS_QUARTILE_LEVELS), pop_filt, loaded_pr_nom;
+                                verbose=false)
 
-    own = result.ownership_rate
+    own = result.ownership
     mean_a = result.mean_alpha
     dt = time() - t0
     @printf("  %-45s  own=%6.2f%%  mean_α=%.5f  (%5.1fs)\n", label, own * 100, mean_a, dt)
@@ -112,24 +121,17 @@ for nq in [3, 5, 7, 9, 11, 13, 15]
     solve_and_report(label, "Quadrature", base_surv, population; n_quad=nq)
 end
 
-# --- 2. Grid convergence (fixed 5-node GH) ---
-println("\n--- GRID CONVERGENCE (5-node GH) ---"); flush(stdout)
+# --- 2. Grid convergence at the production 9-node quadrature (per-quartile) ---
+println("\n--- GRID CONVERGENCE (9-node GH, per-quartile) ---"); flush(stdout)
 for (nw, na) in [(40, 15), (60, 20), (80, 30), (100, 40), (120, 50)]
-    label = @sprintf("Grid %dx%d (5-node)", nw, na)
-    solve_and_report(label, "Grid (5-node)", base_surv, population; n_wealth=nw, n_annuity=na, n_quad=5)
-end
-
-# --- 3. Grid convergence with 9-node GH ---
-println("\n--- GRID CONVERGENCE (9-node GH) ---"); flush(stdout)
-for (nw, na) in [(60, 20), (80, 30), (100, 40), (120, 50)]
     label = @sprintf("Grid %dx%d (9-node)", nw, na)
     solve_and_report(label, "Grid (9-node)", base_surv, population; n_wealth=nw, n_annuity=na, n_quad=9)
 end
 
-# --- 4. Combined: finest grid + highest quadrature ---
-println("\n--- REFERENCE (120x50, 11-node GH) ---"); flush(stdout)
-solve_and_report("Grid 120x50 (11-node)", "Reference", base_surv, population;
-                 n_wealth=120, n_annuity=50, n_quad=11)
+# --- 3. Reference: finest grid + highest implemented quadrature ---
+println("\n--- REFERENCE (120x50, 15-node GH) ---"); flush(stdout)
+solve_and_report("Grid 120x50 (15-node)", "Reference", base_surv, population;
+                 n_wealth=120, n_annuity=50, n_quad=15)
 
 println("\n" * "=" ^ 70); flush(stdout)
 println("  CONVERGENCE DIAGNOSTICS COMPLETE"); flush(stdout)

@@ -1,7 +1,7 @@
 # Gamma-oscillation diagnostic (the kill-criterion).
 #
 # The full structural model's predicted ownership jumps across gamma (e.g.
-# 0.0 / 6.7 / 25.4% at gamma = 2.0 / 2.5 / 3.0 on the production grid). This
+# 0.0 / 7.9 / 21.9% at gamma = 2.0 / 2.5 / 3.0 on the production grid). This
 # script sweeps gamma at fine resolution and records, at each point:
 #   - ownership (discontinuous extensive-margin indicator)
 #   - mean alpha (continuous intensive-margin statistic)
@@ -52,13 +52,13 @@ flush(stdout)
 # Population
 # ===================================================================
 hrs_raw = readdlm(HRS_PATH, ',', Any; skipstart=1)
-assert_hrs_schema(hrs_raw, HRS_PATH)
+has_health = assert_hrs_schema(hrs_raw, HRS_PATH)
 n_pop = size(hrs_raw, 1)
 population = zeros(n_pop, 4)
 population[:, 1] = Float64.(hrs_raw[:, 1])
 population[:, 2] .= 0.0
 population[:, 3] = Float64.(hrs_raw[:, 3])
-population[:, 4] = size(hrs_raw, 2) >= 4 ? Float64.(hrs_raw[:, 4]) : fill(2.0, n_pop)
+population[:, 4] = has_health ? Float64.(hrs_raw[:, 4]) : fill(2.0, n_pop)
 if MIN_WEALTH > 0.0
     population = population[population[:, 1] .>= MIN_WEALTH, :]
 end
@@ -88,7 +88,7 @@ cfg = build_subset_config(Set(1:9);
     survival_pessimism=SURVIVAL_PESSIMISM, ss_quartile_levels=Float64.(SS_QUARTILE_LEVELS),
     consumption_decline=CONSUMPTION_DECLINE, health_utility=Float64.(HEALTH_UTILITY),
     chi_ltc_val=CHI_LTC, lambda_w_val=1.0, psi_purchase_val=0.0,
-    psi_purchase_c_ref_val=18_000.0)
+    psi_purchase_c_ref_val=PSI_PURCHASE_C_REF)
 
 # ===================================================================
 # Sweep gamma (serial outer loop; quartile solves parallelize inside)

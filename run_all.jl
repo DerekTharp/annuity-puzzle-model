@@ -124,7 +124,8 @@ function main()
     end
 
     # --- Stage 1: Lockwood (2012) replication ---
-    # Produces: lockwood_replication.tex (appendix)
+    # Console-only WTP replication table (no file output). The appendix prose
+    # is hand-maintained; the numbers are gated by test/test_lockwood.jl.
     t = run_stage(
         "1. Lockwood (2012) Replication",
         joinpath(SCRIPTS_DIR, "run_lockwood_replication.jl"))
@@ -208,6 +209,13 @@ function main()
         joinpath(SCRIPTS_DIR, "run_shapley_gamma_stability.jl"); parallel=true)
     push!(timings, "Shapley gamma-stability" => t)
 
+    # --- Stage 10c: Nine-channel Shapley at the focal psi=0.981 ---
+    # Produces: shapley_psi981.csv/.tex (ranking robustness to survival beliefs)
+    t = run_stage(
+        "10c. Nine-Channel Shapley at Focal psi=0.981",
+        joinpath(SCRIPTS_DIR, "run_psi981_shapley.jl"); parallel=true)
+    push!(timings, "Shapley psi=0.981" => t)
+
     # --- Stage 11: SS cut robustness ---
     # Produces: ss_cut_robustness.tex/.csv
     t = run_stage(
@@ -234,6 +242,46 @@ function main()
         "11d. Empirical Gradient Validation (HRS)",
         joinpath(SCRIPTS_DIR, "run_empirical_validation.jl"))
     push!(timings, "Empirical gradients" => t)
+
+    # --- Stage 11e: Partition robustness (Med/R-S unbundled; SS/DB split) ---
+    # Produces: shapley_partition_{medrs,ssdb}.csv, partition_robustness.tex
+    t = run_stage(
+        "11e. Partition Robustness (Shapley under alternative partitions)",
+        joinpath(SCRIPTS_DIR, "run_partition_robustness.jl"); parallel=true)
+    push!(timings, "Partition robustness" => t)
+
+    # --- Stage 11f: Extensive-margin gate (F* rational-exclusion finding) ---
+    # Produces: extensive_margin_gate.csv, fstar_distribution.csv,
+    # wealth_gradient_modeldata.csv
+    t = run_stage(
+        "11f. Extensive-Margin Gate (indifference fixed cost F*)",
+        joinpath(SCRIPTS_DIR, "run_extensive_margin_gate.jl"); parallel=true)
+    push!(timings, "Extensive-margin gate" => t)
+
+    # --- Stage 11g: Gate robustness (SS-cut concentration invariance) ---
+    # Produces: gate_robustness_killer.csv, gate_robustness.tex
+    t = run_stage(
+        "11g. Gate Robustness (SS-cut response invariance to the margin)",
+        joinpath(SCRIPTS_DIR, "run_gate_robustness.jl"); parallel=true)
+    push!(timings, "Gate robustness" => t)
+
+    # --- Stage 11h: Band value-destruction diagnostic (which channel drives the
+    #     bottom-band F*=0; complements the extensive-margin gate) ---
+    # Produces: band_value_destruction_diagnostic.csv, band_value_destruction.tex
+    t = run_stage(
+        "11h. Band Value-Destruction Diagnostic (leave-one-channel-out F*)",
+        joinpath(SCRIPTS_DIR, "run_band3_diagnostic.jl"); parallel=true)
+    push!(timings, "Band value-destruction" => t)
+    run_stage(
+        "11h. Emit band value-destruction table",
+        joinpath(SCRIPTS_DIR, "emit_band_value_destruction_table.jl"))
+
+    # --- Stage 11i: Model-vs-data wealth-band table (uses Stage 11f model data
+    #     and the committed HRS by-band ownership) ---
+    # Produces: model_vs_data_band.tex
+    run_stage(
+        "11i. Emit model-vs-data wealth-band table",
+        joinpath(SCRIPTS_DIR, "emit_model_vs_data_band_table.jl"))
 
     # --- Stage 12: Robustness and sensitivity ---
     # Produces: robustness_gamma_inflation.tex, retention_rates.tex, robustness_full.csv
@@ -279,8 +327,8 @@ function main()
     push!(timings, "State-util sensitivity" => t)
 
     # --- Stage 14c: Grid and quadrature convergence diagnostics ---
-    # Produces: tables/csv/convergence_diagnostics.csv (mean-SS diagnostic
-    # basis). Backs the grid/quadrature convergence table in the appendix.
+    # Produces: tables/csv/convergence_diagnostics.csv (headline per-quartile
+    # config). Backs the grid/quadrature convergence table in the appendix.
     t = run_stage(
         "14c. Grid and Quadrature Convergence Diagnostics",
         joinpath(SCRIPTS_DIR, "grid_convergence_full.jl"); parallel=true)
@@ -382,14 +430,17 @@ function main()
 
     # Verify expected manuscript inputs exist
     expected_tex = [
+        "band_value_destruction.tex",
         "bequest_recalibration.tex",
         "cev_counterfactuals.tex",
         "dia_comparison.tex",
         "empirical_gradients_logit.tex",  # Stage 11c output; sec:empirical \input
         "euler_residuals_table.tex",  # Stage 14e output; appendix \input
         "extension_path.tex",
+        "gate_robustness.tex",        # Stage 11g output; sec:gate \input
         "grid_convergence.tex",       # Stage 14e output; appendix \input
         "implied_gamma.tex",
+        "model_vs_data_band.tex",     # Stage 11i output; sec:empirical \input
         "moment_validation.tex",
         "monte_carlo_summary.tex",  # Stage 13c output; appendix \input
         # multigamma_decomposition.tex is no longer required in the
@@ -398,11 +449,13 @@ function main()
         # writes it to tables/tex/ for diagnostic use, but missing or
         # stale versions do not block the package as submission-grade.
         "pairwise_interactions.tex",
+        "partition_robustness.tex",
         "pashchenko_comparison.tex",
         "retention_rates.tex",
         "robustness_gamma_inflation.tex",
         "shapley_exact.tex",
         "shapley_nine.tex",
+        "shapley_psi981.tex",        # Stage 10c output; app:psi_ranking \input
         "ss_cut_robustness.tex",
         "welfare_cev_grid.tex",
         "welfare_counterfactuals.tex",

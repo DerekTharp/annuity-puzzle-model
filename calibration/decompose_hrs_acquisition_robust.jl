@@ -15,12 +15,11 @@ using ReadStatTables
 using Printf
 using Statistics
 
+include(joinpath(@__DIR__, "hrs_common.jl"))
+
 const HRS_PATH = joinpath(@__DIR__, "..", "data", "raw", "HRS",
                            "randhrs1992_2022v1_STATA",
                            "randhrs1992_2022v1.dta")
-
-numval(x::Real) = Float64(x)
-numval(x) = Float64(x.value)
 
 println("=" ^ 70)
 println("  HRS ANNUITY ACQUISITION DECOMPOSITION — NOISE-ROBUST")
@@ -36,7 +35,14 @@ const WAVES = 1:15
 const STUDY_WAVES = 5:9
 const MIN_AGE = 65
 const MAX_AGE = 69
-const SINGLE_CODES = Set([3, 4, 5, 7, 8])
+# Single marital codes and retired labor-force codes come from hrs_common.jl
+# (SINGLE_MSTAT, RETIRED_LBRF) so this diagnostic shares the model sample's
+# authoritative definitions.
+
+# Nominal nuisance floor on r{w}iann, NOT deflated to 2014 dollars. This is a
+# noise filter to drop trivial reports, not a real economic threshold; its real
+# value therefore varies modestly across waves 5-9. The first-owner persistence
+# requirement, not this floor, does the substantive work.
 const MIN_DOLLAR_AMOUNT = 100.0
 
 # Pre-extract wave columns
@@ -44,12 +50,18 @@ age_cols    = Dict{Int, Any}()
 mstat_cols  = Dict{Int, Any}()
 iwstat_cols = Dict{Int, Any}()
 iann_cols   = Dict{Int, Any}()
+lbrf_cols   = Dict{Int, Any}()
+wtresp_cols = Dict{Int, Any}()
+shlt_cols   = Dict{Int, Any}()
 
 for w in WAVES
     age_cols[w]    = try collect(getproperty(tbl, Symbol("r$(w)agey_b"))) catch; nothing end
     mstat_cols[w]  = try collect(getproperty(tbl, Symbol("r$(w)mstat")))  catch; nothing end
     iwstat_cols[w] = try collect(getproperty(tbl, Symbol("r$(w)iwstat"))) catch; nothing end
     iann_cols[w]   = try collect(getproperty(tbl, Symbol("r$(w)iann")))   catch; nothing end
+    lbrf_cols[w]   = try collect(getproperty(tbl, Symbol("r$(w)lbrf")))   catch; nothing end
+    wtresp_cols[w] = try collect(getproperty(tbl, Symbol("r$(w)wtresp"))) catch; nothing end
+    shlt_cols[w]   = try collect(getproperty(tbl, Symbol("r$(w)shlt")))   catch; nothing end
 end
 
 # For each person, get the sequence of (wave, age, alive, iann) tuples in
@@ -60,11 +72,11 @@ function person_track(i)
         sc = iwstat_cols[w]; ac = age_cols[w]; nc = iann_cols[w]
         sc === nothing && continue
         ismissing(sc[i]) && continue
-        numval(sc[i]) == 1 || continue  # alive respondent
+        numval_float(sc[i]) == 1 || continue  # alive respondent
         ac === nothing && continue
         ismissing(ac[i]) && continue
-        age = Int(round(numval(ac[i])))
-        iann = (nc !== nothing && !ismissing(nc[i])) ? numval(nc[i]) : 0.0
+        age = Int(round(numval_float(ac[i])))
+        iann = (nc !== nothing && !ismissing(nc[i])) ? numval_float(nc[i]) : 0.0
         push!(track, (w, age, iann))
     end
     return track
@@ -130,22 +142,35 @@ for i in 1:N
 
     for w in STUDY_WAVES
         ac = age_cols[w]; mc = mstat_cols[w]; sc = iwstat_cols[w]; nc = iann_cols[w]
+        lc = lbrf_cols[w]; wc = wtresp_cols[w]; hc = shlt_cols[w]
         ac === nothing && continue
         ismissing(ac[i]) && continue
-        age = numval(ac[i])
+        age = numval_float(ac[i])
         (age < MIN_AGE || age > MAX_AGE) && continue
-        if sc !== nothing && !ismissing(sc[i]) && numval(sc[i]) != 1; continue; end
+        if sc !== nothing && !ismissing(sc[i]) && numval_float(sc[i]) != 1; continue; end
         mc === nothing && continue
         ismissing(mc[i]) && continue
-        numval(mc[i]) in SINGLE_CODES || continue
+        numval(mc[i]) in SINGLE_MSTAT || continue
+        # Match the model sample (build_hrs_sample.jl): retired/out of labor
+        # force, positive respondent weight, self-reported health present.
+        lc === nothing && continue
+        ismissing(lc[i]) && continue
+        numval(lc[i]) in RETIRED_LBRF || continue
+        wc === nothing && continue
+        ismissing(wc[i]) && continue
+        numval_float(wc[i]) > 0.0 || continue
+        hc === nothing && continue
+        ismissing(hc[i]) && continue
+        shlt_raw = numval(hc[i])
+        (shlt_raw < 1 || shlt_raw > 5) && continue
         eligible = true
-        if nc !== nothing && !ismissing(nc[i]) && numval(nc[i]) > 0
+        if nc !== nothing && !ismissing(nc[i]) && numval_float(nc[i]) > 0
             in_window_owner = true
             # Check persistence at next study wave
             wnext = w + 1
             if wnext <= maximum(WAVES)
                 nc_next = iann_cols[wnext]
-                if nc_next !== nothing && !ismissing(nc_next[i]) && numval(nc_next[i]) > 0
+                if nc_next !== nothing && !ismissing(nc_next[i]) && numval_float(nc_next[i]) > 0
                     in_window_persistent = true
                 end
             end
@@ -224,7 +249,7 @@ for k in [:pre65, :at_retirement, :post65, :left_censored, :unknown]
 end
 println()
 
-println("  ── NOISE-ROBUST (iann > \$$(Int(MIN_DOLLAR_AMOUNT)) AND next wave > 0): ──")
+println("  ── NOISE-ROBUST (nominal iann > \$$(Int(MIN_DOLLAR_AMOUNT)) AND next wave > 0): ──")
 total_r = sum(values(bins_robust))
 for k in [:pre65, :at_retirement, :post65, :left_censored, :transient_positive, :unknown]
     n = bins_robust[k]

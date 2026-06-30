@@ -27,7 +27,7 @@ include("diagnostics.jl")
 
 export ModelParams, load_params
 export utility, bequest_utility, marginal_utility
-export flow_utility, consumption_weight, health_utility_weight, marginal_flow_utility,
+export consumption_weight, health_utility_weight, marginal_flow_utility,
        flow_utility_sdu, flow_utility_chi_ltc, flow_utility_sdu_chi_ltc, purchase_penalty
 export build_wealth_grid, build_annuity_grid, build_alpha_grid, build_grids, Grids
 export clamp_audit, reset_clamp_audit!, report_clamp_audit
@@ -45,7 +45,7 @@ export Solution, solve_lifecycle, solve_annuitization
 export HealthSolution, solve_lifecycle_health, solve_annuitization_health
 export LOCKWOOD_CUM_DEATH_PROBS, build_lockwood_survival
 export compute_wtp, compute_wtp_lockwood, calibrate_theta, recalibrate_theta_dfj, compute_ownership_rate
-export compute_wtp_health, compute_ownership_rate_health
+export compute_wtp_health, compute_ownership_rate_health, compute_indiff_fixed_cost_health
 export SimulationResult, simulate_lifecycle, simulate_batch
 export DecompositionStep, DecompositionResult
 export solve_and_evaluate, run_decomposition, run_multiplicative_analysis

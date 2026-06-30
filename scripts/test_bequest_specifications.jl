@@ -48,12 +48,13 @@ const KAPPA_DFJ  = 272_628.0
 # Load HRS population
 hrs_path = joinpath(@__DIR__, "..", "data", "processed", "lockwood_hrs_sample.csv")
 hrs_raw = readdlm(hrs_path, ',', Any; skipstart=1)
+has_health = assert_hrs_schema(hrs_raw, hrs_path)
 n_pop = size(hrs_raw, 1)
 population = zeros(n_pop, 4)
 population[:, 1] = Float64.(hrs_raw[:, 1])
 population[:, 2] .= 0.0                      # SS via ss_func, not A grid
 population[:, 3] = Float64.(hrs_raw[:, 3])
-if size(hrs_raw, 2) >= 4
+if has_health
     population[:, 4] = Float64.(hrs_raw[:, 4])  # observed health (1=Good, 2=Fair, 3=Poor)
 else
     population[:, 4] .= 2.0
@@ -230,13 +231,13 @@ for r in results
 end
 println()
 
-# Full-model bequest contribution (with bequests vs without)
-println("\n  Full-model bequest contribution (no-bequest rate - full rate):")
+# Full-model ownership delta relative to the DFJ spec (DFJ full rate - spec full rate)
+println("\n  Full-model ownership delta vs DFJ spec (DFJ full rate - spec full rate):")
 @printf("  %-20s", "Spec")
 for r in results
-    no_beq_rate = results[1].rates[end]  # all specs share the no-bequest baseline
+    dfj_rate = results[1].rates[end]  # results[1] is the DFJ luxury spec
     full_rate = r.rates[end]
-    @printf("  %+11.1f pp", no_beq_rate - full_rate)
+    @printf("  %+11.1f pp", dfj_rate - full_rate)
 end
 println()
 

@@ -249,7 +249,7 @@ With age-varying multipliers, linearly interpolates between age-band
 midpoints; flat extrapolation beyond the data range.
 """
 function _get_hazard_mult(health_state::Int, age::Int, p::ModelParams)
-    if p.hazard_mult_by_age === nothing || age <= 0
+    if p.hazard_mult_by_age === nothing || p.hazard_mult_age_midpoints === nothing || age <= 0
         return p.hazard_mult[health_state]
     end
 

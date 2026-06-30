@@ -23,13 +23,13 @@ println("=" ^ 70); flush(stdout)
 
 hrs_raw = readdlm(HRS_PATH,
                    ',', Any; skipstart=1)
-assert_hrs_schema(hrs_raw, HRS_PATH)
+has_health = assert_hrs_schema(hrs_raw, HRS_PATH)
 n_pop = size(hrs_raw, 1)
 population = zeros(n_pop, 4)
 population[:, 1] = Float64.(hrs_raw[:, 1])
 population[:, 2] .= 0.0
 population[:, 3] = Float64.(hrs_raw[:, 3])
-if size(hrs_raw, 2) >= 4
+if has_health
     population[:, 4] = Float64.(hrs_raw[:, 4])  # observed health (1=Good, 2=Fair, 3=Poor)
 else
     population[:, 4] .= 2.0
@@ -58,6 +58,7 @@ for g in gammas
         # silently leave consumption_decline and health_utility off.
         consumption_decline_val=CONSUMPTION_DECLINE,
         health_utility_vals=HEALTH_UTILITY,
+        chi_ltc_val=CHI_LTC,    # ninth structural channel (public-care aversion)
         inflation_val=INFLATION,
         n_wealth=N_WEALTH, n_annuity=N_ANNUITY, n_alpha=N_ALPHA,
         W_max=W_MAX, n_quad=N_QUAD,

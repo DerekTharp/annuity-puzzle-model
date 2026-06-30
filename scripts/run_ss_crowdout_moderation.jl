@@ -1,6 +1,6 @@
 # STAGE -1 DE-RISK DRY RUN — behavioral moderators of the SS crowd-out slope.
 #
-# Tests the single most load-bearing prediction of the option-2 (SS-spine)
+# Tests the single most consequential prediction of the option-2 (SS-spine)
 # framing: do the behavioral channels MODERATE the crowd-out response in the
 # predicted directions?
 #   - SDU (source-dependent utility, lambda_w < 1): predicted to AMPLIFY the
@@ -36,7 +36,7 @@ else
     using .AnnuityPuzzle
 end
 
-include(joinpath(@__DIR__, "config.jl"))
+@everywhere include(joinpath(@__DIR__, "config.jl"))  # config constants are referenced inside the parallel_solve closure, so workers need them
 
 # --- Dry-run settings ---------------------------------------------------------
 const CUTS = [0.0, 0.10, 0.23, 0.30, 0.50]   # fractions; 0.23 = 2033 trust-fund
@@ -71,13 +71,13 @@ flush(stdout)
 
 # --- Load HRS population ------------------------------------------------------
 hrs_raw = readdlm(HRS_PATH, ',', Any; skipstart=1)
-assert_hrs_schema(hrs_raw, HRS_PATH)
+has_health = assert_hrs_schema(hrs_raw, HRS_PATH)
 n_pop = size(hrs_raw, 1)
 population = zeros(n_pop, 4)
 population[:, 1] = Float64.(hrs_raw[:, 1])
 population[:, 2] .= 0.0
 population[:, 3] = Float64.(hrs_raw[:, 3])
-population[:, 4] = size(hrs_raw, 2) >= 4 ? Float64.(hrs_raw[:, 4]) : fill(2.0, n_pop)
+population[:, 4] = has_health ? Float64.(hrs_raw[:, 4]) : fill(2.0, n_pop)
 if MIN_WEALTH > 0.0
     population = population[population[:, 1] .>= MIN_WEALTH, :]
 end
@@ -100,14 +100,18 @@ p_fn = ModelParams(; ckw..., mwr=1.0, inflation_rate=INFLATION, gkw...)
 fair_pr_nom = INFLATION > 0 ? compute_payout_rate(p_fn, base_surv) : fair_pr
 grids = build_grids(p_fg, max(fair_pr, fair_pr_nom))
 loaded_pr_nom = MWR_LOADED * fair_pr_nom
-ss_q = Float64.(SS_QUARTILE_LEVELS)
+# A trust-fund shortfall cuts Social Security only; DB pension income survives.
+# SS_QUARTILE_LEVELS = SS_OBS + DB_OBS, so scale SS_OBS by the cut and add DB_OBS
+# back untouched (matching run_ss_robustness.jl / run_welfare_counterfactuals.jl).
+ss_obs = Float64.(SS_OBS)
+db_obs = Float64.(DB_OBS)
 
 # --- Sweep: config x cut ------------------------------------------------------
 specs = [(ci=ci, cut=cut) for ci in 1:length(CONFIGS) for cut in CUTS]
 
 results = parallel_solve(specs) do spec
     (label, lam, psi) = CONFIGS[spec.ci]
-    ss_lvls = (1.0 - spec.cut) .* ss_q
+    ss_lvls = (1.0 - spec.cut) .* ss_obs .+ db_obs
     p_model = ModelParams(; ckw...,
         theta=THETA_DFJ, kappa=KAPPA_DFJ,
         mwr=MWR_LOADED, fixed_cost=FIXED_COST, min_purchase=MIN_PURCHASE,

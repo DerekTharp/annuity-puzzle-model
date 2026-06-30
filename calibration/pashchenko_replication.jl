@@ -210,70 +210,11 @@ println("\n  " * "-" ^ 70)
 # ===================================================================
 # Generate LaTeX table
 # ===================================================================
-println("\n\nGenerating LaTeX table...")
-
-tables_dir = joinpath(@__DIR__, "..", "tables")
-mkpath(joinpath(tables_dir, "tex"))
-mkpath(joinpath(tables_dir, "csv"))
-
-tex_path = joinpath(tables_dir, "tex", "pashchenko_comparison.tex")
-csv_path = joinpath(tables_dir, "csv", "pashchenko_comparison.csv")
-
-step_names = [
-    "Yaari benchmark (SS on)",
-    "+ Bequest motives (DFJ)",
-    "+ Minimum purchase (\\\$25K)",
-    "+ Pricing loads (MWR=0.85)",
-    "+ Medical costs + R-S correlation",
-    "+ Inflation erosion (2\\%)",
-]
-
-open(tex_path, "w") do f
-    println(f, "\\begin{table}[htbp]")
-    println(f, "\\centering")
-    println(f, "\\caption{Pashchenko (2013) Channels in Our Framework}")
-    println(f, "\\label{tab:pashchenko}")
-    println(f, "\\begin{tabular}{lcc}")
-    println(f, "\\toprule")
-    println(f, "Model Specification & Ownership (\\%) & \$\\Delta\$ \\\\")
-    println(f, "\\midrule")
-
-    prev = 1.0
-    for (i, (name, rate)) in enumerate(results_pash)
-        delta = rate - prev
-        delta_str = i == 1 ? "---" : @sprintf("%+.1f pp", delta * 100)
-        @printf(f, "%s & %.1f & %s \\\\\n", step_names[i], rate * 100, delta_str)
-        if i == 4
-            println(f, "\\midrule")
-            println(f, "\\textit{Channels omitted by Pashchenko:} & & \\\\")
-        end
-        prev = rate
-    end
-
-    println(f, "\\midrule")
-    @printf(f, "Observed (Lockwood 2012) & 3.6 & --- \\\\\n")
-    println(f, "\\bottomrule")
-    println(f, "\\end{tabular}")
-    println(f, "\\begin{tablenotes}")
-    println(f, "\\small")
-    println(f, "\\item Steps 0--3 incorporate the channels Pashchenko (2013) identified")
-    println(f, "(SS, bequests, minimum purchase, pricing loads) into our unified model.")
-    println(f, "Steps 4--5 add channels not in her framework. Note: this is not a")
-    println(f, "replication of her model (different preferences, health dynamics,")
-    println(f, "solution method). Housing illiquidity is not modeled; see text.")
-    println(f, "\\end{tablenotes}")
-    println(f, "\\end{table}")
-end
-println("  LaTeX table: $tex_path")
-
-# CSV output
-open(csv_path, "w") do f
-    println(f, "step,specification,ownership_pct")
-    for (i, (name, rate)) in enumerate(results_pash)
-        @printf(f, "%d,%s,%.2f\n", i - 1, name, rate * 100)
-    end
-end
-println("  CSV table: $csv_path")
+# The manuscript table tables/{tex,csv}/pashchenko_comparison.{tex,csv} is
+# produced by the canonical pipeline script scripts/run_pashchenko_comparison.jl
+# (run_all.jl Stage 4). This historical calibration replication is console-only
+# to honor the one-writer-per-output rule (no duplicate writer).
+println("\n  (Table output is owned by scripts/run_pashchenko_comparison.jl; this script is console-only.)")
 
 println("\n" * "=" ^ 70)
 println("  PASHCHENKO COMPARISON COMPLETE")

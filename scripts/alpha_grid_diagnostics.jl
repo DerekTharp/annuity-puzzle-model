@@ -3,32 +3,33 @@
 # age-65 annuitization grid (n_alpha points on [0,1]) can in principle shift
 # marginal households across the participation threshold. This holds the wealth
 # grid (80x30) and quadrature (9-node GH) at production resolution and sweeps
-# n_alpha, on the same mean-SS diagnostic used by grid_convergence_full.jl.
+# n_alpha, on the headline per-quartile configuration used by
+# grid_convergence_full.jl (so the n_alpha=101 cell matches the headline level).
 #
 # Output: tables/csv/alpha_grid_diagnostics.csv
 # Kept separate from convergence_diagnostics.csv so this sweep does not
 # regenerate (and risk perturbing) the production-locked grid/quadrature rows.
 
 using Printf, DelimitedFiles
+using Distributed
 
-include(joinpath(@__DIR__, "..", "src", "AnnuityPuzzle.jl"))
-using .AnnuityPuzzle
+if nworkers() > 1
+    @everywhere include(joinpath(@__DIR__, "..", "src", "AnnuityPuzzle.jl"))
+    @everywhere using .AnnuityPuzzle
+else
+    include(joinpath(@__DIR__, "..", "src", "AnnuityPuzzle.jl"))
+    using .AnnuityPuzzle
+end
+include(joinpath(@__DIR__, "config.jl"))  # production constants (THETA_DFJ, KAPPA_DFJ, CHI_LTC, ...)
 
 println("=" ^ 70); flush(stdout)
 println("  ANNUITIZATION-GRID (ALPHA) CONVERGENCE DIAGNOSTIC"); flush(stdout)
 println("=" ^ 70); flush(stdout)
 
-const THETA_DFJ = 56.96
-const KAPPA_DFJ = 272_628.0
-
-hrs_raw = readdlm(joinpath(@__DIR__, "..", "data", "processed", "lockwood_hrs_sample.csv"),
-                   ',', Any; skipstart=1)
-n_pop = size(hrs_raw, 1)
-population = zeros(n_pop, 4)
-population[:, 1] = Float64.(hrs_raw[:, 1])
-population[:, 2] .= 0.0                      # SS enters via ss_func, not the A grid
-population[:, 3] = Float64.(hrs_raw[:, 3])
-population[:, 4] = size(hrs_raw, 2) >= 4 ? Float64.(hrs_raw[:, 4]) : fill(2.0, n_pop)
+population = load_hrs_population(
+    joinpath(@__DIR__, "..", "data", "processed", "lockwood_hrs_sample.csv");
+    zero_ss=true)
+n_pop = size(population, 1)
 
 p_base = ModelParams(age_start=65, age_end=110)
 base_surv = build_lockwood_survival(p_base)
@@ -47,7 +48,7 @@ function solve_alpha(nalpha)
     p_fair_nom = ModelParams(; gamma=2.5, beta=0.97, r=0.02, mwr=1.0,
                                inflation_rate=0.02, grid_kw...)
     fair_pr_nom = compute_payout_rate(p_fair_nom, base_surv)
-    loaded_pr_nom = 0.87 * fair_pr_nom
+    loaded_pr_nom = MWR_LOADED * fair_pr_nom
 
     p_fair = ModelParams(; gamma=2.5, beta=0.97, r=0.02, mwr=1.0, grid_kw...)
     fair_pr = compute_payout_rate(p_fair, base_surv)
@@ -56,21 +57,25 @@ function solve_alpha(nalpha)
     p_full = ModelParams(; gamma=2.5, beta=0.97, r=0.02,
         theta=THETA_DFJ, kappa=KAPPA_DFJ,
         stochastic_health=true, n_health_states=3, n_quad=9,
-        c_floor=6180.0, hazard_mult=[0.50, 1.0, 3.75],
-        mwr=0.87, fixed_cost=2500.0, inflation_rate=0.02,
+        c_floor=C_FLOOR, hazard_mult=Float64.(HAZARD_MULT),
+        mwr=MWR_LOADED, fixed_cost=FIXED_COST, min_purchase=MIN_PURCHASE, inflation_rate=0.02,
         medical_enabled=true, health_mortality_corr=true,
-        survival_pessimism=0.96,
+        survival_pessimism=SURVIVAL_PESSIMISM,
+        consumption_decline=CONSUMPTION_DECLINE,
+        health_utility=Float64.(HEALTH_UTILITY),
+        chi_ltc=CHI_LTC,
         grid_kw...)
 
-    ss_mean_val = sum(SS_QUARTILE_LEVELS) / length(SS_QUARTILE_LEVELS)
-    ss_func(age, p) = ss_mean_val
+    pop_filt = population[population[:, 1] .>= MIN_WEALTH, :]
 
-    pop_filt = population[population[:, 1] .>= 5000.0, :]
+    # Per-quartile SS assignment (the headline production configuration), matching
+    # grid_convergence_full.jl: the model is solved separately per wealth bin with
+    # its own SS level and aggregated.
+    result = solve_and_evaluate(p_full, grids, base_surv,
+                                Float64.(SS_QUARTILE_LEVELS), pop_filt, loaded_pr_nom;
+                                verbose=false)
 
-    sol = solve_lifecycle_health(p_full, grids, base_surv, ss_func)
-    result = compute_ownership_rate_health(sol, pop_filt, loaded_pr_nom; base_surv=base_surv)
-
-    own, mean_a = result.ownership_rate, result.mean_alpha
+    own, mean_a = result.ownership, result.mean_alpha
     @printf("  n_alpha=%-4d (smallest positive share %.4f)  own=%6.2f%%  mean_α=%.5f  (%5.1fs)\n",
             nalpha, 1 / (nalpha - 1), own * 100, mean_a, time() - t0)
     flush(stdout)

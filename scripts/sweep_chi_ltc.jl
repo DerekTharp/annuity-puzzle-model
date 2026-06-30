@@ -40,13 +40,13 @@ flush(stdout)
 # Load HRS population
 # ===================================================================
 hrs_raw = readdlm(HRS_PATH, ',', Any; skipstart=1)
-assert_hrs_schema(hrs_raw, HRS_PATH)
+has_health = assert_hrs_schema(hrs_raw, HRS_PATH)
 n_pop = size(hrs_raw, 1)
 population = zeros(n_pop, 4)
 population[:, 1] = Float64.(hrs_raw[:, 1])   # wealth
 population[:, 2] .= 0.0                       # SS via ss_func, not A grid
 population[:, 3] = Float64.(hrs_raw[:, 3])   # age
-if size(hrs_raw, 2) >= 4
+if has_health
     population[:, 4] = Float64.(hrs_raw[:, 4])
 else
     population[:, 4] .= 2.0

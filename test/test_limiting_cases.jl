@@ -117,7 +117,10 @@ end
     sol = solve_lifecycle(p, grids, surv, ss_zero)
     alpha_star, _ = solve_annuitization(sol, payout_rate)
 
+    # CLAUDE.md section 4.5: at zero liquid wealth there is nothing to annuitize,
+    # so alpha* = 0 trivially. W[1] is the zero-wealth grid point.
     @test grids.W[1] == 0.0
+    @test alpha_star[1] == 0.0
     println("Zero wealth test passed.")
 end
 

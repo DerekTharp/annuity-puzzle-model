@@ -151,28 +151,24 @@ function subset_alpha(bitmask::Int)
     error("bitmask $bitmask not found in subset_enumeration.csv")
 end
 
-# welfare_counterfactuals.csv has unquoted commas in scenario names and
-# descriptions, so readdlm fractures rows. Parse by prefix-match + numeric
-# tokenization of the tail.
+# welfare_counterfactuals.csv is RFC-4180 quoted; scenario names and descriptions
+# embed commas. Schema: scenario, mwr, inflation, psi, c_floor, ss_scale,
+# ownership_pct, mean_alpha, description.
 function welfare_counterfactual(scenario::AbstractString)
     path = joinpath(CSV_DIR, "welfare_counterfactuals.csv")
     isfile(path) || error("Missing CSV: $path")
-    prefix = scenario * ","
     for (i, line) in enumerate(eachline(path))
         i == 1 && continue  # header
-        startswith(line, prefix) || continue
-        tail = chopprefix(line, prefix)
-        toks = split(tail, ',')
-        length(toks) >= 7 || error("malformed row for $(repr(scenario)): $line")
-        # Schema: mwr, inflation, psi, c_floor, ss_scale, ownership_pct,
-        # mean_alpha, description.
-        return (mwr=parse(Float64, toks[1]),
-                inflation=parse(Float64, toks[2]),
-                psi=parse(Float64, toks[3]),
-                c_floor=parse(Float64, toks[4]),
-                ss_scale=parse(Float64, toks[5]),
-                ownership_pct=parse(Float64, toks[6]),
-                mean_alpha=parse(Float64, toks[7]))
+        isempty(strip(line)) && continue
+        f = parse_csv_row(line)
+        length(f) >= 8 && f[1] == scenario || continue
+        return (mwr=parse(Float64, f[2]),
+                inflation=parse(Float64, f[3]),
+                psi=parse(Float64, f[4]),
+                c_floor=parse(Float64, f[5]),
+                ss_scale=parse(Float64, f[6]),
+                ownership_pct=parse(Float64, f[7]),
+                mean_alpha=parse(Float64, f[8]))
     end
     error("scenario $(repr(scenario)) not found in welfare_counterfactuals.csv")
 end
@@ -282,17 +278,17 @@ function shapley_nine_channel()
     return out
 end
 
-# robustness_full.csv embeds commas in specification fields (e.g. "g=2.5,pi=1%")
-# so we parse by prefix-match on "category," + reverse-split for the ownership field.
+# robustness_full.csv is RFC-4180 quoted; specification fields embed commas
+# (e.g. "g=2.5,pi=1%"). parse_csv_row splits each row into (category, spec, rate).
 function robustness_ownership(category::AbstractString, specification::AbstractString)
     path = joinpath(CSV_DIR, "robustness_full.csv")
     isfile(path) || error("Missing CSV: $path")
-    target = category * "," * specification * ","
     for (i, line) in enumerate(eachline(path))
         i == 1 && continue
-        startswith(line, target) || continue
-        tail = chopprefix(line, target)
-        return parse(Float64, rstrip(tail, '%'))
+        isempty(strip(line)) && continue
+        f = parse_csv_row(line)
+        length(f) == 3 && f[1] == category && f[2] == specification || continue
+        return parse(Float64, rstrip(f[3], '%'))
     end
     error("robustness row ($category, $specification) not found")
 end
@@ -739,7 +735,7 @@ function build_macros!()
         def!("mgPessGammaThree",   fmt_pct(mg("Survival pessimism", 8); digits=1))
     end
 
-    # Grid/quadrature convergence summary stats for prose (mean-SS diagnostic).
+    # Grid/quadrature convergence summary stats for prose (per-quartile headline config).
     let crows = read_csv("convergence_diagnostics.csv")[1]
         cg(spec) = begin
             for r in eachrow(crows)
@@ -866,7 +862,7 @@ function build_macros!()
     def!("ownHazardAgeBand",      fmt_pct(robustness_ownership("Hazard mult", "Age-varying HRS (3 bands)"); digits=1))
 
     # ======================================================================
-    # Section J — SS cut robustness (from welfare_counterfactuals "SS cut 23%")
+    # Section J — SS cut robustness (from ss_cut_robustness.csv)
     # and ss_cut_robustness.csv if finer grid needed
     # ======================================================================
     def!("ownSSCutZero",       fmt_pct(ss_cut_ownership(0);   digits=1))
@@ -986,6 +982,27 @@ function build_macros!()
         sm = strip.(string.(eg[:, colof(egh, "sign_match")]))
         def!("empSignMatch", string(count(==("yes"), sm)))
         def!("empSignTotal", string(count(x -> x != "", ps)))
+    end
+
+    # Extensive-margin gate: F*=0 rational-exclusion finding (Result 1).
+    fd_path = joinpath(CSV_DIR, "fstar_distribution.csv")
+    if isfile(fd_path)
+        fd, fdh = read_csv("fstar_distribution.csv")
+        band = strip.(string.(fd[:, colof(fdh, "band")]))
+        fz   = Float64.(fd[:, colof(fdh, "frac_fstar_zero")])
+        fmid = Float64.(fd[:, colof(fdh, "frac_fstar_below_fc")])
+        bi(lbl) = findfirst(==(lbl), band)
+        def!("gateFstarZeroBandOne",   fmt_pct(fz[bi("<30k")] * 100;     digits=0))
+        def!("gateFstarZeroBandTwo",   fmt_pct(fz[bi("30-120k")] * 100;  digits=0))
+        def!("gateFstarZeroBandThree", fmt_pct(fz[bi("120-350k")] * 100; digits=0))
+        def!("gateFstarSliverBandTwo", fmt_pct(fmid[bi("30-120k")] * 100; digits=0))
+        # Band-1 F*=0 split: value-destroying vs minimum-purchase-infeasible.
+        cvd = colof(fdh, "frac_value_destroying"); cinf = colof(fdh, "frac_infeasible")
+        if cvd !== nothing && cinf !== nothing
+            fvd = Float64.(fd[:, cvd]); finf = Float64.(fd[:, cinf])
+            def!("gateValDestrBandOne", fmt_pct(fvd[bi("<30k")] * 100; digits=0))
+            def!("gateInfeasBandOne",   fmt_pct(finf[bi("<30k")] * 100; digits=0))
+        end
     end
 end
 

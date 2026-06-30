@@ -1,6 +1,10 @@
 # Joint grid convergence test.
 # Test 1-3 showed annuity grid and alpha grid pull in opposite directions.
-# This script refines both together to find the converged ownership rate.
+# This script refines both together to check grid stability of the ownership rate.
+# It runs run_decomposition with channel-toggle defaults (public-care aversion,
+# SDU, PED off; SS not injected), so the rates here are a grid-diagnostic spec,
+# not the headline 9-channel ownership level. For convergence of the full headline
+# spec, see grid_convergence_full.jl.
 
 using Printf
 using DelimitedFiles
@@ -8,7 +12,7 @@ include(joinpath(@__DIR__, "..", "src", "AnnuityPuzzle.jl"))
 using .AnnuityPuzzle
 
 println("=" ^ 70)
-println("  JOINT GRID CONVERGENCE TESTS")
+println("  JOINT GRID CONVERGENCE TESTS (grid-diagnostic spec, not headline level)")
 println("=" ^ 70)
 
 const GAMMA       = parse(Float64, get(ENV, "ANNUITY_GAMMA", "2.5"))  # ANNUITY_GAMMA overrides to check grid convergence at the gamma-sensitive points
@@ -31,12 +35,13 @@ const MIN_WEALTH  = 5_000.0
 println("\nLoading HRS population...")
 hrs_path = joinpath(@__DIR__, "..", "data", "processed", "lockwood_hrs_sample.csv")
 hrs_raw = readdlm(hrs_path, ',', Any; skipstart=1)
+has_health = assert_hrs_schema(hrs_raw, hrs_path)
 n_pop = size(hrs_raw, 1)
 population = zeros(n_pop, 4)
 population[:, 1] = Float64.(hrs_raw[:, 1])
 population[:, 2] .= 0.0                      # SS enters via ss_func, not A grid
 population[:, 3] = Float64.(hrs_raw[:, 3])
-if size(hrs_raw, 2) >= 4
+if has_health
     population[:, 4] = Float64.(hrs_raw[:, 4])  # observed health (1=Good, 2=Fair, 3=Poor)
 else
     population[:, 4] .= 2.0

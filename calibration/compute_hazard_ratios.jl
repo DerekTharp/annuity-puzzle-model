@@ -20,6 +20,8 @@
 using ReadStatTables
 using Printf
 
+include(joinpath(@__DIR__, "..", "scripts", "config.jl"))
+
 # Extract underlying numeric value from ReadStatTables LabeledValue.
 # LabeledValue wraps an Int8 with a label string; we need the raw integer.
 numval(x) = Int(getfield(x, :value))
@@ -75,7 +77,7 @@ function main()
     for w in 4:15
         # Column symbols
         shlt_sym = Symbol("r$(w)shlt")
-        agey_sym = Symbol("r$(w)agey_m")
+        agey_sym = Symbol("r$(w)agey_b")
         iwstat_curr_sym = Symbol("r$(w)iwstat")
         iwstat_next_sym = Symbol("r$(w+1)iwstat")
 
@@ -254,8 +256,12 @@ function main()
         @printf("    %5s: [%.2f, 1.00, %.2f]\n", label, ratios[1], ratios[3])
     end
 
-    println("\n  Current model:     [0.40, 1.00, 3.00]")
-    @printf("  HRS empirical:     [%.2f, 1.00, %.2f]\n", overall_ratios[1], overall_ratios[3])
+    @printf("\n  Model HAZARD_MULT_AGE_BANDS (config):\n")
+    for (ab, (_, _, label)) in enumerate(age_bands)
+        @printf("    %5s: [%.2f, 1.00, %.2f]\n", label,
+            HAZARD_MULT_AGE_BANDS[ab, 1], HAZARD_MULT_AGE_BANDS[ab, 3])
+    end
+    @printf("  HRS empirical (overall): [%.2f, 1.00, %.2f]\n", overall_ratios[1], overall_ratios[3])
 
     # Also compute 5-point health mortality rates for reference
     println("\n" * "=" ^ 70)
@@ -274,7 +280,7 @@ function main()
 
     for w in 4:15
         shlt = collect(getproperty(tbl, Symbol("r$(w)shlt")))
-        agey = collect(getproperty(tbl, Symbol("r$(w)agey_m")))
+        agey = collect(getproperty(tbl, Symbol("r$(w)agey_b")))
         iw_curr = collect(getproperty(tbl, Symbol("r$(w)iwstat")))
         iw_next = collect(getproperty(tbl, Symbol("r$(w+1)iwstat")))
 

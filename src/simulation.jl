@@ -37,13 +37,15 @@ function simulate_lifecycle(
 )
     g = sol.grids
     T = p.T
-    # Use OBJECTIVE survival for forward simulation: actual death is governed
-    # by physical mortality, not the agent's belief. Subjective survival
-    # (with p.survival_pessimism applied) is already baked into the value
-    # function used to compute the policy, so the consumption choice is correct
-    # under the agent's beliefs; the forward draws here just need to reflect
-    # actual mortality.
+    # Two survival matrices. The actual mortality draw uses OBJECTIVE survival
+    # (physical death does not depend on the agent's belief). The consumption
+    # re-optimization below uses SUBJECTIVE survival (with p.survival_pessimism),
+    # because the continuation value it maximizes against was itself solved under
+    # subjective survival in solve_lifecycle_health; using objective survival in
+    # the re-optimization would reproduce a different policy than the agent
+    # actually follows whenever survival_pessimism < 1.
     surv_health = build_health_survival(base_surv, p; psi_override=1.0)
+    surv_health_subj = build_health_survival(base_surv, p)
     health_trans = build_all_health_transitions(p)
 
     wealth_path = zeros(T)
@@ -130,7 +132,7 @@ function simulate_lifecycle(
         V_next_interp = let A_fixed = A_nom_c, V_hw_2d = V_hw_interp_2d
             W_eval -> V_hw_2d(clamp(W_eval, g.W[1], g.W[end]), A_fixed)
         end
-        s_t_h = surv_health[t, H]
+        s_t_h = surv_health_subj[t, H]
         _, c = solve_consumption(W_after_c, 0.0, inc_after,
                                  V_next_interp, s_t_h, p, t, H)
         consumption_path[t] = c

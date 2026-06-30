@@ -8,7 +8,7 @@
 #   1. Pricing reform (MWR = 0.90, 0.95)
 #   2. Real annuity (inflation = 0%, at TIPS-backed and nominal-equivalent pricing)
 #   3. Combined supply-side (fair + real)
-#   4. SS trust fund exhaustion (23% benefit cut)
+#   4. SS trust fund depletion (22% benefit cut, 2026 Trustees)
 #   5. Survival pessimism correction (psi = 1.0)
 #   6. Pricing + belief correction (MWR = 0.90, psi = 1.0)
 #   7. Medicaid means test relaxation (c_floor doubled)
@@ -41,19 +41,8 @@ flush(stdout)
 # ===================================================================
 println("\nLoading HRS population sample...")
 flush(stdout)
-hrs_path = HRS_PATH
-hrs_raw = readdlm(hrs_path, ',', Any; skipstart=1)
-assert_hrs_schema(hrs_raw, hrs_path)
-n_pop = size(hrs_raw, 1)
-population = zeros(n_pop, 4)
-population[:, 1] = Float64.(hrs_raw[:, 1])  # wealth
-population[:, 2] .= 0.0                      # A grid = 0 (SS via ss_func)
-population[:, 3] = Float64.(hrs_raw[:, 3])  # age
-if size(hrs_raw, 2) >= 4
-    population[:, 4] = Float64.(hrs_raw[:, 4])  # observed health (1=Good, 2=Fair, 3=Poor)
-else
-    population[:, 4] .= 2.0  # default Fair if health not in CSV
-end
+population = load_hrs_population(HRS_PATH; zero_ss=true)
+n_pop = size(population, 1)
 
 # Filter to eligible
 mask = population[:, 1] .>= MIN_WEALTH
@@ -136,8 +125,8 @@ configs = [
         "Fair + real", 1.0, 0.0, SURVIVAL_PESSIMISM, C_FLOOR, 1.0,
         "Eliminate both loads and inflation (supply-side upper bound)"),
     CounterfactualConfig(
-        "SS cut 23%", MWR_LOADED, INFLATION, SURVIVAL_PESSIMISM, C_FLOOR, 0.77,
-        "Trust fund exhaustion ~2033 (current-law default)"),
+        "SS cut 22%", MWR_LOADED, INFLATION, SURVIVAL_PESSIMISM, C_FLOOR, 0.78,
+        "Trust fund depletion late 2032 (2026 Trustees, current-law default)"),
     CounterfactualConfig(
         "Correct pessimism (psi=1.0)", MWR_LOADED, INFLATION, 1.0, C_FLOOR, 1.0,
         "Eliminate survival pessimism (information/disclosure intervention)"),
@@ -289,8 +278,12 @@ for (label, mwr, infl, surv_pess) in cev_configs
         label, mwr, infl * 100, surv_pess)
     flush(stdout)
 
+    # Pass the same MIN_WEALTH-eligible sample (pop) used in PART 1 so the
+    # population-level CEV statistics (PART 4) are computed over the same
+    # population as the ownership counterfactuals. The grid-CEV cells use the
+    # fixed wealth_points and are unaffected by this choice.
     cev_out = compute_cev_grid(
-        base_surv, population;
+        base_surv, pop;
         bequest_specs=bequest_specs,
         wealth_points=wealth_eval,
         y_existing=y_existing_for_grid,
@@ -416,19 +409,20 @@ tables_dir = joinpath(@__DIR__, "..", "tables")
 mkpath(joinpath(tables_dir, "csv"))
 mkpath(joinpath(tables_dir, "tex"))
 
-# Ownership counterfactuals CSV
-# NOTE: column order is FIXED — scripts/export_manuscript_numbers.jl parses
-# this CSV positionally because some scenario labels contain unquoted commas
-# (e.g. "Real annuity, TIPS-backed"). Add new fields at the end and update
-# the parser when changing schema.
+# Ownership counterfactuals CSV. Scenario labels and descriptions can contain
+# commas (e.g. "Real annuity, TIPS-backed"), so fields are RFC-4180 quoted;
+# scripts/export_manuscript_numbers.jl reads them positionally with parse_csv_row.
 csv_path = joinpath(tables_dir, "csv", "welfare_counterfactuals.csv")
 open(csv_path, "w") do f
-    println(f, "scenario,mwr,inflation,psi,c_floor,ss_scale,ownership_pct,mean_alpha,description")
+    println(f, csv_row("scenario", "mwr", "inflation", "psi", "c_floor",
+                       "ss_scale", "ownership_pct", "mean_alpha", "description"))
     for (i, r) in enumerate(results)
         cfg = configs[i]
-        @printf(f, "%s,%.2f,%.3f,%.3f,%.0f,%.2f,%.2f,%.4f,%s\n",
-            r.label, cfg.mwr, cfg.inflation, cfg.psi, cfg.c_floor, cfg.ss_scale,
-            r.ownership * 100, r.mean_alpha, r.description)
+        println(f, csv_row(r.label,
+            @sprintf("%.2f", cfg.mwr), @sprintf("%.3f", cfg.inflation),
+            @sprintf("%.3f", cfg.psi), @sprintf("%.0f", cfg.c_floor),
+            @sprintf("%.2f", cfg.ss_scale), @sprintf("%.2f", r.ownership * 100),
+            @sprintf("%.4f", r.mean_alpha), r.description))
     end
 end
 println("\n  Ownership CSV saved: ", csv_path)
@@ -485,7 +479,9 @@ open(tex_path, "w") do f
         end
     end
     println(f, raw"\midrule")
-    @printf(f, "Observed (Lockwood 2012) & & & 3.6 & \\\\\n")
+    # Normal (non-raw) string: a raw string ending in \\ collapses the trailing
+    # backslashes (2 before the closing quote -> 1), breaking the LaTeX row end.
+    println(f, "Observed (HRS, this sample) & & & \\pctHRSLifetimeNum--\\pctHRSIannPooledNum & \\\\")
     println(f, raw"\bottomrule")
     println(f, raw"\end{tabular}")
     println(f, raw"\begin{tablenotes}")
@@ -497,8 +493,9 @@ open(tex_path, "w") do f
         replace(@sprintf("%d", round(Int, MIN_WEALTH)), r"(\d)(?=(\d{3})+$)" => s"\1{,}"),
         replace(@sprintf("%d", size(pop, 1)), r"(\d)(?=(\d{3})+$)" => s"\1{,}"))
     println(f, raw"Group pricing reflects TSP/employer plan MWR (James et al.\ 2006).")
-    println(f, raw"SS cut: 23\% reduction in Social Security benefits only; DB pension")
-    println(f, raw"income is unaffected (projected trust fund exhaustion).")
+    println(f, raw"SS cut: 22\% reduction in Social Security benefits only; DB pension")
+    println(f, raw"income is unaffected (projected OASI trust fund depletion in late 2032,")
+    println(f, raw"2026 Trustees Report).")
     println(f, raw"\end{tablenotes}")
     println(f, raw"\end{table}")
 end

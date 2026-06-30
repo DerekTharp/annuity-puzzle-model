@@ -48,12 +48,15 @@ using Distributed
 if nworkers() > 1
     @everywhere include(joinpath(@__DIR__, "..", "src", "AnnuityPuzzle.jl"))
     @everywhere using .AnnuityPuzzle
+    # config constants (CHI_LTC, PSI_PURCHASE_C_REF, ...) are referenced inside
+    # the parallel_solve closure, which is built per draw on the workers, so
+    # they must be defined on every worker, not just the driver process.
+    @everywhere include(joinpath(@__DIR__, "config.jl"))
 else
     include(joinpath(@__DIR__, "..", "src", "AnnuityPuzzle.jl"))
     using .AnnuityPuzzle
+    include(joinpath(@__DIR__, "config.jl"))
 end
-
-include(joinpath(@__DIR__, "config.jl"))
 
 println("=" ^ 70)
 println("  CONDITIONAL MONTE CARLO: CALIBRATION ROBUSTNESS")
@@ -72,13 +75,13 @@ const N_DRAWS     = 1000
 # Load HRS population
 hrs_path = HRS_PATH
 hrs_raw = readdlm(hrs_path, ',', Any; skipstart=1)
-assert_hrs_schema(hrs_raw, hrs_path)
+has_health = assert_hrs_schema(hrs_raw, hrs_path)
 n_pop = size(hrs_raw, 1)
 population = zeros(n_pop, 4)
 population[:, 1] = Float64.(hrs_raw[:, 1])
 population[:, 2] .= 0.0  # SS via ss_func, not A grid
 population[:, 3] = Float64.(hrs_raw[:, 3])
-if size(hrs_raw, 2) >= 4
+if has_health
     population[:, 4] = Float64.(hrs_raw[:, 4])  # observed health (1=Good, 2=Fair, 3=Poor)
 else
     population[:, 4] .= 2.0
@@ -183,7 +186,7 @@ results = parallel_solve(draws) do d
         medical_enabled=true, health_mortality_corr=true,
         survival_pessimism=d.pessimism,
         consumption_decline=d.delta_c,
-        health_utility=[1.0, 0.90, 0.75],
+        health_utility=Float64.(HEALTH_UTILITY),
         chi_ltc=CHI_LTC,
         lambda_w=1.0,
         psi_purchase=0.0,
@@ -279,7 +282,8 @@ open(tex_path, "w") do f
     println(f, raw"calibration-uncertain rational/preference parameters: $\mu_P \sim U(2.5, 5.0)$,")
     println(f, raw"$\pi \sim U(0.015, 0.025)$, MWR $\sim U(0.83, 0.91)$, $\psi \sim U(0.92, 1.00)$,")
     println(f, raw"$\delta_c \sim U(0.01, 0.03)$. Behavioral channels (SDU $\lambda_w$,")
-    println(f, raw"PED $\psi_{\text{purchase}}$) held at production values.")
+    println(f, raw"PED $\psi_{\text{purchase}}$) are held off ($\lambda_w = 1$, $\psi_{\text{purchase}} = 0$),")
+    println(f, raw"so the band reflects only rational and preference calibration uncertainty.")
     println(f, raw"\end{tablenotes}")
     println(f, raw"\end{table}")
 end

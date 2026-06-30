@@ -8,6 +8,11 @@
 # Output: data/processed/lockwood_hrs_sample.csv
 # Columns: wealth, perm_income, age, health, own_life_ann, weight
 #
+# The model treats the pooled person-wave sample as an unweighted empirical
+# population (downstream consumers read only wealth/age/health). The
+# r{w}wtresp column is written as a provided-but-unused diagnostic, not used
+# for weighted inference.
+#
 # Health mapping: RAND HRS rXshlt (1=Excellent...5=Poor)
 #   {1,2} -> 1 (Good), {3} -> 2 (Fair), {4,5} -> 3 (Poor)
 #
@@ -99,14 +104,15 @@ function main()
             println("    Warning: missing age/mstat/lbrf column for wave $w, skipping")
             continue
         end
+        # The alive-respondent restriction is sample-defining; a missing
+        # iwstat column must fail loudly, not silently admit deceased/proxy rows.
+        @assert iwstat_col !== nothing "missing r$(w)iwstat column for wave $w"
 
         n_wave = 0
         for i in 1:N
             # Must be alive respondent
-            if iwstat_col !== nothing
-                ismissing(iwstat_col[i]) && continue
-                numval(iwstat_col[i]) != 1 && (n_skipped_status += 1; continue)
-            end
+            ismissing(iwstat_col[i]) && continue
+            numval(iwstat_col[i]) != 1 && (n_skipped_status += 1; continue)
 
             # Must have age 65-69
             ismissing(age_col[i]) && continue
@@ -154,7 +160,9 @@ function main()
             health_3 = shlt_raw <= 2 ? 1.0 : (shlt_raw == 3 ? 2.0 : 3.0)
 
             # Wealth: total household assets minus primary residence,
-            # deflated to 2014 dollars (interview-year CPI)
+            # deflated to 2014 dollars (interview-year CPI). No MIN_WEALTH
+            # floor is applied here; the floor is enforced downstream at solve
+            # time, so this CSV retains sub-floor observations.
             wealth = 0.0
             if hatota_col !== nothing && !ismissing(hatota_col[i])
                 wealth = numval_float(hatota_col[i])

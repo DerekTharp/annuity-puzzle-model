@@ -1,4 +1,4 @@
-# Figure generation for "Quantifying the Annuity Puzzle"
+# Figure generation for "Private Annuities and Social Security Cuts"
 #
 # Produces 5 publication-quality figures:
 #   1. Sequential decomposition bar chart
@@ -213,9 +213,10 @@ function figure_2_gamma_sensitivity()
     # Observed range band (3-6%)
     hspan!([3.0, 6.0], color = CB_GREEN, alpha = 0.18, label = "Observed range (3-6%)")
 
-    # Mark baseline gamma = 2.5
-    vline!([2.5], color = CB_RED, linestyle = :dash, linewidth = 1.0, label = "")
-    annotate!(2.55, 38, Plots.text("γ = 2.5\n(baseline)", 8, :left, CB_RED))
+    # Mark baseline gamma
+    vline!([GAMMA], color = CB_RED, linestyle = :dash, linewidth = 1.0, label = "")
+    annotate!(GAMMA + 0.05, 38,
+              Plots.text(@sprintf("γ = %.1f\n(baseline)", GAMMA), 8, :left, CB_RED))
 
     savefig_both(p, "fig2_gamma_sensitivity")
     return p
@@ -233,22 +234,18 @@ function figure_3_hazard_sensitivity()
     labels = String[]
     ownership = Float64[]
 
-    # robustness_full.csv embeds commas in the specification field (e.g.
-    # "[0.45, 1.0, 3.5] (R-S functional, age 65-75)"), so a naive comma split
-    # fractures the row. Parse by prefix-match on the category and take the
-    # ownership as the final comma-delimited token, mirroring
-    # robustness_ownership() in export_manuscript_numbers.jl.
+    # robustness_full.csv is RFC-4180 quoted; the specification field embeds
+    # commas (e.g. "[0.45, 1.0, 3.5] (R-S functional, age 65-75)"). parse_csv_row
+    # splits each row into (category, spec, rate).
     if isfile(csv_path)
-        prefix = "Hazard mult,"
         for (i, line) in enumerate(eachline(csv_path))
             i == 1 && continue
-            startswith(line, prefix) || continue
-            body = chopprefix(line, prefix)
-            j = findlast(',', body)
-            j === nothing && continue
-            own = tryparse(Float64, rstrip(strip(body[nextind(body, j):end]), '%'))
+            isempty(strip(line)) && continue
+            f = parse_csv_row(line)
+            length(f) == 3 && f[1] == "Hazard mult" || continue
+            own = tryparse(Float64, rstrip(strip(f[3]), '%'))
             own === nothing && continue
-            spec = strip(body[1:prevind(body, j)])
+            spec = strip(f[2])
             # Compact two-line tick label: the bracket vector (or name) on line
             # one, the first clause of the parenthetical descriptor on line two,
             # so five labels fit without overlapping.
@@ -366,14 +363,20 @@ function figure_4_policy_functions()
     alpha_A, _ = solve_annuitization_health(sol_A, loaded_pr_nom; initial_health = 1)
     @printf("    Solved in %.1fs\n", time() - t0)
 
-    # --- Panel B: Full model (DFJ bequests + R-S + loads + inflation) ---
-    println("  Panel B: solving (full model)...")
+    # --- Panel B: Full nine-channel structural model ---
+    # common_kw already carries survival_pessimism; add age-varying needs,
+    # state-dependent utility, and public-care aversion so this panel matches
+    # the nine-channel structural baseline reported throughout the paper.
+    println("  Panel B: solving (full nine-channel structural model)...")
     t0 = time()
     p_B = ModelParams(; common_kw...,
         theta = THETA_DFJ, kappa = KAPPA_DFJ,
         mwr = MWR_LOADED, fixed_cost = FIXED_COST, min_purchase = MIN_PURCHASE,
         inflation_rate = INFLATION,
         medical_enabled = true, health_mortality_corr = true,
+        consumption_decline = CONSUMPTION_DECLINE,
+        health_utility = HEALTH_UTILITY,
+        chi_ltc = CHI_LTC,
         grid_kw...,
     )
     sol_B = solve_lifecycle_health(p_B, grids, base_surv, ss_mean)
@@ -523,7 +526,7 @@ end
 function main()
     println("=" ^ 60)
     println("  FIGURE GENERATION")
-    println("  Quantifying the Annuity Puzzle")
+    println("  Private Annuities and Social Security Cuts")
     println("=" ^ 60)
     println()
 

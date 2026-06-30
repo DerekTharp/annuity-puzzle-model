@@ -1,0 +1,33 @@
+cff-version: 1.2.0
+message: "If you use this replication package, please cite both the software and the associated paper."
+title: "Private Annuities and Social Security Cuts: An Order-Independent Decomposition of the Annuity Puzzle (replication package)"
+type: software
+authors:
+  - given-names: Derek
+    family-names: Tharp
+    email: derek.tharp@maine.edu
+    affiliation: University of Southern Maine
+repository-code: "https://github.com/DerekTharp/annuity-puzzle-model"
+url: "https://github.com/DerekTharp/annuity-puzzle-model"
+license: MIT
+abstract: >-
+  Julia replication package for a calibrated lifecycle model of voluntary annuity
+  demand among single US retirees aged 65-69. The model nests nine rational and
+  preference channels and attributes the annuity-demand gap with exact Shapley
+  values over all 512 channel subsets, yielding an order-independent ranking of
+  demand channels that is stable across risk aversion and wealth.
+keywords:
+  - annuity puzzle
+  - lifecycle model
+  - Shapley decomposition
+  - Social Security
+  - public economics
+preferred-citation:
+  type: article
+  title: "Private Annuities and Social Security Cuts: An Order-Independent Decomposition of the Annuity Puzzle"
+  authors:
+    - given-names: Derek
+      family-names: Tharp
+      affiliation: University of Southern Maine
+  year: 2026
+  status: in-preparation

@@ -165,7 +165,9 @@ V = Hinv * meat * Hinv
 se = sqrt.(diag(V))
 z = beta ./ se
 
-# Average marginal effects for magnitude readability.
+# Marginal effect evaluated at the average derivative scale mean(w*p*(1-p)),
+# applied uniformly to every coefficient (continuous-covariate convention; not
+# the per-regressor discrete change for the dummy covariates).
 ame_scale = mean(w .* pr .* (1.0 .- pr)) / mean(w)
 ame = beta .* ame_scale
 
@@ -174,7 +176,7 @@ pred_sign = ["", "+", "+", "+", "", "", "-", "+", "-", "", "-", "", ""]
 
 println("\n  Weighted logit (cluster-robust by person):")
 @printf("  %-26s %9s %8s %7s %9s %6s %6s\n",
-    "covariate", "coef", "se", "z", "AME(pp)", "pred", "match")
+    "covariate", "coef", "se", "z", "ME(pp)", "pred", "match")
 println("  " * "-" ^ 78)
 n_match = 0; n_pred = 0
 for j in 1:k
@@ -204,7 +206,7 @@ open(cells_path, "w") do f
 end
 logit_path = joinpath(out_dir, "empirical_gradients_logit.csv")
 open(logit_path, "w") do f
-    println(f, "covariate,coef,se_cluster,z,ame_pp,predicted_sign,sign_match")
+    println(f, "covariate,coef,se_cluster,z,me_pp_at_mean,predicted_sign,sign_match")
     for j in 1:k
         match = pred_sign[j] == "" ? "" :
             ((pred_sign[j] == "+" && beta[j] > 0) ||
@@ -258,7 +260,7 @@ open(tex_path, "w") do f
     println(f, raw"\begin{tabular}{lrrrrcc}")
     rt = "\\\\"   # LaTeX row terminator (two backslashes)
     println(f, raw"\toprule")
-    println(f, raw"Covariate & Coef. & Cluster SE & $z$ & AME (pp) & Pred. & Match " * rt)
+    println(f, raw"Covariate & Coef. & Cluster SE & $z$ & ME (pp) & Pred. & Match " * rt)
     println(f, raw"\midrule")
     println(f, raw"\multicolumn{7}{l}{\textit{Panel A: Channel-implied gradients}} " * rt)
     for j in chan
@@ -273,7 +275,7 @@ open(tex_path, "w") do f
     println(f, raw"\end{tabular}")
     println(f, raw"\begin{tablenotes}")
     println(f, raw"\small")
-    @printf(f, "\\item Weighted logit with person-clustered (hhidpn) sandwich standard errors over %d complete-case person-wave observations (%d distinct persons), single nonworking retirees aged 65--69, HRS waves 5--9. Dependent variable: the lifetime annuity contract indicator (q286 series). AME is the average marginal effect in percentage points. ``Pred.'' is the sign the structural channel ranking implies for each channel proxy; the controls in Panel B carry no channel prediction. Of the \\empSignTotal{} channel-implied signs, \\empSignMatch{} match (Panel A ``Match'' column). The two mismatches---subjective survival optimism and bequest intention---are the expectation-based survey proxies whose identification the structural calibration is designed to bypass; bequest intention is the only channel coefficient individually distinguishable from zero. Wealth bins are relative to the omitted \$<\$\\\$30k category.\n",
+    @printf(f, "\\item Weighted logit with person-clustered (hhidpn) sandwich standard errors over %d complete-case person-wave observations (%d distinct persons), single nonworking retirees aged 65--69, HRS waves 5--9. Dependent variable: the any-annuity income proxy (positive annuity income, RAND \$r{w}iann\$), the broader of the two HRS ownership measures; the lifetime-contract (q286) indicator can be tabulated by wealth band but has too few owners (83 pooled) for this multivariate person-clustered logit. ME is the marginal effect in percentage points, the coefficient scaled by the average derivative \$\\overline{wp(1-p)}\$ and applied uniformly to every covariate. ``Pred.'' is the sign the structural channel ranking implies for each channel proxy; the controls in Panel B carry no channel prediction. Of the \\empSignTotal{} channel-implied signs, \\empSignMatch{} match (Panel A ``Match'' column). The two mismatches---subjective survival optimism and bequest intention---are the expectation-based survey proxies whose identification the structural calibration is designed to bypass; bequest intention is the only channel coefficient individually distinguishable from zero. Wealth bins are relative to the omitted \$<\$\\\$30k category.\n",
         length(y), length(unique(clus)))
     println(f, raw"\end{tablenotes}")
     println(f, raw"\end{threeparttable}")

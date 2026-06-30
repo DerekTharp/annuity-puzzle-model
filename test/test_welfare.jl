@@ -277,6 +277,7 @@ const TEST_NQUAD = 3
 
         comp = simulate_welfare_comparison(
             sol, 200_000.0, 1, base_surv, p_test;
+            ss_func=ss_zero,    # sol solved under ss_zero; simulation must match
             payout_rate=loaded_pr, n_sim=500, rng_seed=42,
         )
 

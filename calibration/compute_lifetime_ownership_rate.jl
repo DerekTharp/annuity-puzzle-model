@@ -4,9 +4,8 @@
 # MIN_WEALTH floor used by the model), check whether any reported annuity
 # contract was coded as "continues for life" (response 1).
 #
-# Cross-validate against:
-#   - Lockwood (2012) reported 3.6% lifetime annuity rate
-#   - Conventional iann > 0 rate (3.4% in our sample)
+# Cross-validate the q286 lifetime rate against Lockwood (2012)'s reported 3.6%
+# lifetime-annuity rate for single retirees 65-69.
 #
 # Output: per-wave and pooled "lifetime annuity ownership" rates,
 #         saved to data/processed/hrs_lifetime_ownership.csv
@@ -29,16 +28,13 @@ WAVES = [
     (9, "h08f3b", [Symbol("lq286_1"), Symbol("lq286_2")]),
 ]
 
-# Single marital status codes
-const SINGLE_CODES = Set([3, 4, 5, 7, 8])
-
-# Minimum-wealth filter — matched to the model's analysis sample. Sourced
-# from scripts/config.jl as the single source of truth so the HRS empirical
-# comparator and the model analysis sample cannot drift apart silently.
+# Sample filters (single/retired codes), CPI deflators, and numeric helpers are
+# sourced from hrs_common.jl — the SAME definitions build_hrs_sample.jl uses to
+# build the model analysis sample — so the q286 lifetime comparator and the
+# model solve set cannot drift apart. MIN_WEALTH (the real-dollar wealth floor)
+# comes from scripts/config.jl.
+include(joinpath(@__DIR__, "hrs_common.jl"))
 include(joinpath(@__DIR__, "..", "scripts", "config.jl"))
-
-numval(x::Real) = Float64(x)
-numval(x) = Float64(x.value)
 
 println("=" ^ 70)
 println("  HRS LIFETIME ANNUITY OWNERSHIP — FAT-FILE EXTRACT")
@@ -70,20 +66,16 @@ for (w, ff, life_vars) in WAVES
     fat_tbl = readstat(fat_path)
     fat_hhidpn = collect(getproperty(fat_tbl, :hhidpn))
 
-    # RAND wave-specific filter columns
-    age_sym    = Symbol("r$(w)agey_b")
-    mstat_sym   = Symbol("r$(w)mstat")
-    hatotb_sym  = Symbol("h$(w)atotb")
-    hahous_sym  = Symbol("h$(w)ahous")
-    iwstat_sym = Symbol("r$(w)iwstat")
-    iann_sym   = Symbol("r$(w)iann")
-
-    age_col    = collect(getproperty(rand_tbl, age_sym))
-    mstat_col   = collect(getproperty(rand_tbl, mstat_sym))
-    hatotb_col  = collect(getproperty(rand_tbl, hatotb_sym))
-    hahous_col  = collect(getproperty(rand_tbl, hahous_sym))
-    iwstat_col = collect(getproperty(rand_tbl, iwstat_sym))
-    iann_col   = collect(getproperty(rand_tbl, iann_sym))
+    # RAND wave-specific filter columns (same set build_hrs_sample.jl uses)
+    age_col    = collect(getproperty(rand_tbl, Symbol("r$(w)agey_b")))
+    mstat_col  = collect(getproperty(rand_tbl, Symbol("r$(w)mstat")))
+    lbrf_col   = collect(getproperty(rand_tbl, Symbol("r$(w)lbrf")))
+    wtresp_col = collect(getproperty(rand_tbl, Symbol("r$(w)wtresp")))
+    shlt_col   = collect(getproperty(rand_tbl, Symbol("r$(w)shlt")))
+    hatotb_col = collect(getproperty(rand_tbl, Symbol("h$(w)atotb")))
+    hahous_col = collect(getproperty(rand_tbl, Symbol("h$(w)ahous")))
+    iwstat_col = collect(getproperty(rand_tbl, Symbol("r$(w)iwstat")))
+    iann_col   = collect(getproperty(rand_tbl, Symbol("r$(w)iann")))
 
     # Get fat-file lifetime annuity columns (some may not exist)
     life_cols = []
@@ -105,35 +97,44 @@ for (w, ff, life_vars) in WAVES
         ri = get(rand_idx, h, nothing)
         ri === nothing && continue
 
-        # Filter on age, marital, alive
-        ismissing(age_col[ri]) && continue
-        age = numval(age_col[ri])
-        (age < 65 || age > 69) && continue
-
-        if iwstat_col[ri] !== missing && numval(iwstat_col[ri]) != 1
+        # Apply the model analysis-sample filters (build_hrs_sample.jl): alive,
+        # age 65-69, single, retired / out of the labor force, valid respondent
+        # weight, health present, and CPI-deflated non-housing wealth >= MIN_WEALTH.
+        # Alive respondents only. Match build_hrs_sample.jl exactly: a missing
+        # interview status is excluded (we cannot confirm the respondent is alive
+        # and in-sample), as is any present status other than 1 (=resp alive).
+        if iwstat_col[ri] === missing || numval_float(iwstat_col[ri]) != 1
             continue
         end
 
-        ismissing(mstat_col[ri]) && continue
-        mstat = numval(mstat_col[ri])
-        mstat in SINGLE_CODES || continue
+        ismissing(age_col[ri]) && continue
+        age = numval_float(age_col[ri])
+        (age < 65 || age > 69) && continue
 
-        # Wealth filter — match the model analysis sample. Compute non-housing
-        # wealth as total household wealth minus primary residence value, floored
-        # at zero. Households with non-housing wealth below MIN_WEALTH are excluded
-        # from both numerator and denominator, mirroring the model's wealth-restricted
-        # solve set.
+        ismissing(mstat_col[ri]) && continue
+        numval_float(mstat_col[ri]) in SINGLE_MSTAT || continue
+
+        ismissing(lbrf_col[ri]) && continue
+        numval_float(lbrf_col[ri]) in RETIRED_LBRF || continue
+
+        (ismissing(wtresp_col[ri]) || numval_float(wtresp_col[ri]) <= 0.0) && continue
+
+        ismissing(shlt_col[ri]) && continue
+
+        # Non-housing wealth deflated to 2014 dollars (deflator_wealth), floored
+        # at zero; households below MIN_WEALTH are excluded from numerator and
+        # denominator, mirroring the model's wealth-restricted solve set.
         ismissing(hatotb_col[ri]) && continue
-        wealth_total = numval(hatotb_col[ri])
-        wealth_house = ismissing(hahous_col[ri]) ? 0.0 : numval(hahous_col[ri])
-        wealth_non_housing = max(wealth_total - wealth_house, 0.0)
+        wealth_total = numval_float(hatotb_col[ri])
+        wealth_house = ismissing(hahous_col[ri]) ? 0.0 : numval_float(hahous_col[ri])
+        wealth_non_housing = max(wealth_total - wealth_house, 0.0) * deflator_wealth(w)
         wealth_non_housing >= MIN_WEALTH || continue
 
         n_eligible += 1
         push!(all_eligible_persons, h)
 
         # iann-based ownership (the literature convention)
-        if iann_col[ri] !== missing && numval(iann_col[ri]) > 0
+        if iann_col[ri] !== missing && numval_float(iann_col[ri]) > 0
             n_iann_pos += 1
         end
 
@@ -143,7 +144,7 @@ for (w, ff, life_vars) in WAVES
         for col in life_cols
             v = col[fi]
             ismissing(v) && continue
-            val = numval(v)
+            val = numval_float(v)
             # In HRS coding: 1=Yes (lifetime), 5=No (period-certain),
             # 8=Don't know, 9=Refused. A value of 0 or missing indicates
             # this contract slot is empty.
@@ -187,7 +188,7 @@ total_life = sum(r.n_lifetime for r in results_per_wave)
 @printf("  Lifetime annuity:         %d  (%.2f%%)\n", total_life, 100*total_life/max(total_elig,1))
 println()
 @printf("  Lockwood (2012) reported lifetime rate: 3.6%%\n")
-@printf("  Our iann>0 conventional rate:           3.4%%\n")
+@printf("  Our q286 lifetime rate (this sample):   %.2f%%\n", 100*total_life/max(total_elig,1))
 println()
 
 # Person-level (panel) cumulative incidence

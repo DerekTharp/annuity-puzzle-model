@@ -1,7 +1,7 @@
 Highlights
 
-- Exact Shapley over all 512 channel orderings yields an order-independent ranking
-- Pricing loads dominate, with survival pessimism and health-mortality risk second
-- Bequests, the most-cited explanation, rank mid-pack rather than first
-- The channel ranking is stable across risk aversion even as the level is knife-edged
-- Predicted ownership concentrates in the top wealth quartile, reframing the puzzle
+- A 22% Social Security cut lifts private annuity demand mainly among the wealthy
+- Predicted annuity ownership rises with wealth and concentrates in the top quartile
+- Exact Shapley over all 512 channel subsets yields an order-independent ranking
+- Pricing loads dominate; bequests, the most-cited explanation, rank mid-pack
+- The channel ranking is stable across risk aversion even as the level is fragile

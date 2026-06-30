@@ -152,7 +152,9 @@ println("\n  Production constants (claimer-conditional SS, unconditional DB):")
 out = joinpath(@__DIR__, "..", "data", "processed", "ss_income_profile.csv")
 open(out, "w") do f
     println(f, "bin,wealth_lo,wealth_hi,n,n_claimers,obs_ss_claimers,obs_ss_incl_zeros,obs_db_ipen,obs_ss_plus_db")
-    los = [0.0, WEALTH_BREAKS...]; his = [WEALTH_BREAKS..., -1.0]
+    # Bin 1 is left-truncated at MIN_WEALTH: line 97 drops everyone below the
+    # model's eligibility floor, so its reported lower bound is MIN_WEALTH, not 0.
+    los = [MIN_WEALTH, WEALTH_BREAKS...]; his = [WEALTH_BREAKS..., -1.0]
     for b in 1:4
         @printf(f, "%d,%.0f,%.0f,%d,%d,%.2f,%.2f,%.2f,%.2f\n",
                 b, los[b], his[b], n_bin[b], n_claimers[b],

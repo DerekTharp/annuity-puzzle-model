@@ -34,18 +34,8 @@ flush(stdout)
 # ===================================================================
 println("\nLoading HRS population sample...")
 flush(stdout)
-hrs_raw = readdlm(HRS_PATH, ',', Any; skipstart=1)
-assert_hrs_schema(hrs_raw, HRS_PATH)
-n_pop = size(hrs_raw, 1)
-population = zeros(n_pop, 4)
-population[:, 1] = Float64.(hrs_raw[:, 1])  # wealth
-population[:, 2] .= 0.0                      # SS via ss_func, not A grid
-population[:, 3] = Float64.(hrs_raw[:, 3])  # age
-if size(hrs_raw, 2) >= 4
-    population[:, 4] = Float64.(hrs_raw[:, 4])  # health (1=Good, 2=Fair, 3=Poor)
-else
-    population[:, 4] .= 2.0
-end
+population = load_hrs_population(HRS_PATH; zero_ss=true)  # SS via ss_func, not A grid
+n_pop = size(population, 1)
 @printf("  Loaded %d individuals\n", n_pop)
 flush(stdout)
 
@@ -220,7 +210,6 @@ for r in cut_results
         label, r.ownership * 100, r.mean_alpha, delta_str)
 end
 println("  " * "-" ^ 55)
-@printf("  %-15s  %10.1f%%\n", "Observed", 3.6)
 flush(stdout)
 
 # ===================================================================
@@ -267,11 +256,11 @@ open(tex_path, "w") do f
         end
         delta_str = r.cut_pct == 0.0 ? "---" : @sprintf("%+.1f", delta * 100)
         @printf(f, "%s & %.1f & %.3f & %s \\\\\n",
-            label, r.ownership * 100, r.mean_alpha, delta_str)
+            label, round(r.ownership * 100; digits=2), r.mean_alpha, delta_str)
     end
 
     println(f, raw"\midrule")
-    println(f, "Observed (Lockwood 2012) & 3.6 & & \\\\")
+    println(f, raw"Observed (HRS, this sample) & \pctHRSLifetimeNum--\pctHRSIannPooledNum & & \\")
     println(f, raw"\bottomrule")
     println(f, raw"\end{tabular}")
     println(f, raw"\begin{tablenotes}")

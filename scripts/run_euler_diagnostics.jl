@@ -54,6 +54,9 @@ function run_euler_check(label, base_surv, ss_func; kw...)
         mwr=MWR_LOADED, fixed_cost=FIXED_COST, inflation_rate=INFLATION,
         medical_enabled=true, health_mortality_corr=true,
         survival_pessimism=SURVIVAL_PESSIMISM,
+        consumption_decline=CONSUMPTION_DECLINE,
+        health_utility=Float64.(HEALTH_UTILITY),
+        chi_ltc=CHI_LTC,
         grid_kw...)
 
     t0 = time()

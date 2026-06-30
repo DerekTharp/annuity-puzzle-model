@@ -34,13 +34,13 @@ println("=" ^ 70)
 println("\nLoading HRS population sample...")
 hrs_path = HRS_PATH
 hrs_raw = readdlm(hrs_path, ',', Any; skipstart=1)
-assert_hrs_schema(hrs_raw, hrs_path)
+has_health = assert_hrs_schema(hrs_raw, hrs_path)
 n_pop = size(hrs_raw, 1)
 population = zeros(n_pop, 4)
 population[:, 1] = Float64.(hrs_raw[:, 1])
 population[:, 2] .= 0.0                      # A grid = 0 (SS via ss_func, matches production convention)
 population[:, 3] = Float64.(hrs_raw[:, 3])
-if size(hrs_raw, 2) >= 4
+if has_health
     population[:, 4] = Float64.(hrs_raw[:, 4])  # observed health (1=Good, 2=Fair, 3=Poor)
 else
     population[:, 4] .= 2.0
@@ -66,14 +66,15 @@ bequest_specs = [
     (name="Strong bequest",  theta=200.0, kappa=KAPPA_DFJ),
 ]
 
-# SS is now wired through the welfare model's ss_func ($18,500 representative
-# level matching the median quartile). y_existing is reserved for non-SS
-# pre-existing annuity income, which is essentially zero in the HRS sample.
-# Setting y_existing = 0 avoids double-counting SS once it's already in the
-# Bellman income flow.
+# SS is wired through the welfare model's ss_func at the representative level
+# computed in compute_cev_grid (midpoint of the two middle quartile floors).
+# y_existing is reserved for non-SS pre-existing annuity income, which is
+# essentially zero in the HRS sample. Setting y_existing = 0 avoids
+# double-counting SS once it's already in the Bellman income flow.
+ss_rep_doc = (SS_QUARTILE_LEVELS[2] + SS_QUARTILE_LEVELS[3]) / 2
 y_existing_for_grid = 0.0
-@printf("  y_existing = \$%s (SS is wired via ss_func at \$18,500/year)\n",
-    string(round(Int, y_existing_for_grid)))
+@printf("  y_existing = \$%s (SS is wired via ss_func at \$%s/year)\n",
+    string(round(Int, y_existing_for_grid)), string(round(Int, ss_rep_doc)))
 
 wealth_eval = [10_000.0, 25_000.0, 50_000.0, 100_000.0,
                200_000.0, 500_000.0, 1_000_000.0]
@@ -131,8 +132,8 @@ for iw in 1:length(wealth_eval)
     end
 end
 println("  " * "-" ^ 78)
-@printf("  Note: y_existing = \$%s (SS via ss_func at \$18,500/year). alpha* under DFJ bequests.\n",
-    string(round(Int, y_existing_for_grid)))
+@printf("  Note: y_existing = \$%s (SS via ss_func at \$%s/year). alpha* under DFJ bequests.\n",
+    string(round(Int, y_existing_for_grid)), string(round(Int, ss_rep_doc)))
 
 # ===================================================================
 # Section 2: Population CEV Statistics
@@ -361,6 +362,7 @@ sim_wealth_levels = [200_000.0, 500_000.0, 1_000_000.0]
 for W_0 in sim_wealth_levels
     comp = simulate_welfare_comparison(
         sol_sim, W_0, 1, base_surv, p_sim;
+        ss_func=ss_zero,    # sol_sim was solved under ss_zero; the simulation must match
         payout_rate=loaded_pr, y_existing=y_existing_for_grid,
         n_sim=5_000, rng_seed=42,
     )

@@ -32,7 +32,7 @@ const MAPPINGS = [
     ("FLN",             [1.0, 0.90, 0.75]),
     ("ReichlingSmetters",[1.0, 0.95, 0.85]),
 ]
-const CONSUMPTION_DECLINE_ACTIVE = 0.02
+const CONSUMPTION_DECLINE_ACTIVE = CONSUMPTION_DECLINE
 
 const OUT_CSV = joinpath(@__DIR__, "..", "tables", "csv", "state_utility_sensitivity.csv")
 
@@ -43,10 +43,9 @@ function csv_baseline_mwr()
     path = joinpath(@__DIR__, "..", "tables", "csv", "welfare_counterfactuals.csv")
     for (i, line) in enumerate(eachline(path))
         i == 1 && continue
-        if startswith(line, "Baseline,")
-            toks = split(chopprefix(line, "Baseline,"), ',')
-            return parse(Float64, toks[1])
-        end
+        f = parse_csv_row(line)
+        length(f) >= 2 && f[1] == "Baseline" || continue
+        return parse(Float64, f[2])  # mwr column
     end
     error("welfare_counterfactuals.csv: no Baseline row")
 end
@@ -59,13 +58,13 @@ const MWR_FOR_RUN = csv_baseline_mwr()
 
 println("Loading HRS population sample...")
 hrs_raw = readdlm(HRS_PATH, ',', Any; skipstart=1)
-assert_hrs_schema(hrs_raw, HRS_PATH)
+has_health = assert_hrs_schema(hrs_raw, HRS_PATH)
 n_pop = size(hrs_raw, 1)
 population = zeros(n_pop, 4)
 population[:, 1] = Float64.(hrs_raw[:, 1])
 population[:, 2] .= 0.0
 population[:, 3] = Float64.(hrs_raw[:, 3])
-if size(hrs_raw, 2) >= 4
+if has_health
     population[:, 4] = Float64.(hrs_raw[:, 4])
 else
     population[:, 4] .= 2.0
@@ -127,11 +126,12 @@ flush(stdout)
 t0_dispatch = time()
 
 results_raw = parallel_solve(MAPPINGS) do (label, phi)
-    # Structural rational-stack solve: SS, bequests, medical+R-S, pessimism,
-    # age-varying needs, state-dependent utility under each phi mapping, loads,
-    # inflation, and public-care aversion (chi_LTC). The behavioral channels
-    # (LAMBDA_W, PSI_PURCHASE) are held at neutral values so this sensitivity
-    # isolates phi without the additional SDU/PED interactions.
+    # Eight-channel rational+preference solve: SS, bequests, medical+R-S,
+    # pessimism, age-varying needs, state-dependent utility under each phi
+    # mapping, loads, and inflation. Public-care aversion (chi_LTC) is held off
+    # (default chi_ltc=1.0), and the behavioral channels (LAMBDA_W,
+    # PSI_PURCHASE) are held at neutral values, so this sensitivity isolates
+    # phi without the additional chi_LTC/SDU/PED interactions.
     p_model = ModelParams(; _su_common_kw...,
         theta=THETA_DFJ, kappa=KAPPA_DFJ,
         mwr=MWR_FOR_RUN, fixed_cost=FIXED_COST,

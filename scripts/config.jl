@@ -35,19 +35,27 @@ const A_GRID_POW = 3.0
 const N_QUAD     = 9
 const THETA_DFJ  = 56.96
 const KAPPA_DFJ  = 272_628.0
-const SURVIVAL_PESSIMISM = 0.96   # Heimer-Myrseth-Schoenle (2019); Payne et al.
-                                   # (2013). 0.96/year gives ~20 pp gap at 10-yr
-                                   # horizon, between O'Dea-Sturrock (2023) and
-                                   # the Hurd-McGarry (2002) anchor.
+const SURVIVAL_PESSIMISM = 0.96   # Strong-pessimism END of the reported range
+                                   # [0.96, 1.0]. The focal value is the direct
+                                   # O'Dea-Sturrock (2023) 65-69 ten-year ratio,
+                                   # (0.71/0.86)^(1/10) ~ 0.981; 1.0 = objective
+                                   # beliefs. Heimer et al. (2019) document a
+                                   # survival-belief crossover near 65-70 (the old
+                                   # OVERestimate survival), motivating the psi->1
+                                   # upper end for this cohort. The paper relies on
+                                   # the channel RANKING (pessimism second-tier),
+                                   # which holds across the range; 0.96 is the
+                                   # computational anchor.
 const MIN_WEALTH = 5_000.0
 
-# Hazard multipliers — production now uses age-varying HRS estimates with
-# constant fallback. Constant baseline kept for back-compat with scripts that
-# don't accept matrices yet.
-# Constant fallback updated to [0.50, 1.0, 3.75] — moderate position between
+# Hazard multipliers. The headline/production specification is the constant
+# vector HAZARD_MULT below (used by run_subset_enumeration.jl and the Shapley
+# decomposition). HAZARD_MULT_AGE_BANDS / HAZARD_MULT_AGE_MIDPOINTS are an
+# age-varying HRS extension exercised only in run_robustness.jl.
+# Constant value [0.50, 1.0, 3.75] — moderate position between
 # DeSalvo et al. (2006) meta and Reichling-Smetters (2015) ~5x without
 # triple-counting against state-dependent utility and public-care aversion.
-const HAZARD_MULT = [0.50, 1.0, 3.75]                   # constant fallback
+const HAZARD_MULT = [0.50, 1.0, 3.75]                   # production / headline
 const HAZARD_MULT_AGE_BANDS = [0.49 1.00 3.29;          # ages 65-74
                                0.60 1.00 2.77;          # ages 75-84
                                0.74 1.00 1.82]          # ages 85+
@@ -121,3 +129,41 @@ const CHI_LTC = 0.49
 
 # HRS population data path
 const HRS_PATH = joinpath(@__DIR__, "..", "data", "processed", "lockwood_hrs_sample.csv")
+
+# CSV helpers for tables/csv/ outputs whose text fields may contain commas
+# (specification labels, scenario names, descriptions). Write RFC-4180 quoted;
+# read with a quote-aware split so a comma inside a field never fractures a row.
+csv_field(x) = "\"" * replace(string(x), "\"" => "\"\"") * "\""
+csv_row(fields...) = join(map(csv_field, fields), ",")
+
+function parse_csv_row(line::AbstractString)
+    out = String[]
+    buf = IOBuffer()
+    inq = false
+    i = firstindex(line)
+    last = lastindex(line)
+    while i <= last
+        c = line[i]
+        if inq
+            if c == '"'
+                if i < last && line[nextind(line, i)] == '"'
+                    write(buf, '"')
+                    i = nextind(line, i)
+                else
+                    inq = false
+                end
+            else
+                write(buf, c)
+            end
+        elseif c == '"'
+            inq = true
+        elseif c == ','
+            push!(out, String(take!(buf)))
+        elseif c != '\r' && c != '\n'
+            write(buf, c)
+        end
+        i = nextind(line, i)
+    end
+    push!(out, String(take!(buf)))
+    return out
+end

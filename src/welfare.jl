@@ -593,15 +593,18 @@ function simulate_welfare_comparison(
     H_0::Int,
     base_surv::Vector{Float64},
     p::ModelParams;
+    ss_func::Function,
     payout_rate::Float64,
     y_existing::Float64=0.0,
     n_sim::Int=10_000,
     rng_seed::Int=42,
 )
     g = sol.grids
-    # Match the SS function used by compute_cev_grid for internal consistency.
-    ss_rep = (SS_QUARTILE_LEVELS[2] + SS_QUARTILE_LEVELS[3]) / 2
-    ss_func_welfare(age, p) = ss_rep
+    # The forward simulation MUST use the same Social Security function the policy
+    # `sol` was solved under (HealthSolution does not store it, so the caller
+    # passes it). Driving the simulation with a different SS level than the policy
+    # was optimized for yields paths that follow a mismatched policy.
+    ss_func_welfare = ss_func
 
     # Find optimal alpha (same logic as compute_cev)
     V_t1 = sol.V[:, :, H_0, 1]

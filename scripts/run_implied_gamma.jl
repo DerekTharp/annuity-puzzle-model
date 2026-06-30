@@ -47,7 +47,7 @@ const _NA         = 20
 const _NALPHA     = 51
 const SURV_PESSIMISM = SURVIVAL_PESSIMISM
 const TARGET_OWN  = 0.036      # Lockwood (2012) observed ownership
-const GAMMA_LO    = 1.5
+const GAMMA_LO    = 1.0
 const GAMMA_HI    = 5.0
 const GAMMA_TOL   = 0.01       # bisection tolerance on gamma
 const N_DRAWS     = 300
@@ -57,13 +57,13 @@ const N_DRAWS     = 300
 # ===================================================================
 hrs_path = HRS_PATH
 hrs_raw = readdlm(hrs_path, ',', Any; skipstart=1)
-assert_hrs_schema(hrs_raw, hrs_path)
+has_health = assert_hrs_schema(hrs_raw, hrs_path)
 n_pop = size(hrs_raw, 1)
 population = zeros(n_pop, 4)
 population[:, 1] = Float64.(hrs_raw[:, 1])
 population[:, 2] .= 0.0   # SS via ss_func, not A grid
 population[:, 3] = Float64.(hrs_raw[:, 3])
-if size(hrs_raw, 2) >= 4
+if has_health
     population[:, 4] = Float64.(hrs_raw[:, 4])  # observed health (1=Good, 2=Fair, 3=Poor)
 else
     population[:, 4] .= 2.0
@@ -138,6 +138,7 @@ _age_s = AGE_START
 _age_e = AGE_END
 _agp = A_GRID_POW
 _psi = SURV_PESSIMISM
+_chi_ltc = CHI_LTC          # ninth structural channel (public-care aversion); captured for the worker closure
 _target = TARGET_OWN
 _glo = GAMMA_LO
 _ghi = GAMMA_HI
@@ -177,6 +178,7 @@ results = parallel_solve(draws) do d
             survival_pessimism=_psi,
             consumption_decline=_consumption_decline,
             health_utility=_health_utility,
+            chi_ltc=_chi_ltc,
             grid_kw...)
 
         sol = solve_lifecycle_health(p_full, grids, _bs, ss_mean_func)
@@ -248,7 +250,7 @@ if n_conv > 0
     q25 = gammas[max(1, round(Int, 0.25 * n_conv))]
     q75 = gammas[max(1, round(Int, 0.75 * n_conv))]
     mn = sum(gammas) / n_conv
-    frac_chetty = count(g -> 1.5 <= g <= 3.0, gammas) / n_conv * 100
+    frac_chetty = count(g -> 1.0 <= g <= 3.0, gammas) / n_conv * 100
     frac_narrow = count(g -> 2.0 <= g <= 2.5, gammas) / n_conv * 100
 
     println("\n" * "=" ^ 70)
@@ -259,7 +261,7 @@ if n_conv > 0
     @printf("  Mean implied gamma:   %.2f\n", mn)
     @printf("  IQR: [%.2f, %.2f]\n", q25, q75)
     @printf("  Min: %.2f, Max: %.2f\n", gammas[1], gammas[end])
-    @printf("  Fraction in [1.5, 3.0] (Chetty 2006 range): %.0f%%\n", frac_chetty)
+    @printf("  Fraction in [1.0, 3.0] (Chetty 2006 range): %.0f%%\n", frac_chetty)
     @printf("  Fraction in [2.0, 2.5] (narrow range):      %.0f%%\n", frac_narrow)
     flush(stdout)
 else
@@ -307,7 +309,7 @@ if n_conv > 0
         println(f, "Mean implied \$\\gamma\$ & $(round(mn, digits=2)) \\\\")
         println(f, "Interquartile range & [$(round(q25, digits=2)), $(round(q75, digits=2))] \\\\")
         println(f, "Min / Max & $(round(gammas[1], digits=2)) / $(round(gammas[end], digits=2)) \\\\")
-        println(f, "Fraction in [1.5, 3.0] & $(round(Int, frac_chetty))\\% \\\\")
+        println(f, "Fraction in [1.0, 3.0] & $(round(Int, frac_chetty))\\% \\\\")
         println(f, raw"\bottomrule")
         println(f, raw"\end{tabular}")
         println(f, raw"\begin{tablenotes}")
@@ -316,7 +318,7 @@ if n_conv > 0
         println(f, raw"we bisect over $\gamma$ to find the value that generates 3.6\%")
         println(f, raw"predicted ownership (Lockwood 2012 observed rate).")
         println(f, raw"Draws: $\mu_P \sim U(2.0, 3.5)$, $\pi \sim U(0.01, 0.03)$, MWR $\sim U(0.75, 0.89)$.")
-        println(f, raw"Survival pessimism $\psi = 0.960$ (O'Dea \& Sturrock 2023).")
+        println(f, "Survival pessimism \$\\psi = $(round(SURV_PESSIMISM, digits=3))\$ (Heimer 2019; Payne 2013).")
         println(f, raw"\end{tablenotes}")
         println(f, raw"\end{table}")
     end

@@ -35,13 +35,13 @@ const MWR_FULL   = MWR_LOADED  # Our baseline
 # Load data
 hrs_path = HRS_PATH
 hrs_raw = readdlm(hrs_path, ',', Any; skipstart=1)
-assert_hrs_schema(hrs_raw, hrs_path)
+has_health = assert_hrs_schema(hrs_raw, hrs_path)
 n_pop = size(hrs_raw, 1)
 population = zeros(n_pop, 4)
 population[:, 1] = Float64.(hrs_raw[:, 1])
 population[:, 2] .= 0.0
 population[:, 3] = Float64.(hrs_raw[:, 3])
-if size(hrs_raw, 2) >= 4
+if has_health
     population[:, 4] = Float64.(hrs_raw[:, 4])  # observed health (1=Good, 2=Fair, 3=Poor)
 else
     population[:, 4] .= 2.0
@@ -217,7 +217,7 @@ open(tex_path, "w") do f
     end
 
     println(f, raw"\midrule")
-    println(f, "Observed (Lockwood 2012) & 3.6 & --- \\\\")
+    println(f, raw"Observed (HRS, this sample) & \pctHRSLifetimeNum--\pctHRSIannPooledNum & --- \\")
     println(f, raw"\bottomrule")
     println(f, raw"\end{tabular}")
     println(f, raw"\begin{tablenotes}")

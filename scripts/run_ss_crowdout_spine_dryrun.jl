@@ -32,7 +32,7 @@ else
     using .AnnuityPuzzle
 end
 
-include(joinpath(@__DIR__, "config.jl"))
+@everywhere include(joinpath(@__DIR__, "config.jl"))  # config constants are referenced inside the parallel_solve closure, so workers need them
 
 const SS_OBS = [9160.0, 9657.0, 9989.0, 10388.0]
 const DB_OBS = [3757.0, 6090.0, 9309.0, 8947.0]
@@ -57,13 +57,13 @@ println("=" ^ 70)
 flush(stdout)
 
 hrs_raw = readdlm(HRS_PATH, ',', Any; skipstart=1)
-assert_hrs_schema(hrs_raw, HRS_PATH)
+has_health = assert_hrs_schema(hrs_raw, HRS_PATH)
 n_pop = size(hrs_raw, 1)
 population = zeros(n_pop, 4)
 population[:, 1] = Float64.(hrs_raw[:, 1])
 population[:, 2] .= 0.0
 population[:, 3] = Float64.(hrs_raw[:, 3])
-population[:, 4] = size(hrs_raw, 2) >= 4 ? Float64.(hrs_raw[:, 4]) : fill(2.0, n_pop)
+population[:, 4] = has_health ? Float64.(hrs_raw[:, 4]) : fill(2.0, n_pop)
 if MIN_WEALTH > 0.0
     population = population[population[:, 1] .>= MIN_WEALTH, :]
 end

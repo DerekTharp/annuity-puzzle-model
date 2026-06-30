@@ -1,5 +1,5 @@
-# Diagnose why homothetic bequest (theta=56.96, kappa=$10) gives 63.8% ownership
-# when no bequests gives 23.3%.
+# Diagnose why pairing the DFJ theta=56.96 with a tiny kappa (here $10) inflates
+# predicted ownership relative to the no-bequest case.
 #
 # Hypothesis: theta=56.96 was calibrated jointly with kappa=$272K (DFJ luxury).
 # Using it with kappa=$10 creates an unintended utility shape that does not
@@ -14,36 +14,19 @@ println("=" ^ 70)
 println("  BEQUEST ANOMALY DIAGNOSIS")
 println("=" ^ 70)
 
-# Common setup (mirror production config.jl values)
-const AGE_START   = 65
-const AGE_END     = 110
-const C_FLOOR     = 6_180.0
-const W_MAX       = 3_000_000.0
-const N_WEALTH    = 60
-const N_ANNUITY   = 20
-const N_ALPHA     = 51
-const A_GRID_POW  = 3.0
-const N_QUAD      = 9
-const GAMMA       = 2.5
-const BETA        = 0.97
-const R_RATE      = 0.02
-const MWR_LOADED  = 0.87
-const FIXED_COST  = 2_500.0
-const INFLATION   = 0.02
-const HAZARD_MULT = [0.50, 1.0, 3.75]
-const MIN_WEALTH  = 5_000.0
-const THETA_DFJ   = 56.96
-const KAPPA_DFJ   = 272_628.0
+# Common setup: all calibration constants come from the single source of truth.
+include(joinpath(@__DIR__, "config.jl"))
 
 # Load population
 hrs_path = joinpath(@__DIR__, "..", "data", "processed", "lockwood_hrs_sample.csv")
 hrs_raw = readdlm(hrs_path, ',', Any; skipstart=1)
+has_health = assert_hrs_schema(hrs_raw, hrs_path)
 n_pop = size(hrs_raw, 1)
 population = zeros(n_pop, 4)
 population[:, 1] = Float64.(hrs_raw[:, 1])
 population[:, 2] .= 0.0                      # SS enters via ss_func, not A grid
 population[:, 3] = Float64.(hrs_raw[:, 3])
-if size(hrs_raw, 2) >= 4
+if has_health
     population[:, 4] = Float64.(hrs_raw[:, 4])  # observed health (1=Good, 2=Fair, 3=Poor)
 else
     population[:, 4] .= 2.0

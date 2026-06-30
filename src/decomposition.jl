@@ -158,9 +158,13 @@ function solve_and_evaluate(
             result_q = compute_ownership_rate_health(
                 sol_q, pop_q, _pr; base_surv=_bs,
             )
+            # Weight by n_evaluated (agents actually scored), not the raw bin size:
+            # compute_ownership_rate_health drops W<1 / out-of-age agents before
+            # scoring, so weighting by size(pop_q,1) would over-weight a bin that
+            # dropped any agent. Equals nq at the production config (pre-filtered).
             (ownership=result_q.ownership_rate, mean_alpha=result_q.mean_alpha,
              frac_at_kink_contract=result_q.frac_at_kink_contract,
-             frac_at_grid_floor=result_q.frac_at_grid_floor, n=Float64(nq))
+             frac_at_grid_floor=result_q.frac_at_grid_floor, n=Float64(result_q.n_evaluated))
         end
 
         total_owners = sum(r.ownership * r.n for r in quartile_results)
@@ -214,11 +218,14 @@ Steps (with ss_levels, up to 12 channels):
   7. + Age-varying consumption needs (Aguiar-Hurst, optional)
   8. + Realistic pricing loads (MWR < 1, fixed cost)
   9. + Inflation erosion (nominal annuity)
- 10. + Source-dependent utility (Blanchett-Finke 2024-25, optional)
- 11. + Narrow-framing at-purchase penalty (Chalmers-Reuter 2012, optional)
+ 10. + Public-care aversion (chi_ltc, Ameriks 2011/2020; the ninth structural
+      channel, mildly demand-boosting; off by default at chi_ltc_val=1.0)
+ 11. + Source-dependent utility (Blanchett-Finke 2024-25, optional)
+ 12. + Narrow-framing at-purchase penalty (Chalmers-Reuter 2012, optional)
 
-Steps 6, 7, 10, and 11 are skipped when their parameters are at neutral
-defaults (health_utility=[1,1,1], consumption_decline=0.0, lambda_w=1.0,
+Steps 6, 7, 10, 11, and 12 are skipped when their parameters are at neutral
+defaults (health_utility=[1,1,1], consumption_decline=0.0, chi_ltc=1.0,
+lambda_w=1.0,
 psi_purchase=0.0).
 
 Returns DecompositionResult with ownership rates at each step.
@@ -252,6 +259,7 @@ function run_decomposition(
     consumption_decline_val::Float64=0.0,
     health_utility_vals::Vector{Float64}=[1.0, 1.0, 1.0],
     min_purchase_val::Float64=0.0,
+    chi_ltc_val::Float64=1.0,
     lambda_w_val::Float64=1.0,
     psi_purchase_val::Float64=0.0,
     psi_purchase_c_ref_val::Float64=18_000.0,
@@ -473,7 +481,7 @@ function run_decomposition(
         consumption_decline=cur_consumption_decline,
         grid_kw...)
     loads_label = min_purchase_val > 0 ?
-        "$step_num. + Pricing frictions (MWR=$mwr_loaded, min \$$(Int(min_purchase_val/1000))K)" :
+        "$step_num. + Pricing frictions (MWR=$mwr_loaded, min \$$(round(Int, min_purchase_val/1000))K)" :
         "$step_num. + Realistic pricing loads (MWR=$mwr_loaded)"
     res_loads = solve_and_evaluate(p_loads, grids, base_surv, ss_arg,
         pop, loaded_pr;
@@ -505,6 +513,38 @@ function run_decomposition(
     prev_rate = res_infl.ownership
     step_num += 1
 
+    # --- + Public-care aversion (Ameriks 2011 JF / 2020 JPE; structural LTC) ---
+    # The ninth structural channel. chi_ltc applies a consumption-equivalent
+    # discount in the Medicaid-binding Poor state (src/solve.jl), so it is mildly
+    # demand-boosting: adding it to the eight-channel rational+preference model
+    # raises predicted ownership to the nine-channel structural baseline. Kept
+    # off (chi_ltc=1.0) by default so callers that do not request it reproduce
+    # the eight-channel path; the headline decomposition and the robustness
+    # sweeps pass chi_ltc_val = CHI_LTC.
+    cur_chi_ltc = 1.0
+    chi_ltc_active = chi_ltc_val < 1.0
+    if chi_ltc_active
+        cur_chi_ltc = chi_ltc_val
+        p_ltc = ModelParams(; common_kw...,
+            theta=theta, kappa=kappa, mwr=mwr_loaded, fixed_cost=fixed_cost_val,
+            min_purchase=min_purchase_val,
+            inflation_rate=inflation_val,
+            medical_enabled=true, health_mortality_corr=true,
+            survival_pessimism=survival_pessimism,
+            health_utility=cur_health_utility,
+            consumption_decline=cur_consumption_decline,
+            chi_ltc=cur_chi_ltc,
+            grid_kw...)
+        res_ltc = solve_and_evaluate(p_ltc, grids, base_surv, ss_arg,
+            pop, loaded_pr_nom;
+            step_name="$step_num. + Public-care aversion (chi_ltc=$(cur_chi_ltc))",
+            verbose=verbose)
+        push!(steps, DecompositionStep("+ Public-care aversion",
+            res_ltc.ownership, res_ltc.mean_alpha, res_ltc.ownership - prev_rate, res_ltc.solve_time))
+        prev_rate = res_ltc.ownership
+        step_num += 1
+    end
+
     # Track cumulative behavioral channel overrides
     cur_lambda_w = 1.0
     cur_psi_purchase = 0.0
@@ -521,6 +561,7 @@ function run_decomposition(
             survival_pessimism=survival_pessimism,
             health_utility=cur_health_utility,
             consumption_decline=cur_consumption_decline,
+            chi_ltc=cur_chi_ltc,
             lambda_w=cur_lambda_w,
             grid_kw...)
         res_sdu = solve_and_evaluate(p_sdu, grids, base_surv, ss_arg,
@@ -545,6 +586,7 @@ function run_decomposition(
             survival_pessimism=survival_pessimism,
             health_utility=cur_health_utility,
             consumption_decline=cur_consumption_decline,
+            chi_ltc=cur_chi_ltc,
             lambda_w=cur_lambda_w,
             psi_purchase=cur_psi_purchase,
             psi_purchase_c_ref=psi_purchase_c_ref_val,

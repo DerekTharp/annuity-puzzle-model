@@ -1,7 +1,9 @@
-# Model-implied ownership gradients for the empirical-validation comparison.
+# Model-implied ownership gradients (diagnostic only).
 #
-# Produces the model-side column of the gradient table that
-# run_empirical_validation.jl produces the data-side column for:
+# Reports model-side gradients for inspection. Not tied to any manuscript
+# display item: model_gradients.csv is not parsed by a figure generator,
+# table, or export_manuscript_numbers.jl. The empirical-validation exhibit
+# (run_empirical_validation.jl) reports the data-side gradients independently.
 #   - ownership by wealth bin (by-bin evaluation of the structural model)
 #   - ownership by health state at evaluation (split of the same solve)
 #   - channel on/off deltas read from subset_enumeration.csv (zero solves):
@@ -11,7 +13,7 @@
 # One per-quartile solve of the 9-channel structural model (behavioral off);
 # everything else is evaluation or lookup.
 #
-# Output: tables/csv/model_gradients.csv
+# Output: tables/csv/model_gradients.csv (diagnostic)
 # Usage:  julia --project=. -p 4 scripts/run_model_gradients.jl
 #         ANNUITY_COARSE=1 julia --project=. -p 4 scripts/run_model_gradients.jl
 
@@ -44,13 +46,13 @@ flush(stdout)
 # Population / survival / grids
 # ===================================================================
 hrs_raw = readdlm(HRS_PATH, ',', Any; skipstart=1)
-assert_hrs_schema(hrs_raw, HRS_PATH)
+has_health = assert_hrs_schema(hrs_raw, HRS_PATH)
 n_pop = size(hrs_raw, 1)
 population = zeros(n_pop, 4)
 population[:, 1] = Float64.(hrs_raw[:, 1])
 population[:, 2] .= 0.0
 population[:, 3] = Float64.(hrs_raw[:, 3])
-population[:, 4] = size(hrs_raw, 2) >= 4 ? Float64.(hrs_raw[:, 4]) : fill(2.0, n_pop)
+population[:, 4] = has_health ? Float64.(hrs_raw[:, 4]) : fill(2.0, n_pop)
 if MIN_WEALTH > 0.0
     population = population[population[:, 1] .>= MIN_WEALTH, :]
 end

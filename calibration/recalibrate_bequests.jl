@@ -15,30 +15,14 @@ using Optim
 include(joinpath(@__DIR__, "..", "src", "AnnuityPuzzle.jl"))
 using .AnnuityPuzzle
 
+include(joinpath(@__DIR__, "..", "scripts", "config.jl"))
+
 println("=" ^ 70)
 println("  BEQUEST PARAMETER PORTABILITY CHECK")
 println("  Lockwood theta=56.96, kappa=\$272,628 at sigma=2 vs gamma=2.5")
 println("=" ^ 70)
 
-# Common parameters
-const AGE_START  = 65
-const AGE_END    = 110
-const BETA       = 0.97
-const R_RATE     = 0.02
-const C_FLOOR    = 6_180.0
-const W_MAX      = 3_000_000.0
-const N_WEALTH   = 80
-const N_ANNUITY  = 30
-const N_ALPHA    = 101
-const A_GRID_POW = 3.0
-const N_QUAD     = 9
-const THETA_DFJ  = 56.96
-const KAPPA_DFJ  = 272_628.0
-const HAZARD_MULT = [0.50, 1.0, 3.75]
-const MWR_LOADED = 0.87
-const FIXED_COST = 2_500.0
-const INFLATION  = 0.02
-
+# Script-local quantities (not in config.jl)
 const W_0_TEST   = 250_000.0  # representative initial wealth
 const N_SIM      = 50_000
 
@@ -81,12 +65,12 @@ end
 # The gamma-stability exhibit (run_shapley_gamma_stability.jl) sweeps gamma
 # 2.0-3.0 holding theta fixed, so portability must be measured over the same
 # range, not just at the production gamma.
-const GAMMA_CHECK = [2.0, 2.5, 2.75, 3.0]
+const GAMMA_CHECK = sort(unique([2.0, GAMMA, 2.75, 3.0]))
 
 println("\nComputing bequest-to-wealth ratios...")
 ratios = NamedTuple[]
 for g in GAMMA_CHECK
-    label = g == 2.0 ? "(Lockwood's sigma=2)" : g == 2.5 ? "(production)" : "(sweep)"
+    label = g == 2.0 ? "(Lockwood's sigma=2)" : g == GAMMA ? "(production)" : "(sweep)"
     @printf("\n  gamma=%.2f %s:\n", g, label)
     t0 = time()
     r = compute_bequest_ratio(g, THETA_DFJ, KAPPA_DFJ)
@@ -103,32 +87,37 @@ for r in ratios
     push!(divs, d)
     @printf("    gamma=%.2f: %.1f%%\n", r.gamma, d * 100)
 end
-divergence = divs[2]        # production gamma=2.5 drives the retarget decision
+divergence = divs[findfirst(==(GAMMA), GAMMA_CHECK)]  # production gamma drives the retarget decision
 max_divergence = maximum(divs)
 r20 = ratios[1]
-r25 = ratios[2]
+r25 = ratios[findfirst(==(GAMMA), GAMMA_CHECK)]
 
 # --- Recalibrate if the PRODUCTION-gamma divergence > 20% ---
+recalibrated = false
+theta_recal = THETA_DFJ
+recal_ratio = NaN
 if divergence > 0.20
-    println("\n  Production divergence exceeds 20% threshold. Recalibrating theta at gamma=2.5...")
+    @printf("\n  Production divergence exceeds 20%% threshold. Recalibrating theta at gamma=%.2f...\n", GAMMA)
 
     target_ratio = r20.bequest_ratio
 
     function objective(theta_trial)
-        r = compute_bequest_ratio(2.5, theta_trial, KAPPA_DFJ)
+        r = compute_bequest_ratio(GAMMA, theta_trial, KAPPA_DFJ)
         return (r.bequest_ratio - target_ratio)^2
     end
 
     result = optimize(objective, 1.0, 200.0, Brent())
-    theta_recal = Optim.minimizer(result)
+    global theta_recal = Optim.minimizer(result)
 
-    r25_recal = compute_bequest_ratio(2.5, theta_recal, KAPPA_DFJ)
+    r25_recal = compute_bequest_ratio(GAMMA, theta_recal, KAPPA_DFJ)
+    global recal_ratio = r25_recal.bequest_ratio
+    global recalibrated = true
     @printf("\n  Recalibrated theta: %.2f (original: %.2f)\n", theta_recal, THETA_DFJ)
     @printf("  Bequest/Wealth at recalibrated theta: %.3f (target: %.3f)\n",
         r25_recal.bequest_ratio, target_ratio)
 else
-    println("\n  Production divergence within 20% threshold. No recalibration needed.")
-    @printf("  Lockwood's theta=%.2f is portable to gamma=2.5.\n", THETA_DFJ)
+    @printf("\n  Production divergence within 20%% threshold. No recalibration needed.\n")
+    @printf("  Lockwood's theta=%.2f is portable to gamma=%.2f.\n", THETA_DFJ, GAMMA)
 end
 if max_divergence > 0.20
     @printf("\n  NOTE: drift reaches %.1f%% at the sweep endpoint — past the 20%%\n", max_divergence * 100)
@@ -144,10 +133,10 @@ mkpath(tables_tex)
 
 csv_path = joinpath(tables_csv, "bequest_recalibration.csv")
 open(csv_path, "w") do f
-    println(f, "gamma,theta,kappa,bequest_wealth_ratio,mean_bequest,divergence_vs_gamma20")
+    println(f, "gamma,theta,kappa,bequest_wealth_ratio,mean_bequest,divergence_vs_gamma20,recalibrated,theta_recal,recal_bequest_wealth_ratio")
     for (r, d) in zip(ratios, divs)
-        @printf(f, "%.2f,%.2f,%.0f,%.4f,%.0f,%.4f\n", r.gamma, THETA_DFJ, KAPPA_DFJ,
-            r.bequest_ratio, r.mean_bequest, d)
+        @printf(f, "%.2f,%.2f,%.0f,%.4f,%.0f,%.4f,%d,%.2f,%.4f\n", r.gamma, THETA_DFJ, KAPPA_DFJ,
+            r.bequest_ratio, r.mean_bequest, d, recalibrated, theta_recal, recal_ratio)
     end
 end
 println("\n  CSV saved: $csv_path")
@@ -195,8 +184,14 @@ open(tex_path, "w") do f
     @printf(f, "\\item All columns use original %s\\theta = %.2f%s, %s\\kappa = \\%s%s%s from\n",
         ds, THETA_DFJ, ds, ds, ds, kappa_str, ds)
     println(f, "Lockwood (2012), estimated at $(ds)\\sigma = 2$(ds). The production calibration")
-    @printf(f, "(%s\\gamma = 2.5%s) diverges %.1f\\%%; the sweep endpoint diverges %.1f\\%%.\n",
-        ds, ds, divergence * 100, max_divergence * 100)
+    @printf(f, "(%s\\gamma = %.2f%s) diverges %.1f\\%%; the sweep endpoint diverges %.1f\\%%.\n",
+        ds, GAMMA, ds, divergence * 100, max_divergence * 100)
+    if recalibrated
+        @printf(f, "Because the production divergence exceeds 20\\%%, %s\\theta%s is retargeted at\n", ds, ds)
+        @printf(f, "%s\\gamma = %.2f%s to %s\\theta = %.2f%s (bequest/wealth %.3f), restoring the\n",
+            ds, GAMMA, ds, ds, theta_recal, ds, recal_ratio)
+        println(f, "$(ds)\\sigma = 2$(ds) target.")
+    end
     w_str = string(round(Int, W_0_TEST))
     println(f, "Simulated $(N_SIM) trajectories, initial wealth \\$(ds)$(w_str), Fair health.")
     println(f, "\\end{tablenotes}")

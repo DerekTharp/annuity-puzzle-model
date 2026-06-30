@@ -193,6 +193,8 @@ println("\n" * "=" ^ 70)
 println("  HEALTH-DEPENDENT SURVIVAL PROBABILITIES")
 println("=" ^ 70)
 
+# Illustrative round-number hazard multipliers for the survival demonstration
+# below; distinct from the calibrated baseline (config HAZARD_MULT).
 p_surv = ModelParams(health_mortality_corr=true, age_end=100,
                      hazard_mult=[0.6, 1.0, 2.0])
 base_surv = build_survival_probs(p_surv)

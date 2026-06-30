@@ -33,12 +33,13 @@ const MIN_WEALTH  = 5_000.0
 println("\nLoading HRS population...")
 hrs_path = joinpath(@__DIR__, "..", "data", "processed", "lockwood_hrs_sample.csv")
 hrs_raw = readdlm(hrs_path, ',', Any; skipstart=1)
+has_health = assert_hrs_schema(hrs_raw, hrs_path)
 n_pop = size(hrs_raw, 1)
 population = zeros(n_pop, 4)
 population[:, 1] = Float64.(hrs_raw[:, 1])
 population[:, 2] .= 0.0                      # SS enters via ss_func, not A grid
 population[:, 3] = Float64.(hrs_raw[:, 3])
-if size(hrs_raw, 2) >= 4
+if has_health
     population[:, 4] = Float64.(hrs_raw[:, 4])  # observed health (1=Good, 2=Fair, 3=Poor)
 else
     population[:, 4] .= 2.0
@@ -46,8 +47,6 @@ end
 
 p_base = ModelParams(age_start=AGE_START, age_end=AGE_END)
 base_surv = build_lockwood_survival(p_base)
-
-ss_zero(age, p) = 0.0
 
 base_kw = Dict{Symbol,Any}(
     :gamma => GAMMA, :beta => BETA, :r => R_RATE,
@@ -61,6 +60,7 @@ base_kw = Dict{Symbol,Any}(
     :annuity_grid_power => A_GRID_POW,
     :hazard_mult => HAZARD_MULT,
     :min_wealth => MIN_WEALTH,
+    :ss_levels => Float64.(SS_QUARTILE_LEVELS),
     :verbose => false,
 )
 

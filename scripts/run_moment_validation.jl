@@ -14,6 +14,12 @@
 #   - RAND HRS (wealth, health, mortality)
 #   - Jones et al. (2018) (medical expenditures)
 #   - Lockwood (2012) (bequests)
+#
+# This diagnostic simulates a representative agent with SS = DB = 0 (ss_zero),
+# unlike the headline decomposition, which decumulates against the observed
+# pre-existing annuitization floor (SS_QUARTILE_LEVELS = SS_OBS + DB_OBS).
+# With no SS/DB income the representative agent decumulates faster and leaves
+# smaller bequests than the SS-funded headline households.
 
 using Printf
 using DelimitedFiles

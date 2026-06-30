@@ -1,7 +1,8 @@
 # Monte Carlo Simulation Validation
 #
-# Simulates lifecycle trajectories under the full model (all channels on)
-# and compares aggregate moments to HRS data targets:
+# Simulates lifecycle trajectories under the 9-channel structural model
+# (7 rational + 2 preference + LTC; behavioral channels off) and compares
+# aggregate moments to HRS data targets:
 #   - Wealth decumulation profiles
 #   - Bequest distribution
 #   - Survival curve
@@ -30,7 +31,8 @@ base_surv = build_lockwood_survival(p_base)
 p_fair = ModelParams(age_start=AGE_START, age_end=AGE_END, mwr=1.0, r=R_RATE)
 fair_pr = compute_payout_rate(p_fair, base_surv)
 
-# Full model parameters (all channels on, DFJ bequests)
+# 9-channel structural model (7 rational + 2 preference + LTC), DFJ bequests.
+# Behavioral channels (lambda_w, psi_purchase) remain OFF at their defaults.
 p = ModelParams(
     gamma=GAMMA, beta=BETA, r=R_RATE,
     theta=THETA_DFJ, kappa=KAPPA_DFJ,
@@ -39,6 +41,8 @@ p = ModelParams(
     stochastic_health=true, n_health_states=3, n_quad=N_QUAD,
     c_floor=C_FLOOR, hazard_mult=HAZARD_MULT,
     survival_pessimism=SURVIVAL_PESSIMISM,
+    consumption_decline=CONSUMPTION_DECLINE, health_utility=HEALTH_UTILITY,
+    chi_ltc=CHI_LTC,
     n_wealth=N_WEALTH, n_annuity=N_ANNUITY, n_alpha=N_ALPHA,
     W_max=W_MAX, annuity_grid_power=A_GRID_POW,
     age_start=AGE_START, age_end=AGE_END,
@@ -55,7 +59,7 @@ loaded_pr = MWR_LOADED * fair_pr
 # ===================================================================
 # Solve the full model
 # ===================================================================
-println("\nSolving full model (all channels on)...")
+println("\nSolving 9-channel structural model (behavioral channels off)...")
 @time sol = solve_lifecycle_health(p, grids, base_surv, ss_zero)
 
 # ===================================================================
@@ -70,7 +74,7 @@ w_labels = ["\$25K", "\$50K", "\$100K", "\$250K", "\$500K"]
 health_labels = ["Good", "Fair", "Poor"]
 
 # Pre-existing annuity income: median SS quartile level
-y_preexisting = SS_QUARTILE_LEVELS[2]  # $17,000 (Q2 median)
+y_preexisting = SS_QUARTILE_LEVELS[2]  # Q2 median: SS_OBS+DB_OBS = $21,188
 
 @printf("\n  Pre-existing annuity income: \$%s/yr\n\n", string(round(Int, y_preexisting)))
 @printf("  %-8s", "Health")

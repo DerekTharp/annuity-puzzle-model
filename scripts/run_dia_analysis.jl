@@ -38,13 +38,13 @@ const MWR_DIA85   = 0.45   # even lower for DIA-85
 println("\nLoading data...")
 hrs_path = HRS_PATH
 hrs_raw = readdlm(hrs_path, ',', Any; skipstart=1)
-assert_hrs_schema(hrs_raw, hrs_path)
+has_health = assert_hrs_schema(hrs_raw, hrs_path)
 n_pop = size(hrs_raw, 1)
 population = zeros(n_pop, 4)
 population[:, 1] = Float64.(hrs_raw[:, 1])  # wealth
 population[:, 2] .= 0.0                      # SS enters via ss_func, not A grid
 population[:, 3] = Float64.(hrs_raw[:, 3])  # age
-if size(hrs_raw, 2) >= 4
+if has_health
     population[:, 4] = Float64.(hrs_raw[:, 4])  # observed health (1=Good, 2=Fair, 3=Poor)
 else
     population[:, 4] .= 2.0  # default Fair if health not in CSV
@@ -53,17 +53,20 @@ end
 p_base = ModelParams(age_start=AGE_START, age_end=AGE_END)
 base_surv = build_lockwood_survival(p_base)
 
-p_fair = ModelParams(age_start=AGE_START, age_end=AGE_END, mwr=1.0, r=R_RATE)
+grid_kw = (n_wealth=N_WEALTH, n_annuity=N_ANNUITY, n_alpha=N_ALPHA,
+           W_max=W_MAX, age_start=AGE_START, age_end=AGE_END,
+           annuity_grid_power=A_GRID_POW)
+
+# build_grids reads the grid sizes from the params it is handed, so p_fair must
+# carry grid_kw; otherwise grids fall back to ModelParams defaults rather than the
+# production grid the DIA exhibit is meant to use.
+p_fair = ModelParams(; mwr=1.0, r=R_RATE, grid_kw...)
 fair_pr = compute_payout_rate(p_fair, base_surv)
 
 # ===================================================================
 # Common setup
 # ===================================================================
 ss_zero(age, p) = 0.0
-
-grid_kw = (n_wealth=N_WEALTH, n_annuity=N_ANNUITY, n_alpha=N_ALPHA,
-           W_max=W_MAX, age_start=AGE_START, age_end=AGE_END,
-           annuity_grid_power=A_GRID_POW)
 
 common_kw = (gamma=GAMMA, beta=BETA, r=R_RATE,
              stochastic_health=true, n_health_states=3, n_quad=N_QUAD,

@@ -13,6 +13,8 @@ using Test
 using DelimitedFiles
 using Printf
 
+include(joinpath(@__DIR__, "..", "scripts", "config.jl"))  # parse_csv_row for quoted CSVs
+
 const TEST_DIR = @__DIR__
 const REPO_ROOT = dirname(TEST_DIR)
 const NUMBERS_TEX = joinpath(REPO_ROOT, "paper", "numbers.tex")
@@ -92,12 +94,12 @@ end
 
 function welfare_ownership(scenario::AbstractString)
     path = joinpath(CSV_DIR, "welfare_counterfactuals.csv")
-    prefix = scenario * ","
     for (i, line) in enumerate(eachline(path))
         i == 1 && continue
-        startswith(line, prefix) || continue
-        toks = split(chopprefix(line, prefix), ',')
-        return parse(Float64, toks[6])
+        isempty(strip(line)) && continue
+        f = parse_csv_row(line)
+        length(f) >= 7 && f[1] == scenario || continue
+        return parse(Float64, f[7])  # ownership_pct
     end
     error("scenario $(repr(scenario)) not in welfare_counterfactuals.csv")
 end
@@ -214,17 +216,44 @@ macros = load_macros()
         end
     end
 
+    # Extensive-margin gate F* macros must match fstar_distribution.csv exactly
+    # (guards against numbers.tex/CSV divergence; mirrors the export logic).
+    @testset "extensive-margin gate F* distribution" begin
+        fpath = joinpath(CSV_DIR, "fstar_distribution.csv")
+        if !isfile(fpath)
+            @test_skip "fstar_distribution.csv absent"
+        else
+            rows, hdr = readdlm(fpath, ',', Any; header=true)
+            hdr = vec(hdr); col(n) = findfirst(==(n), hdr)
+            band = strip.(string.(rows[:, col("band")])); bi(l) = findfirst(==(l), band)
+            fz = Float64.(rows[:, col("frac_fstar_zero")])
+            fmid = Float64.(rows[:, col("frac_fstar_below_fc")])
+            for (name, frac) in (("gateFstarZeroBandOne",   fz[bi("<30k")]),
+                                 ("gateFstarZeroBandTwo",   fz[bi("30-120k")]),
+                                 ("gateFstarZeroBandThree", fz[bi("120-350k")]),
+                                 ("gateFstarSliverBandTwo", fmid[bi("30-120k")]))
+                @test haskey(macros, name)
+                @test macros[name] == fmt_pct(frac * 100; digits=0)
+            end
+            if col("frac_value_destroying") !== nothing
+                fvd  = Float64.(rows[:, col("frac_value_destroying")])
+                finf = Float64.(rows[:, col("frac_infeasible")])
+                @test macros["gateValDestrBandOne"] == fmt_pct(fvd[bi("<30k")] * 100; digits=0)
+                @test macros["gateInfeasBandOne"]   == fmt_pct(finf[bi("<30k")] * 100; digits=0)
+            end
+        end
+    end
+
     # Baseline MWR pulled from welfare_counterfactuals "Baseline" row
     @testset "baseline MWR" begin
         path = joinpath(CSV_DIR, "welfare_counterfactuals.csv")
         mwr = nothing
         for (i, line) in enumerate(eachline(path))
             i == 1 && continue
-            if startswith(line, "Baseline,")
-                toks = split(chopprefix(line, "Baseline,"), ',')
-                mwr = parse(Float64, toks[1])
-                break
-            end
+            f = parse_csv_row(line)
+            length(f) >= 2 && f[1] == "Baseline" || continue
+            mwr = parse(Float64, f[2])  # mwr column
+            break
         end
         @test mwr !== nothing
         @test haskey(macros, "pMwrBaseline")

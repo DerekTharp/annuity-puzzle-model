@@ -778,3 +778,143 @@ function compute_ownership_rate_health(
                 n_evaluated = 0)
     end
 end
+
+"""
+    compute_indiff_fixed_cost_health(sol, population, payout_rate_age65; base_surv)
+
+For each evaluated household, the indifference fixed cost F* --- the SPIA
+transaction cost at which the household is exactly indifferent between its best
+annuitized plan and no annuitization. A household owns under a constant fixed
+cost F_bar iff F* > F_bar, so the model's hard ownership indicator is the
+sigma -> 0 limit of P(F_i < F*) for any distribution of fixed costs. This is
+the object the extensive-margin smoothing gate integrates: with heterogeneous
+fixed costs F_i ~ G, the population participation rate is the average of G(F*)
+across households, turning the corner-solution 0/1 indicator into an interior
+rate without re-solving the Bellman (the fixed cost enters only the age-65
+decision, not V).
+
+The annuitized-value scan mirrors `compute_ownership_rate_health` exactly
+(feasibility, the inflation gross-up of the premium, and the narrow-framing
+purchase penalty), so owns_hard reproduces that function's ownership indicator.
+
+Returns vectors over evaluated households: F_star, V_no_ann, W (raw wealth, for
+wealth-band assignment), and owns_hard (F* > p.fixed_cost).
+"""
+function compute_indiff_fixed_cost_health(
+    sol::HealthSolution,
+    population::Matrix{Float64},
+    payout_rate_age65::Float64;
+    base_surv::Union{Vector{Float64}, Nothing}=nothing,
+)
+    p = sol.params
+    g = sol.grids
+    n_individuals = size(population, 1)
+    has_age = size(population, 2) >= 3
+    has_health = size(population, 2) >= 4
+
+    interp_cache = Dict{Tuple{Int,Int}, typeof(linear_interpolation(
+        (g.W, g.A), sol.V[:, :, 1, 1],
+        extrapolation_bc=Interpolations.Flat(),
+    ))}()
+
+    F_star = Float64[]
+    V_no = Float64[]
+    W_raw = Float64[]
+    owns_hard = Bool[]
+    infeasible = Bool[]
+
+    for i in 1:n_individuals
+        raw_W = population[i, 1]
+        W_0 = raw_W > g.W[end] ? g.W[end] : max(raw_W, 0.0)
+        y_0 = clamp(population[i, 2], g.A[1], g.A[end])
+        age = has_age ? Int(population[i, 3]) : p.age_start
+        ih = has_health ? Int(population[i, 4]) : 2
+
+        W_0 < 1.0 && continue
+        t = age - p.age_start + 1
+        (t < 1 || t > p.T) && continue
+
+        if base_surv !== nothing && age > p.age_start
+            r_discount = p.inflation_rate > 0 ? (1 + p.r) * (1 + p.inflation_rate) - 1 : p.r
+            remaining_T = p.T - t + 1
+            pv = 1.0
+            for s in 1:(remaining_T - 1)
+                cum_s = 1.0
+                for k in t:(t + s - 1)
+                    k > length(base_surv) && break
+                    cum_s *= base_surv[k]
+                end
+                pv += cum_s / (1.0 + r_discount)^s
+            end
+            payout_rate = p.mwr / pv
+        else
+            payout_rate = payout_rate_age65
+        end
+
+        V_interp = get!(interp_cache, (ih, t)) do
+            linear_interpolation(
+                (g.W, g.A), sol.V[:, :, ih, t],
+                extrapolation_bc=Interpolations.Flat(),
+            )
+        end
+        V_no_ann = V_interp(W_0, y_0)
+        inflation_factor = (1.0 + p.inflation_rate)^(t - 1)
+
+        # Raw best annuitized value as a function of the fixed cost F (NOT
+        # floored at V_no_ann), so the indifference point can be bracketed.
+        ann_value = function (F::Float64)
+            best = -Inf
+            for alpha in g.alpha
+                alpha <= 0.0 && continue
+                is_feasible_purchase(alpha, W_0, p) || continue
+                premium = alpha * W_0
+                W_rem = W_0 - premium - F
+                W_rem < 0.0 && continue
+                A_total = y_0 + premium * inflation_factor * payout_rate
+                W_c = clamp(W_rem, g.W[1], g.W[end])
+                A_c = clamp(A_total, g.A[1], g.A[end])
+                V_val = V_interp(W_c, A_c)
+                if p.psi_purchase > 0.0
+                    surv_for_penalty = base_surv === nothing ? sol.base_surv : base_surv
+                    V_val -= purchase_penalty(
+                        premium, payout_rate, p.gamma, p.psi_purchase,
+                        p.psi_purchase_c_ref, p.beta, surv_for_penalty;
+                        purchase_period=t,
+                    )
+                end
+                V_val > best && (best = V_val)
+            end
+            return best
+        end
+
+        a0 = ann_value(0.0)
+        # Distinguish two routes to F*=0: an infeasible household has no feasible
+        # alpha even at zero cost (e.g., W_0 below the minimum purchase, so
+        # ann_value returns -Inf); a value-destroying household has a feasible
+        # annuitized plan whose value is still below no-annuitization at zero cost.
+        infeas = !isfinite(a0)
+        if a0 <= V_no_ann
+            Fstar = 0.0  # never helps: infeasible, or value-destroying even at zero cost
+        else
+            lo, hi = 0.0, W_0  # ann_value(W_0) = -Inf <= V_no_ann (no feasible alpha)
+            for _ in 1:50
+                mid = 0.5 * (lo + hi)
+                if ann_value(mid) > V_no_ann
+                    lo = mid
+                else
+                    hi = mid
+                end
+                hi - lo < 1.0 && break
+            end
+            Fstar = 0.5 * (lo + hi)
+        end
+
+        push!(F_star, Fstar)
+        push!(V_no, V_no_ann)
+        push!(W_raw, raw_W)
+        push!(owns_hard, Fstar > p.fixed_cost)
+        push!(infeasible, infeas)
+    end
+
+    return (F_star=F_star, V_no_ann=V_no, W=W_raw, owns_hard=owns_hard, infeasible=infeasible)
+end

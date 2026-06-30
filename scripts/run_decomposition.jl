@@ -10,6 +10,7 @@
 using Printf
 using DelimitedFiles
 using Distributed
+using Statistics
 
 if nworkers() > 1
     @everywhere include(joinpath(@__DIR__, "..", "src", "AnnuityPuzzle.jl"))
@@ -32,7 +33,7 @@ println("=" ^ 70)
 println("\nLoading HRS population sample...")
 hrs_path = HRS_PATH
 hrs_raw = readdlm(hrs_path, ',', Any; skipstart=1)
-assert_hrs_schema(hrs_raw, hrs_path)
+has_health = assert_hrs_schema(hrs_raw, hrs_path)
 n_pop = size(hrs_raw, 1)
 # Columns: wealth, purchased annuity income (zero at entry; SS enters via ss_func), age.
 # SS income enters through ss_func in the Bellman equation (COLA-protected),
@@ -41,7 +42,7 @@ population = zeros(n_pop, 4)
 population[:, 1] = Float64.(hrs_raw[:, 1])  # wealth
 population[:, 2] .= 0.0                      # A grid = purchased annuity only (SS via ss_func)
 population[:, 3] = Float64.(hrs_raw[:, 3])  # age
-if size(hrs_raw, 2) >= 4
+if has_health
     population[:, 4] = Float64.(hrs_raw[:, 4])  # observed health (1=Good, 2=Fair, 3=Poor)
 else
     population[:, 4] .= 2.0  # default Fair if health not in CSV
@@ -49,7 +50,7 @@ end
 n_eligible = count(population[:, 1] .>= MIN_WEALTH)
 @printf("  Loaded %d individuals. Median wealth: \$%s\n",
     n_pop,
-    string(round(Int, sort(population[:, 1])[div(n_pop, 2)])))
+    string(round(Int, median(population[:, 1]))))
 @printf("  Eligible (W >= \$%s): %d of %d (%.1f%%)\n",
     string(round(Int, MIN_WEALTH)), n_eligible, n_pop, n_eligible / n_pop * 100)
 
@@ -84,7 +85,7 @@ println("    (HRS SRH: [0.57,1.0,2.70]; R-S functional: [0.45,1.0,3.5])")
 # ===================================================================
 # SS enters through ss_func in the Bellman equation (COLA-protected).
 # Step 0 is a true Yaari benchmark (no SS). Step 1 adds SS as a channel.
-const SS_LEVELS = SS_QUARTILE_LEVELS  # [14K, 17K, 20K, 25K] by wealth quartile
+const SS_LEVELS = SS_QUARTILE_LEVELS  # SS_OBS + DB_OBS = [18284, 21188, 25924, 26873] by wealth quartile (2014 dollars, SS retirement + DB pension)
 
 println()
 decomp = run_decomposition(
@@ -106,6 +107,7 @@ decomp = run_decomposition(
     ss_levels=SS_LEVELS,
     consumption_decline_val=CONSUMPTION_DECLINE,
     health_utility_vals=Float64.(HEALTH_UTILITY),
+    chi_ltc_val=CHI_LTC,
     verbose=true,
 )
 
@@ -302,7 +304,7 @@ open(tex_path, "w") do f
     end
 
     println(f, raw"\midrule")
-    println(f, "Observed (Lockwood 2012) & 3.6 & --- & --- & --- \\\\")
+    println(f, "Observed (HRS, this sample) & \\pctHRSLifetime{}--\\pctHRSIannPooled{} & --- & --- & --- \\\\")
     println(f, raw"\bottomrule")
     println(f, raw"\end{tabular}")
     println(f, raw"\begin{tablenotes}")

@@ -29,12 +29,15 @@ using Distributed
 if nworkers() > 1
     @everywhere include(joinpath(@__DIR__, "..", "src", "AnnuityPuzzle.jl"))
     @everywhere using .AnnuityPuzzle
+    # config constants (THETA_DFJ, ...) are referenced inside run_full_model,
+    # which executes on the workers via the parallel_solve closure, so they
+    # must be defined on every worker, not just the driver process.
+    @everywhere include(joinpath(@__DIR__, "config.jl"))
 else
     include(joinpath(@__DIR__, "..", "src", "AnnuityPuzzle.jl"))
     using .AnnuityPuzzle
+    include(joinpath(@__DIR__, "config.jl"))
 end
-
-include(joinpath(@__DIR__, "config.jl"))
 
 const SS_LEVELS   = SS_QUARTILE_LEVELS  # [14K, 17K, 20K, 25K] by wealth quartile
 
@@ -48,13 +51,13 @@ println("=" ^ 70)
 println("\nLoading HRS population...")
 hrs_path = HRS_PATH
 hrs_raw = readdlm(hrs_path, ',', Any; skipstart=1)
-assert_hrs_schema(hrs_raw, hrs_path)
+has_health = assert_hrs_schema(hrs_raw, hrs_path)
 n_pop = size(hrs_raw, 1)
 population = zeros(n_pop, 4)
 population[:, 1] = Float64.(hrs_raw[:, 1])
 population[:, 2] .= 0.0                      # SS enters via ss_func, not A grid
 population[:, 3] = Float64.(hrs_raw[:, 3])
-if size(hrs_raw, 2) >= 4
+if has_health
     population[:, 4] = Float64.(hrs_raw[:, 4])  # observed health (1=Good, 2=Fair, 3=Poor)
 else
     population[:, 4] .= 2.0
@@ -82,11 +85,14 @@ base_kw = Dict{Symbol,Any}(
     :survival_pessimism => SURVIVAL_PESSIMISM,
     :min_wealth => MIN_WEALTH,
     :ss_levels => SS_LEVELS,
-    # All headline preference channels must be in base_kw; otherwise
-    # robustness sweeps evaluate a different model than the production
-    # headline.
+    # All headline preference AND structural channels must be in base_kw;
+    # otherwise robustness sweeps evaluate a different model than the
+    # production headline. chi_ltc (the ninth structural channel) is required
+    # so the sweeps perturb the nine-channel structural model (baseline 7.9%),
+    # not the eight-channel rational+preference model (6.2%).
     :consumption_decline_val => CONSUMPTION_DECLINE,
     :health_utility_vals => Float64.(HEALTH_UTILITY),
+    :chi_ltc_val => CHI_LTC,
     :verbose => false,
 )
 
@@ -99,7 +105,7 @@ base_kw = Dict{Symbol,Any}(
     end
     # Use Lockwood's original DFJ theta at all gamma values
     if !theta_explicitly_set
-        kw[:theta] = 56.96
+        kw[:theta] = THETA_DFJ
     end
     result = run_decomposition(base_surv_arg, population_arg; kw...)
     return result.steps[end].ownership_rate
@@ -141,10 +147,8 @@ for (label, hm) in hazard_specs
                          label=label,
                          params=Dict{Symbol,Any}(:hazard_mult => hm)))
 end
-hm_by_age = [0.49 1.0 3.29;   # 65-74
-             0.60 1.0 2.77;   # 75-84
-             0.74 1.0 1.82]   # 85+
-hm_midpoints = [70.0, 80.0, 90.0]
+hm_by_age = HAZARD_MULT_AGE_BANDS          # single-source: config age-band hazard matrix
+hm_midpoints = HAZARD_MULT_AGE_MIDPOINTS   # single-source: config band midpoints (69.5, 79.5, 90.0)
 push!(master_specs, (section=:hazard_ageband,
                      label="Age-varying HRS (3 bands)",
                      params=Dict{Symbol,Any}(:hazard_mult_by_age => hm_by_age,
@@ -302,28 +306,30 @@ loaded_pr = MWR_LOADED * fair_pr_nom
 
 grids = build_grids(p_fair, max(fair_pr, fair_pr_nom))
 
-p_full = ModelParams(; common_kw...,
-    theta=THETA_DFJ, kappa=KAPPA_DFJ,
-    mwr=MWR_LOADED, fixed_cost=FIXED_COST, inflation_rate=INFLATION,
-    medical_enabled=true, health_mortality_corr=true,
-    survival_pessimism=SURVIVAL_PESSIMISM,
-    min_purchase=0.0,
-    grid_kw...)
-
-pop_h = copy(population)
-pop_h = pop_h[pop_h[:, 1] .>= MIN_WEALTH, :]
-sol_full = solve_lifecycle_health(p_full, grids, base_surv, ss_zero)
+# Full nine-channel structural model with Social Security (matches the headline
+# evaluation). The minimum-purchase threshold only filters the alpha search, not
+# the value function, so re-solving per threshold isolates how much the floor
+# binds. SS enters via ss_levels (per wealth quartile), NOT a zeroed SS, so this
+# row is comparable to the 7.9% headline rather than the no-SS 23.5% it
+# previously reported. All preference and structural channels are active.
+mp_full_kw = (gamma=GAMMA, beta=BETA, r=R_RATE,
+              stochastic_health=true, n_health_states=3, n_quad=N_QUAD,
+              c_floor=C_FLOOR, hazard_mult=HAZARD_MULT,
+              survival_pessimism=SURVIVAL_PESSIMISM,
+              consumption_decline=CONSUMPTION_DECLINE,
+              health_utility=Float64.(HEALTH_UTILITY),
+              chi_ltc=CHI_LTC)
+pop_h = population[population[:, 1] .>= MIN_WEALTH, :]
 
 for mp in min_purchase_vals
-    p_eval = ModelParams(; common_kw...,
+    p_mp = ModelParams(; mp_full_kw...,
         theta=THETA_DFJ, kappa=KAPPA_DFJ,
         mwr=MWR_LOADED, fixed_cost=FIXED_COST, inflation_rate=INFLATION,
         medical_enabled=true, health_mortality_corr=true,
         min_purchase=mp,
         grid_kw...)
-    rate = compute_ownership_rate_health(
-        HealthSolution(sol_full.V, sol_full.c_policy, sol_full.grids, p_eval, base_surv),
-        pop_h, loaded_pr; base_surv=base_surv).ownership_rate
+    rate = solve_and_evaluate(p_mp, grids, base_surv, SS_LEVELS,
+        pop_h, loaded_pr; verbose=false).ownership
     label = mp == 0.0 ? "\$0 (any purchase)" : @sprintf("\$%s", string(round(Int, mp)))
     @printf("  %-30s  %10.1f%%\n", label, rate * 100)
     push!(all_results, ("Min purchase", label, @sprintf("%.1f%%", rate * 100)))
@@ -504,9 +510,9 @@ println("  $tex_path")
 # --- Full robustness CSV ---
 csv_path = joinpath(tables_dir, "csv", "robustness_full.csv")
 open(csv_path, "w") do f
-    println(f, "category,specification,ownership")
+    println(f, csv_row("category", "specification", "ownership"))
     for (cat, spec, rate) in all_results
-        println(f, "$cat,$spec,$rate")
+        println(f, csv_row(cat, spec, rate))
     end
 end
 println("  $csv_path")
