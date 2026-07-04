@@ -53,3 +53,8 @@ scripts.zip
 .aws-instance.meta
 .aws-instance.meta.terminated.*
 .aws-launch-provenance.txt
+
+# Person-level HRS-derived extracts: kept locally for the pipeline, never committed
+# (HRS DUA; rebuild via ANNUITY_FORCE_HRS_REBUILD=1 from raw HRS data)
+data/processed/hrs_validation_sample.csv
+data/processed/lockwood_hrs_sample.csv

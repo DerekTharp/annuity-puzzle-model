@@ -157,17 +157,18 @@ The pipeline gracefully skips raw-data stages if the source files are
 absent and falls back to the checked-in processed CSVs. To force full
 regeneration when raw inputs are present, set `ANNUITY_FORCE_HRS_REBUILD=1`.
 
-**Redistribution of HRS-derived files.** Two checked-in CSVs
+**Redistribution of HRS-derived files.** Two intermediate CSVs
 (`lockwood_hrs_sample.csv`, `hrs_validation_sample.csv`) hold individual
-person-wave records extracted from the RAND HRS file; the remaining processed
-CSVs are aggregates (transition matrices, hazard ratios, income profiles).
-HRS data are distributed under a conditions-of-use agreement that restricts
-redistribution of individual-level records. Before posting this package to a
-public archive, confirm with HRS whether the person-level extracts may be
-redistributed. If they may not, omit the two individual-level CSVs and have
-users regenerate them from their own RAND HRS download via
-`ANNUITY_FORCE_HRS_REBUILD=1`; the aggregate CSVs and all calibration targets
-may be shared freely.
+person-wave records extracted from the RAND HRS file. HRS data are
+distributed under a conditions-of-use agreement that restricts redistribution
+of individual-level records, so these two files are NOT included in this
+repository (they are gitignored and absent from its history). Users
+regenerate them from their own RAND HRS download via
+`ANNUITY_FORCE_HRS_REBUILD=1`; see the Data availability section for the HRS
+access route. All checked-in processed CSVs are aggregates (transition
+matrices, hazard ratios, income profiles, band-level ownership counts) and
+carry no individual-level records; these and all calibration targets may be
+shared freely.
 
 ## Reproducing the exhibits
 
