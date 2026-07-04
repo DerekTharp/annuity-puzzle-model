@@ -1097,25 +1097,25 @@ function write_extension_path_table()
         println(f, raw"\toprule")
         println(f, "Specification & Ownership (\\%) & \$\\Delta\$ (pp) \\\\")
         println(f, raw"\midrule")
-        @printf(f, "Six rational channels (Layer~1)              & %.1f & --- \\\\\n", own[bm7])
+        @printf(f, "Six rational channels                        & %.1f & --- \\\\\n", own[bm7])
         @printf(f, "+ Age-varying consumption needs              & %.1f & %+.1f \\\\\n",
                 own[bm8], own[bm8] - own[bm7])
         @printf(f, "+ State-dependent utility                    & %.1f & %+.1f \\\\\n",
                 own[bm9], own[bm9] - own[bm8])
-        @printf(f, "+ Public-care aversion \$\\chi_{\\text{LTC}}\$ (Layer~2 complete)         & %.1f & %+.1f \\\\\n",
+        @printf(f, "+ Public-care aversion \$\\chi_{\\text{LTC}}\$ (nine-channel baseline) & %.1f & %+.1f \\\\\n",
                 own[bm9_ltc], own[bm9_ltc] - own[bm9])
-        @printf(f, "+ Source-dependent utility (Force A)         & %.1f & %+.1f \\\\\n",
+        @printf(f, "+ Source-dependent utility (exploratory)     & %.1f & %+.1f \\\\\n",
                 own[bm10_sdu], own[bm10_sdu] - own[bm9_ltc])
-        @printf(f, "+ Narrow-framing penalty (Force B; Model 1) & %.1f & %+.1f \\\\\n",
+        @printf(f, "+ Narrow-framing penalty (exploratory; eleven-channel) & %.1f & %+.1f \\\\\n",
                 own[bm11_full], own[bm11_full] - own[bm10_sdu])
         println(f, raw"\bottomrule")
         println(f, raw"\end{tabular}")
         println(f, raw"\begin{tablenotes}")
         println(f, raw"\small")
-        println(f, raw"\item The table is the structural multi-channel decomposition.")
-        println(f, raw"Layer 1 covers rational frictions; Layer 2 adds preference and structural")
-        println(f, raw"channels; the two behavioral channels (SDU and PED) are an exploratory")
-        println(f, raw"extension reported with within-model sensitivity ranges.")
+        println(f, raw"\item Sequential extension path from the six rational channels through")
+        println(f, raw"the nine-channel structural baseline to the exploratory eleven-channel")
+        println(f, raw"specification; the two behavioral channels (SDU and the narrow-framing")
+        println(f, raw"penalty) are un-identified and reported with sensitivity ranges.")
         println(f, raw"\end{tablenotes}")
         println(f, raw"\end{threeparttable}")
         println(f, raw"\end{table}")

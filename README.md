@@ -37,19 +37,21 @@ in the literature -- mid-pack.
 
 The ranking is stable where the predicted **level** is not: predicted ownership
 is knife-edged in risk aversion (it spans 0% to roughly 22% across
-gamma in [2.0, 3.0]) because the extensive margin sits on the minimum-purchase
-threshold, while the channel ranking holds across risk aversion, across wealth
-quartiles, and across the discrete-vs-continuous demand statistic. The nine-
-channel structural baseline predicts roughly 8% ownership under the baseline
-calibration (gamma = 2.5, MWR = 0.87, Wettstein-2021 modern pricing); predicted
-ownership rises with wealth and concentrates in the top quartile, with near-zero
-predicted demand below it, because the pricing load makes immediate annuitization
-value-destroying for all but the wealthiest. The observed HRS gradient also rises
-with wealth but is interior in the middle of the distribution, where the single-
-product model predicts none. An exploratory eleven-channel Shapley over 2,048
-subsets adds the two
-behavioral parameters; they carry large but offsetting contributions and do not
-disturb the structural ranking.
+gamma in [2.0, 3.0]) because the extensive margin sits on a fixed-cost
+threshold interacting with the pricing load, while the channel ranking holds
+across that risk-aversion range, across wealth bands, and at alternative
+baseline money's worth ratios (boundary cases disclosed in the text). The
+nine-channel structural baseline predicts roughly 8% ownership under the
+baseline calibration (gamma = 2.5, MWR = 0.87, Wettstein-2021 modern pricing);
+predicted ownership rises with wealth and concentrates in the top band, with
+near-zero predicted demand below it, because the pricing load makes immediate
+annuitization value-destroying for all but the wealthiest. The observed HRS
+gradient also rises with wealth but is interior in the middle of the
+distribution, where the single-product model predicts none. An exploratory
+eleven-channel Shapley over 2,048 subsets adds the two behavioral parameters;
+they carry the largest absolute contributions essentially by construction and
+reorder the structural attributions, which is why the ranking is read off the
+nine-channel game.
 
 Two HRS measures of US lifetime annuity ownership (computed on the same
 wealth-restricted analysis sample as the model predictions) are reported in
@@ -132,7 +134,7 @@ from the raw RAND HRS inputs:
   contract indicator (q286 fat-file series), pooled across waves 5--9;
   `calibration/compute_lifetime_ownership_rate.jl`.
 - `data/processed/ss_income_profile.csv` -- claimer-conditional Social Security
-  and pension-only DB income by wealth quartile (2014 dollars);
+  and pension-only DB income by wealth band (2014 dollars);
   `calibration/build_ss_profile.jl`.
 - `data/processed/health_transitions_age_bands.csv` -- three-state health
   Markov transition matrices by age band;
