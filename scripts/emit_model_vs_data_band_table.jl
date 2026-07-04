@@ -21,11 +21,18 @@ const ROOT = joinpath(@__DIR__, "..")
 
 hrs_raw, hrs_hdr = readdlm(joinpath(ROOT, "data", "processed",
     "hrs_lifetime_ownership_by_band.csv"), ',', Any; header=true)
-# columns: band, band_label, n, n_lifetime, lifetime_unw_pct, lifetime_wtd_pct, iann_pct, anyc_pct
 col(name) = findfirst(==(name), vec(hrs_hdr))
+# Display: pooled person-wave rates (consistent with the headline ownership
+# macros). Inference: person-level counts (persons appear in up to five waves
+# with a near-time-invariant outcome, so the person is the independent unit).
 n_band   = Int.(hrs_raw[:, col("n")])
 o_band   = Int.(hrs_raw[:, col("n_lifetime")])
 hrs_pct  = Float64.(hrs_raw[:, col("lifetime_unw_pct")])
+col("n_persons") === nothing && error(
+    "hrs_lifetime_ownership_by_band.csv lacks person-level columns; " *
+    "re-run calibration/q286_by_wealth_band.jl")
+np_band  = Int.(hrs_raw[:, col("n_persons")])
+op_band  = Int.(hrs_raw[:, col("n_lifetime_persons")])
 
 mod_raw, mod_hdr = readdlm(joinpath(ROOT, "tables", "csv",
     "wealth_gradient_modeldata.csv"), ',', Any; header=true)
@@ -46,7 +53,7 @@ function ca_trend(o::Vector{Int}, n::Vector{Int})
     p = 2 * (1 - cdf(Normal(), abs(z)))
     return z, p
 end
-z_trend, p_trend = ca_trend(o_band, n_band)
+z_trend, p_trend = ca_trend(op_band, np_band)
 
 # --- (2) Pooled Wilson 95% CI for the three non-top bands ---
 function wilson_ci(k::Int, n::Int; z::Float64 = 1.96)
@@ -55,7 +62,7 @@ function wilson_ci(k::Int, n::Int; z::Float64 = 1.96)
     half = (z / (1 + z^2 / n)) * sqrt(phat * (1 - phat) / n + z^2 / (4n^2))
     return (center - half, center + half)
 end
-o_int = sum(o_band[1:3]); n_int = sum(n_band[1:3])
+o_int = sum(op_band[1:3]); n_int = sum(np_band[1:3])
 ci_lo, ci_hi = wilson_ci(o_int, n_int)
 
 # --- (3) Fisher exact test of the top two bands (band 3 vs band 4) ---
@@ -67,8 +74,8 @@ function fisher_exact(a::Int, b::Int, c::Int, d::Int)
     lo = max(0, n1 - (N - k)); hi = min(n1, k)
     return sum(pdf(dist, x) for x in lo:hi if pdf(dist, x) <= p_obs * (1 + 1e-7))
 end
-p_hump = fisher_exact(o_band[3], n_band[3] - o_band[3],
-                      o_band[4], n_band[4] - o_band[4])
+p_hump = fisher_exact(op_band[3], np_band[3] - op_band[3],
+                      op_band[4], np_band[4] - op_band[4])
 
 # --- Table ---
 tex_path = joinpath(ROOT, "tables", "tex", "model_vs_data_band.tex")
@@ -94,16 +101,26 @@ open(tex_path, "w") do f
     println(f, raw"\begin{tablenotes}")
     println(f, raw"\small")
     println(f, "\\item Observed: unweighted lifetime-SPIA ownership in the HRS analysis sample " *
-        @sprintf("(%d owners among %d households).", sum(o_band), sum(n_band)))
+        @sprintf("(%d owner observations among %d pooled person-wave observations, ", sum(o_band), sum(n_band)) *
+        @sprintf("from %d distinct persons of whom %d ever report a lifetime annuity).", sum(np_band), sum(op_band)))
     println(f, "\\item Model (threshold): the single-product structural model's predicted " *
-        "ownership by band. Model (cost-smoothed): the same prediction under a " *
-        "fixed-cost dispersion (Section~\\ref{sec:gate}).")
-    println(f, "\\item The observed gradient is increasing: a Cochran--Armitage trend test " *
-        @sprintf("across the four bands gives \$z=%.2f\$, \$p=%.3f\$. ", z_trend, p_trend) *
-        @sprintf("Pooled observed ownership in the three non-top bands is %.1f\\%% ", 100 * o_int / n_int) *
+        "ownership by band. Model (cost-smoothed): the same prediction under lognormal " *
+        "heterogeneous transaction costs with median at the \\pFixedCost{} literature " *
+        "fixed cost and log-standard-deviation 0.5 --- the fixed, non-fitted dispersion " *
+        "of Section~\\ref{sec:gate}; no band ownership rate enters its construction.")
+    println(f, "\\item Inference is at the person level, since persons appear in up to five " *
+        "waves with a near-time-invariant outcome: each person counts once, with wealth " *
+        "band assigned at the first eligible wave and ownership if reported in any " *
+        "eligible wave. The observed gradient is increasing: a Cochran--Armitage trend " *
+        @sprintf("test across the four bands gives \$z=%.2f\$, ", z_trend) *
+        (p_trend < 0.001 ? "\$p<0.001\$. " : @sprintf("\$p=%.3f\$. ", p_trend)) *
+        @sprintf("Pooled person-level ownership in the three non-top bands is %.1f\\%% ", 100 * o_int / n_int) *
         @sprintf("(Wilson 95\\%% CI [%.2f\\%%, %.2f\\%%]), excluding zero, where the ", 100 * ci_lo, 100 * ci_hi) *
-        "single-product model predicts none. The apparent peak-then-dip across the " *
-        @sprintf("top two bands is not statistically resolvable (Fisher exact \$p=%.2f\$).", p_hump))
+        "single-product model predicts none. The slight top-band dip in the displayed " *
+        "person-wave rates is a pooling artifact: at the person level ownership is " *
+        @sprintf("monotone increasing in wealth (%.1f\\%% in the third band, %.1f\\%% in the top), ",
+                 100 * op_band[3] / np_band[3], 100 * op_band[4] / np_band[4]) *
+        @sprintf("with the top-two-band difference not statistically distinguishable (Fisher exact \$p=%.2f\$).", p_hump))
     println(f, raw"\end{tablenotes}")
     println(f, raw"\end{threeparttable}")
     println(f, raw"\end{table}")

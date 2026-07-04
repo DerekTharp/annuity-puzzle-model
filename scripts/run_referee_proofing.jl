@@ -86,6 +86,9 @@ results = parallel_solve(specs) do spec
         health_utility=cfg.health_utility, chi_ltc=cfg.chi_ltc, _gkw...)
     pop = _minw > 0 ? _pop[_pop[:, 1] .>= _minw, :] : _pop
     res = solve_and_evaluate(p, grids, _bs, cfg.ss_levels, pop, pr; verbose=false)
+    if mask % 64 == 0
+        @printf("    [heartbeat] game %d subset %d solved\n", spec.g, mask); flush(stdout)
+    end
     (g=spec.g, mask=mask, ownership=res.ownership)
 end
 @printf("  done in %.0fs\n", time() - t0); flush(stdout)

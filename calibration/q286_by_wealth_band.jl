@@ -42,6 +42,12 @@ wlife_b  = zeros(Float64, 4)
 iann_b   = zeros(Int, 4)
 anyc_b   = zeros(Int, 4)
 
+# Person-level accumulators (inference treats the person, not the person-wave,
+# as the independent unit): band assigned at the first eligible wave, owner if
+# a lifetime annuity is reported in ANY eligible wave.
+person_band = Dict{Float64, Int}()
+person_life = Dict{Float64, Bool}()
+
 for (w, ff, life_vars) in WAVES
     fat_path = joinpath(PROJ, "data", "raw", "HRS", "HRS Fat Files",
                        "$(ff)_STATA", "$(ff).dta")
@@ -104,7 +110,18 @@ for (w, ff, life_vars) in WAVES
             life_b[b] += 1
             wlife_b[b] += wt
         end
+
+        haskey(person_band, h) || (person_band[h] = b)  # waves run 5->9, so first-seen = first eligible
+        person_life[h] = get(person_life, h, false) || any_lifetime
     end
+end
+
+# Collapse to person level
+np_b    = zeros(Int, 4)
+lifep_b = zeros(Int, 4)
+for (h, b) in person_band
+    np_b[b] += 1
+    person_life[h] && (lifep_b[b] += 1)
 end
 
 println("=" ^ 78)
@@ -128,14 +145,25 @@ tot_n = sum(n_b); tot_life = sum(life_b); tot_wt = sum(wt_b); tot_wlife = sum(wl
 @printf("  %-12s %6d %8d %9.2f %11.2f\n", "POOLED", tot_n, tot_life,
         100*tot_life/max(tot_n,1), 100*tot_wlife/max(tot_wt,1))
 
+println("\n  Person-level (band at first eligible wave; owner if lifetime annuity in any wave):")
+@printf("  %-12s %9s %9s %12s\n", "band", "persons", "owners", "person%")
+for b in 1:4
+    @printf("  %-12s %9d %9d %11.2f\n", labels[b], np_b[b], lifep_b[b],
+        100*lifep_b[b]/max(np_b[b],1))
+end
+@printf("  %-12s %9d %9d %11.2f\n", "POOLED", sum(np_b), sum(lifep_b),
+        100*sum(lifep_b)/max(sum(np_b),1))
+
 # Save CSV
 out_path = joinpath(PROJ, "data", "processed", "hrs_lifetime_ownership_by_band.csv")
 open(out_path, "w") do f
-    println(f, "band,band_label,n,n_lifetime,lifetime_unw_pct,lifetime_wtd_pct,iann_pct,anyc_pct")
+    println(f, "band,band_label,n,n_lifetime,lifetime_unw_pct,lifetime_wtd_pct,iann_pct,anyc_pct," *
+               "n_persons,n_lifetime_persons,lifetime_person_pct")
     for b in 1:4
-        @printf(f, "%d,%s,%d,%d,%.4f,%.4f,%.4f,%.4f\n", b, labels[b], n_b[b], life_b[b],
+        @printf(f, "%d,%s,%d,%d,%.4f,%.4f,%.4f,%.4f,%d,%d,%.4f\n", b, labels[b], n_b[b], life_b[b],
             100*life_b[b]/max(n_b[b],1), 100*wlife_b[b]/max(wt_b[b],1),
-            100*iann_b[b]/max(n_b[b],1), 100*anyc_b[b]/max(n_b[b],1))
+            100*iann_b[b]/max(n_b[b],1), 100*anyc_b[b]/max(n_b[b],1),
+            np_b[b], lifep_b[b], 100*lifep_b[b]/max(np_b[b],1))
     end
 end
 println("\n  Saved: $out_path")

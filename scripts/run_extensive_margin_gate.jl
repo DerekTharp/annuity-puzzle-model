@@ -18,12 +18,14 @@
 # cost enters only the age-65 decision, not V, so participation under G is the
 # average of G(F*) across households, where F* is each household's indifference
 # fixed cost (compute_indiff_fixed_cost_health). No Bellman re-solve, no engine
-# change. The lognormal cost-smoother is a DIAGNOSTIC only (not a manuscript
-# input): because smoothed participation is 0 wherever F*=0, the bottom two
-# bands sit below their HRS targets and cannot be matched, so the (mu, sigma)
-# search is effectively identified by the top band alone. The load-bearing
-# outputs are the F* distribution (Result 1) and the killer table
-# (run_gate_robustness.jl, fixed dispersion); neither fits any band rate.
+# change. The lognormal cost-smoother uses the SAME fixed, non-fitted
+# dispersion as the killer table (run_gate_robustness.jl): median at the
+# literature fixed cost, log-sd 0.5. Nothing is fitted to any HRS band rate,
+# so the smoothed column in the model-vs-data table is a genuine prediction
+# and the manuscript's "no band ownership rate is a calibration target" claim
+# holds for every reported treatment. Smoothed participation is 0 wherever
+# F*=0, so the interior-band zeros are dispersion-invariant. The load-bearing
+# outputs are the F* distribution (Result 1) and the killer table.
 #
 # Output:
 #   tables/csv/extensive_margin_gate.csv   (per-band: n, hrs, hard, smoothed
@@ -51,9 +53,18 @@ const NA  = SMOKE ? 15 : N_ANNUITY
 const NAL = SMOKE ? 51 : N_ALPHA
 const SS_CUT_FRAC = 0.22  # 2026 Trustees projected OASI shortfall; mirrors run_welfare_counterfactuals.jl
 
-# HRS per-band ownership (any-annuity proxy gradient; tables/csv/empirical_gradients_cells.csv)
-const HRS_BAND = [1.6941, 6.3556, 7.8824, 7.6164] ./ 100
+# HRS per-band ownership (any-annuity proxy gradient), read from the Stage 11d
+# output rather than hardcoded so a recomputed validation sample propagates.
 const BAND_LABELS = ["<30k", "30-120k", "120-350k", ">350k"]
+function load_hrs_band()
+    path = joinpath(@__DIR__, "..", "tables", "csv", "empirical_gradients_cells.csv")
+    isfile(path) || error("Missing $path; run scripts/run_empirical_validation.jl (Stage 11d) first")
+    raw, _ = readdlm(path, ',', Any; header=true)
+    vals = Dict(strip(String(raw[r, 2])) => Float64(raw[r, 4])
+                for r in 1:size(raw, 1) if strip(String(raw[r, 1])) == "wealth_bin")
+    return [vals[l] for l in BAND_LABELS] ./ 100
+end
+const HRS_BAND = load_hrs_band()
 
 println("=" ^ 70)
 println("  EXTENSIVE-MARGIN GATE: heterogeneous fixed costs vs convexity gap")
@@ -136,32 +147,14 @@ function smoothed_band(b::Int, scen::Symbol, mu::Float64, sigma::Float64)
     return s / length(fs)
 end
 
-# Calibrate (mu, sigma) to the four HRS band rates (weighted by band n).
+# Fixed, non-fitted dispersion — identical to the killer table
+# (run_gate_robustness.jl): median at the literature fixed cost, log-sd 0.5.
+# Nothing is calibrated to any HRS band rate.
 nb = [length(Fstar[(b, :base)]) for b in 1:4]
-function sse(mu, sigma)
-    s = 0.0
-    for b in 1:4
-        s += nb[b] * (smoothed_band(b, :base, mu, sigma) - HRS_BAND[b])^2
-    end
-    return s
-end
-function calibrate()
-    best = (mu=log(2500.0), sigma=1.0, sse=Inf)
-    for mu in log.(range(250.0, 8000.0; length=60)), sigma in range(0.15, 3.5; length=60)
-        e = sse(mu, sigma)
-        e < best.sse && (best = (mu=mu, sigma=sigma, sse=e))
-    end
-    # Local refinement
-    for mu in range(best.mu - 0.3, best.mu + 0.3; length=40), sigma in range(max(0.05, best.sigma - 0.3), best.sigma + 0.3; length=40)
-        e = sse(mu, sigma)
-        e < best.sse && (best = (mu=mu, sigma=sigma, sse=e))
-    end
-    return best
-end
-best = calibrate()
-mu_f, sig_f = best.mu, best.sigma
-@printf("\n  Diagnostic LogNormal smoother (identified by the top band; not a manuscript input): median=\$%.0f, sigma=%.2f (SSE=%.2e)\n",
-        exp(mu_f), sig_f, best.sse)
+const COST_SIGMA = 0.5  # fixed stress-test dispersion (NOT fitted); mirrors run_gate_robustness.jl
+mu_f, sig_f = log(FIXED_COST), COST_SIGMA
+@printf("\n  LogNormal cost smoother (fixed, non-fitted): median=\$%.0f, sigma=%.2f\n",
+        exp(mu_f), sig_f)
 @printf("  (literature point fixed cost = \$%.0f; Lockwood range \$500-\$2000)\n", FIXED_COST)
 flush(stdout)
 
@@ -244,7 +237,7 @@ open(gate_csv, "w") do f
     end
     @printf(f, "AGGREGATE,%d,,%.4f,%.4f,%.4f,%.4f,100.00\n", sum(nb),
             agg_hard*100, agg_smooth*100, agg_cut*100, (agg_cut-agg_smooth)*100)
-    @printf(f, "# calibrated lognormal median=%.0f sigma=%.4f\n", exp(mu_f), sig_f)
+    @printf(f, "# fixed (non-fitted) lognormal median=%.0f sigma=%.4f, mirrors run_gate_robustness.jl\n", exp(mu_f), sig_f)
 end
 println("\n  CSV written: $gate_csv")
 

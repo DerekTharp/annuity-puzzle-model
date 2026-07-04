@@ -685,6 +685,37 @@ function build_macros!()
     end
 
     # ======================================================================
+    # Section H2 — Referee-proofing recomputations (run_referee_proofing.jl):
+    # alternative-baseline Shapley games and by-band ownership at policy MWRs.
+    # ======================================================================
+    let path = joinpath(CSV_DIR, "referee_proofing_shapley.csv")
+        if isfile(path)
+            raw, _ = readdlm(path, ',', Any; header=true)  # game, channel, shapley_value_pp, abs_rank
+            shp = Dict{Tuple{String,String},Float64}(
+                (String(raw[r, 1]), String(raw[r, 2])) => Float64(raw[r, 3])
+                for r in 1:size(raw, 1))
+            def!("rpLoadsAtMwrEightyFive", fmt_num(shp[("mwr085", "Loads")]; digits=1))
+            def!("rpBequestsAtMwrEightyFive", fmt_num(shp[("mwr085", "Bequests")]; digits=1))
+            def!("rpLoadsAtMwrNinety", fmt_num(shp[("mwr090", "Loads")]; digits=1))
+            def!("rpBequestsAtMwrNinety", fmt_num(shp[("mwr090", "Bequests")]; digits=1))
+            def!("rpLoadsAtGammaLow", fmt_num(shp[("gamma15", "Loads")]; digits=1))
+            def!("rpBequestsAtGammaLow", fmt_num(shp[("gamma15", "Bequests")]; digits=1))
+        end
+    end
+    let path = joinpath(CSV_DIR, "referee_proofing_byband.csv")
+        if isfile(path)
+            raw, hdr = readdlm(path, ',', Any; header=true)
+            for r in 1:size(raw, 1)
+                key = Float64(raw[r, 1]) == 0.90 ? "Ninety" : "NinetyFive"
+                def!("bybandMwr" * key * "Agg",   fmt_pct(Float64(raw[r, 2]); digits=1))
+                def!("bybandMwr" * key * "Qtwo",  fmt_pct(Float64(raw[r, 4]); digits=1))
+                def!("bybandMwr" * key * "Qthree", fmt_pct(Float64(raw[r, 5]); digits=1))
+                def!("bybandMwr" * key * "Qfour", fmt_pct(Float64(raw[r, 6]); digits=1))
+            end
+        end
+    end
+
+    # ======================================================================
     # Section I — Robustness (gamma, inflation, psi sweeps)
     # ======================================================================
     for (key, spec) in [
