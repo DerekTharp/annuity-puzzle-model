@@ -347,3 +347,58 @@ macros = load_macros()
         end
     end
 end
+
+# ---------------------------------------------------------------------------
+# New-exhibit integrity: the three tables added in the 2026-07 revision carry
+# baked-in inferential statistics and endpoint values. Recompute each from its
+# CSV inputs and require the emitted .tex to contain the same rendered value.
+# ---------------------------------------------------------------------------
+using Distributions: Normal, Hypergeometric, cdf, pdf
+
+@testset "new-exhibit statistics integrity" begin
+    tex_dir = joinpath(REPO_ROOT, "tables", "tex")
+    csv_dir = joinpath(REPO_ROOT, "tables", "csv")
+
+    @testset "model_vs_data_band: person-level CA/Wilson/Fisher" begin
+        path = joinpath(REPO_ROOT, "data", "processed", "hrs_lifetime_ownership_by_band.csv")
+        tex  = read(joinpath(tex_dir, "model_vs_data_band.tex"), String)
+        raw, hdr = readdlm(path, ',', Any; header=true)
+        c(name) = findfirst(==(name), vec(hdr))
+        np = Int.(raw[:, c("n_persons")]); op = Int.(raw[:, c("n_lifetime_persons")])
+        # Cochran-Armitage trend
+        t = Float64.(1:4); N = sum(np); pbar = sum(op) / N; tbar = sum(t .* np) / N
+        z = sum(t[i] * (op[i] - np[i] * pbar) for i in 1:4) /
+            sqrt(pbar * (1 - pbar) * sum(np[i] * (t[i] - tbar)^2 for i in 1:4))
+        @test occursin("z=$(round(z, digits=2))", replace(tex, "\$" => ""))
+        # Pooled interior Wilson CI
+        k = sum(op[1:3]); n = sum(np[1:3]); zc = 1.96; ph = k / n
+        ctr = (ph + zc^2 / (2n)) / (1 + zc^2 / n)
+        hw  = (zc / (1 + zc^2 / n)) * sqrt(ph * (1 - ph) / n + zc^2 / (4n^2))
+        lo = round(100 * (ctr - hw), digits=2); hi = round(100 * (ctr + hw), digits=2)
+        @test occursin("[$(lo)\\%, $(hi)\\%]", tex)
+    end
+
+    @testset "band_value_destruction endpoints" begin
+        raw, _ = readdlm(joinpath(csv_dir, "band_value_destruction_diagnostic.csv"), ',', Any; header=true)
+        tex = read(joinpath(tex_dir, "band_value_destruction.tex"), String)
+        vals = Dict((strip(String(raw[r, 1])), Int(raw[r, 2])) => Float64(raw[r, 3]) for r in 1:size(raw, 1))
+        for (cfg, b) in [("Full structural", 3), ("- Pricing loads (MWR)", 3), ("- Survival pessimism", 3)]
+            v = round(vals[(cfg, b)], digits=1)
+            @test occursin("$(v)\\%", tex)
+        end
+        # The note's causal claim requires loads to be the largest band-3 lift
+        base3 = vals[("Full structural", 3)]
+        lifts = [(cfg, v - base3) for ((cfg, b), v) in vals if b == 3 && cfg != "Full structural"]
+        @test argmax(last, lifts)[1] == "- Pricing loads (MWR)"
+    end
+
+    @testset "partition_robustness: loads top suppressor in both panels" begin
+        tex = read(joinpath(tex_dir, "partition_robustness.tex"), String)
+        for panel in split(tex, "Panel ")[2:end]
+            rows = [m for m in eachmatch(r"([A-Za-z+\-\\ ]+) & ([+\-][0-9.]+) & (\d+)", panel)]
+            isempty(rows) && continue
+            top = argmax(r -> parse(Float64, r.captures[2]), rows)
+            @test occursin("Loads", top.captures[1])
+        end
+    end
+end

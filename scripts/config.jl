@@ -167,3 +167,7 @@ function parse_csv_row(line::AbstractString)
     push!(out, String(take!(buf)))
     return out
 end
+
+# Projected OASI trust-fund shortfall (2026 Trustees: ~22% cut at late-2032
+# depletion). Single source for every SS-cut counterfactual stage.
+const SS_CUT_TRUSTEES = 0.22

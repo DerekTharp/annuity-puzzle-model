@@ -46,7 +46,7 @@ const SMOKE = get(ENV, "GATE_SMOKE", "0") == "1"
 const NW  = SMOKE ? 40 : N_WEALTH
 const NA  = SMOKE ? 15 : N_ANNUITY
 const NAL = SMOKE ? 51 : N_ALPHA
-const SS_CUT_FRAC = 0.22
+const SS_CUT_FRAC = SS_CUT_TRUSTEES  # single source: scripts/config.jl
 const COST_SIGMA = 0.5             # fixed stress-test dispersion (NOT fitted)
 const THETA_CELLS = [0.0, THETA_DFJ / 2, THETA_DFJ]   # no / half / full bequest
 const BAND_LABELS = ["<30k", "30-120k", "120-350k", ">350k"]

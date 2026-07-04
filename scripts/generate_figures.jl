@@ -136,8 +136,8 @@ function figure_1_decomposition()
     # in sync with the manuscript's reported HRS measures. Two HRS targets
     # are shaded: the cleaner lifetime-contract indicator (q286) and the
     # conventional any-annuity income proxy (r{w}iann).
-    obs_lifetime = read_numbers_macro("pctHRSLifetime";    default=2.02)
-    obs_income   = read_numbers_macro("pctHRSIannPooled";  default=3.34)
+    obs_lifetime = read_numbers_macro("pctHRSLifetime";    default=3.64)
+    obs_income   = read_numbers_macro("pctHRSIannPooled";  default=6.06)
     vline!([obs_lifetime], color = CB_BLACK, linestyle = :dash,  linewidth = 1.0, label = "")
     vline!([obs_income],   color = CB_BLACK, linestyle = :dot,   linewidth = 1.0, label = "")
     annotate!(obs_income + 0.5, n + 0.45,
@@ -210,8 +210,11 @@ function figure_2_gamma_sensitivity()
         right_margin = 3Plots.mm,
     )
 
-    # Observed range band (3-6%)
-    hspan!([3.0, 6.0], color = CB_GREEN, alpha = 0.18, label = "Observed range (3-6%)")
+    # Observed range band (the two HRS ownership anchors from numbers.tex)
+    obs_lo = read_numbers_macro("pctHRSLifetime";   default=3.64)
+    obs_hi = read_numbers_macro("pctHRSIannPooled"; default=6.06)
+    hspan!([obs_lo, obs_hi], color = CB_GREEN, alpha = 0.18,
+           label = @sprintf("Observed range (%.1f-%.1f%%)", obs_lo, obs_hi))
 
     # Mark baseline gamma
     vline!([GAMMA], color = CB_RED, linestyle = :dash, linewidth = 1.0, label = "")
@@ -290,9 +293,12 @@ function figure_3_hazard_sensitivity()
         xrotation = 0,
     )
 
-    # Observed range band
-    hspan!([3.0, 6.0], color = CB_GREEN, alpha = 0.15, label = "")
-    annotate!(3.85, 5.5, Plots.text("Observed (3-6%)", 8, :right, :darkgreen))
+    # Observed range band (the two HRS ownership anchors from numbers.tex)
+    obs_lo3 = read_numbers_macro("pctHRSLifetime";   default=3.64)
+    obs_hi3 = read_numbers_macro("pctHRSIannPooled"; default=6.06)
+    hspan!([obs_lo3, obs_hi3], color = CB_GREEN, alpha = 0.15, label = "")
+    annotate!(3.85, obs_hi3 - 0.5,
+              Plots.text(@sprintf("Observed (%.1f-%.1f%%)", obs_lo3, obs_hi3), 8, :right, :darkgreen))
 
     # Value labels above bars
     for (i, val) in enumerate(ownership)

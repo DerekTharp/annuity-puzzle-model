@@ -7,7 +7,7 @@
 # participation threshold. Real households differ in transaction costs (advisor
 # access, search, literacy), so within a band SOME cross even when the median does
 # not. This script smooths the extensive margin with HETEROGENEOUS fixed costs
-# F_i ~ LogNormal(mu, sigma), calibrated to the four HRS band rates, and asks the
+# F_i ~ LogNormal(mu, sigma) at a fixed, non-fitted dispersion, and asks the
 # decision question the distributional claim hinges on:
 #
 #   Once the bottom bands CAN respond (interior baseline ownership), does a 22%
@@ -51,7 +51,7 @@ const SMOKE = get(ENV, "EMG_SMOKE", "0") == "1"
 const NW  = SMOKE ? 40 : N_WEALTH
 const NA  = SMOKE ? 15 : N_ANNUITY
 const NAL = SMOKE ? 51 : N_ALPHA
-const SS_CUT_FRAC = 0.22  # 2026 Trustees projected OASI shortfall; mirrors run_welfare_counterfactuals.jl
+const SS_CUT_FRAC = SS_CUT_TRUSTEES  # single source: scripts/config.jl
 
 # HRS per-band ownership (any-annuity proxy gradient), read from the Stage 11d
 # output rather than hardcoded so a recomputed validation sample propagates.
