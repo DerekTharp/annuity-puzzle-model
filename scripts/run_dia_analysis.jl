@@ -27,10 +27,12 @@ println("=" ^ 70)
 println("  DIA/QLAC ANALYSIS: DEFERRED VS IMMEDIATE ANNUITIES")
 println("=" ^ 70)
 
-# Product-specific MWR (Wettstein et al. 2021)
+# Product-specific MWR. Wettstein et al. (2021) estimate ~0.50 for deferred
+# annuities beginning at age 85; the DIA-80/DIA-85 values are assumptions
+# extrapolating their deferral gradient, not point estimates from the source.
 const MWR_SPIA    = MWR_LOADED
-const MWR_DIA80   = 0.50   # much lower due to longer deferral
-const MWR_DIA85   = 0.45   # even lower for DIA-85
+const MWR_DIA80   = 0.50
+const MWR_DIA85   = 0.45
 
 # ===================================================================
 # Load HRS population + survival
@@ -276,7 +278,9 @@ open(tex_path, "w") do f
     println(f, "\\end{tabular}")
     println(f, "\\begin{tablenotes}")
     println(f, "\\small")
-    println(f, "\\item DIA MWR from Wettstein et al.\\ (2021). All models include")
+    println(f, "\\item DIA MWRs assume 0.50 (DIA-80) and 0.45 (DIA-85), extrapolating")
+    println(f, "the deferral gradient in Wettstein et al.\\ (2021), who estimate an MWR")
+    println(f, "near 0.50 for deferred annuities beginning at age 85. All models include")
     println(f, "medical costs, R-S correlation, pricing loads, and 2\\% inflation.")
     println(f, "CEV evaluated at good health (H=1).")
     println(f, "\\end{tablenotes}")
