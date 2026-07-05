@@ -45,7 +45,7 @@ open(tex_path, "w") do f
     println(f, raw"\end{tabular}")
     println(f, raw"\begin{tablenotes}")
     println(f, raw"\small")
-    println(f, raw"\item Share of households in each band who would purchase the immediate annuity at a \emph{zero} transaction cost (indifference fixed cost $F^\star>0$), under the full structural model and under each one-channel-removed variant. Bands 2 and 3 are where observed lifetime-SPIA ownership peaks. A full-model entry near zero that jumps when a channel is removed identifies that channel as the one making annuitization value-destroying for the modal observed owner: in band 3 the removal of pricing loads moves the zero-cost share furthest, so the load, not the transaction cost, drives the predicted exclusion. Production grid.")
+    println(f, raw"\item Share of households in each band who would purchase the immediate annuity at a \emph{zero} transaction cost (indifference fixed cost $F^\star>0$), under the full structural model and under each one-channel-removed variant. Bands 2 and 3 are the interior bands where observed lifetime-annuity ownership most exceeds the model's zero prediction. A full-model entry near zero that jumps when a channel is removed identifies that channel as the one making annuitization value-destroying for the modal observed owner: in band 3 the removal of pricing loads moves the zero-cost share furthest, so the load, not the transaction cost, drives the predicted exclusion. Production grid.")
     println(f, raw"\end{tablenotes}")
     println(f, raw"\end{threeparttable}")
     println(f, raw"\end{table}")

@@ -60,9 +60,9 @@
 \subsection{Health transition matrices}
 \label{app:health_transitions}
 
-Health transitions are calibrated to the RAND HRS longitudinal file (waves 4--16), with the five self-reported health categories mapped to three states: Good (Excellent/Very Good), Fair (Good), and Poor (Fair/Poor). Transition probabilities are age-band dependent: distinct $3 \times 3$ transition matrices are estimated for six age bands (65--69, 70--74, 75--79, 80--84, 85--89, 90+) and applied piecewise within each band. The age-band specification captures the empirical acceleration in poor-health entry around ages 75--85 (Hurd-Michaud-Rohwedder 2017) more accurately than a two-anchor linear interpolation. Each band's transition matrix is row-normalized after estimation to ensure exact stochasticity. Reference values follow \citet{denardi2010}.
+Health transitions are calibrated to the RAND HRS longitudinal file (consecutive-wave pairs from waves 5--12, 2000--2014, with two-year rates annualized via matrix square root), with the five self-reported health categories mapped to three states: Good (Excellent/Very Good), Fair (Good), and Poor (Fair/Poor). Transition probabilities are age-band dependent: distinct $3 \times 3$ transition matrices are estimated for six age bands (65--69, 70--74, 75--79, 80--84, 85--89, 90+) and applied piecewise within each band. The age-band specification captures the empirical acceleration in poor-health entry around ages 75--85 (Hurd-Michaud-Rohwedder 2017) more accurately than a two-anchor linear interpolation. Each band's transition matrix is row-normalized after estimation to ensure exact stochasticity. Reference values follow \citet{denardi2010}.
 
-The transition matrices exhibit two standard features. First, health deterioration is more likely than improvement: transition rates from Good to Fair exceed those from Fair to Good at all ages. Second, deterioration accelerates with age: the probability of remaining in Good health falls from approximately 0.80 at ages 65--69 to 0.55 at ages 90+.
+The transition matrices exhibit two standard features. First, health deterioration is more likely than improvement: transition rates from Good to Fair exceed those from Fair to Good in every age band from 70--74 onward (in the 65--69 band the two rates are nearly equal, 0.144 versus 0.147). Second, deterioration accelerates with age: the annual probability of remaining in Good health falls from 0.84 at ages 65--69 to 0.67 at ages 90+.
 
 \subsection{Medical expenditure calibration}
 
@@ -81,8 +81,8 @@ where $\mu_m^{\text{base}} = 7.037$ is the log mean at age 65 for Fair health, $
 Moment & Model & Target (Jones et al.\ 2018) \\
 \midrule
 Mean OOP, age 70, Fair health & \medMeanSeventy & \$4,200 \\
-Mean OOP, age 100, Fair health & \medMeanHundred & \$29,700 \\
-95th pctile, age 100, Fair health & \medPctNinetyFive & \$111,200 \\
+Mean OOP+Medicaid, age 100, Fair health & \medMeanHundred & \$29,700 \\
+95th pctile OOP+Medicaid, age 100, Fair health & \medPctNinetyFive & \$111,200 \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -92,7 +92,7 @@ The lognormal specification produces a right-skewed distribution consistent with
 \subsection{Survival calibration}
 \label{app:survival}
 
-Baseline survival probabilities use the SSA administrative period life table employed by \citet{lockwood2012}. The cumulative death probabilities at ages 65, 70, 75, \ldots are taken directly from Lockwood's replication code (BAP\_sim2.m) and interpolated linearly at intermediate ages.
+Baseline survival probabilities use the SSA administrative period life table employed by \citet{lockwood2012}. The cumulative death probabilities at each age from 65 to 110 are taken directly from Lockwood's replication code (BAP\_wtp.m); the table is annual, so no interpolation across ages is required.
 
 Health-adjusted survival follows
 \[
@@ -216,7 +216,7 @@ This anomaly illustrates why $\theta$ and $\kappa$ must be interpreted as a pair
 \]
 At $\gamma = \pGamma$, this would yield $\theta = \pThetaDFJ^{\pGamma/2.0} = 156.5$, nearly tripling the bequest weight. However, this recalibration is ad hoc: Lockwood's $\theta$ was estimated from data, not derived from first principles, and there is no guarantee that the first-order condition used to derive the scaling formula holds in the full model with medical expenditure risk, stochastic mortality, and survival pessimism.
 
-Table~\ref{tab:bequest_recal} reports a forward simulation test at $\gamma = 2.0$ and $\gamma = \pGamma$ using the original $\theta = \pThetaDFJ$. Holding $\theta$ fixed while raising $\gamma$ from Lockwood's estimation value to the baseline leaves the realized bequest-to-wealth ratio modestly \emph{above} his estimation point (Table~\ref{tab:bequest_recal}, divergence below the 20\% retargeting threshold), so the production calibration already affords the bequest motive slightly more weight than a retargeting to his moment would, not less. The analytic portability formula pushes the other way, raising $\theta$ to $156.5$ and strengthening the marginal bequest incentive further; the two adjustments bracket the production value and disagree in direction, which is why neither is imposed and all results use Lockwood's original $\theta$ at every $\gamma$. The conclusion the paper draws from the bequest channel concerns its \emph{rank}, not its level, and the rank is stable across the entire risk-aversion sweep at fixed $\theta$: pricing loads are the leading suppressor at every $\gamma \in [2.0, 3.0]$, and bequest motives, although they rise from mid-pack at the baseline into the second tier as risk aversion falls, are never the leading channel (Section~\ref{M-sec:robustness}). Because that sweep already traverses a wide range of effective bequest strength without displacing pricing loads, a recalibration of $\theta$ within the empirically relevant range would not overturn the ranking. The predicted ownership \emph{level} is sensitive to the bequest calibration; the channel ranking is not.
+Table~\ref{tab:bequest_recal} reports a forward simulation test at $\gamma = 2.0$ and $\gamma = \pGamma$ using the original $\theta = \pThetaDFJ$. Holding $\theta$ fixed while raising $\gamma$ from Lockwood's estimation value to the baseline leaves the realized bequest-to-wealth ratio modestly \emph{above} his estimation point (Table~\ref{tab:bequest_recal}, divergence below the 20\% retargeting threshold), so the production calibration already affords the bequest motive slightly more weight than a retargeting to his moment would, not less. The analytic portability formula pushes the other way, raising $\theta$ to $156.5$ and strengthening the marginal bequest incentive further; the two adjustments bracket the production value and disagree in direction, which is why neither is imposed and all results use Lockwood's original $\theta$ at every $\gamma$. The conclusion the paper draws from the bequest channel concerns its \emph{rank}, not its level, and the rank is stable across the entire risk-aversion sweep at fixed $\theta$: pricing loads are the leading suppressor on the ownership statistic at every $\gamma \in [2.0, 3.0]$, and bequest motives, although they rise from mid-pack at the baseline into the second tier as risk aversion falls, overtake loads only at the disclosed boundaries---the continuous mean-purchase statistic at $\gamma = 2.0$ and the degenerate zero-ownership game at $\gamma = 1.5$ (Section~\ref{M-sec:robustness}). Because that sweep already traverses a wide range of effective bequest strength without displacing pricing loads, a recalibration of $\theta$ within the empirically relevant range would not overturn the ranking. The predicted ownership \emph{level} is sensitive to the bequest calibration; the channel ranking is not.
 
 \input{../tables/tex/bequest_recalibration.tex}
 
@@ -258,7 +258,7 @@ Deferred products carry lower money's worth ratios, however. \citet{wettstein202
 
 \input{../tables/tex/dia_comparison.tex}
 
-Table~\ref{tab:dia} compares predicted ownership and welfare across product types. The DIA results suggest that product innovation alone is unlikely to resolve low annuity demand. The channels suppressing SPIA demand---valuation risk, survival pessimism, inflation erosion, bequest motives---apply with similar force to deferred products, and the inferior pricing of DIAs partially offsets their actuarial advantage.
+Table~\ref{tab:dia} compares predicted ownership and welfare across product types. The exhibit is solved without pre-existing Social Security or defined-benefit income, so its SPIA ownership levels are not comparable to the headline configuration; the comparison is internal to the table's common environment. The DIA results suggest that product innovation alone is unlikely to resolve low annuity demand. The channels suppressing SPIA demand---valuation risk, survival pessimism, inflation erosion, bequest motives---apply with similar force to deferred products, and the inferior pricing of DIAs partially offsets their actuarial advantage.
 
 
 %% ================================================================
@@ -364,7 +364,7 @@ The nine-channel game combines medical-expenditure risk with the Reichling--Smet
 
 Medical expenditure shocks are integrated via Gauss--Hermite quadrature over the lognormal distribution $\ln m \sim N(\mu, \sigma^2)$ with $\sigma \approx 1.4$. At this variance, the distribution has heavy tails that interact with the Medicaid consumption floor to create a kink in the integrand. Low-order quadrature rules place insufficient weight in the tails, producing inaccurate expectations.
 
-Table~\ref{tab:grid_convergence} (Panel B) documents the convergence: binary ownership at the production grid moves from \quadThree{} at $n_{\text{quad}} = 3$ to \quadNine{} at $n_{\text{quad}} = 9$ and rises within a \quadBand{} pp window thereafter (\quadNine, \quadEleven, \quadThirteen, \quadFifteen{} at $n_{\text{quad}} \in \{9, 11, 13, 15\}$). Lower-order rules deviate by up to 2 pp because of the tail--floor interaction: small changes in the quadrature approximation of the medical-expense tail shift marginal households across the discrete ownership threshold. Nine nodes balances accuracy against computational cost; we adopt it as the production standard.
+Table~\ref{tab:grid_convergence} (Panel B) documents the convergence: binary ownership at the production grid moves from \quadThree{} at $n_{\text{quad}} = 3$ to \quadNine{} at $n_{\text{quad}} = 9$ and rises within a \quadBand{} pp window thereafter (\quadNine, \quadEleven, \quadThirteen, \quadFifteen{} at $n_{\text{quad}} \in \{9, 11, 13, 15\}$). Lower-order rules deviate by up to 2.4 pp because of the tail--floor interaction: small changes in the quadrature approximation of the medical-expense tail shift marginal households across the discrete ownership threshold. Nine nodes balances accuracy against computational cost; we adopt it as the production standard.
 
 For reference, the exact lognormal moment $E[\exp(\sigma \varepsilon)] = \exp(\sigma^2/2)$ is matched to machine precision by all rules with $n \geq 5$. The residual quadrature error operates through the nonlinear interaction of the medical expense realization with the consumption policy function and Medicaid floor, not through moment inaccuracy.
 
@@ -407,7 +407,7 @@ For each draw, the model is solved repeatedly, bisecting over $\gamma$ to target
 
 The median implied $\gamma$ sits inside the \citet{chetty2006} range of 1--3, with all 300 converged draws falling inside the Chetty interval and a tight interquartile range (Table~\ref{tab:implied_gamma}). Matching Lockwood's reported 3.6\% rate therefore requires a $\gamma$ close to the baseline $\gamma = \pGamma$ rather than an implausible value. This is reassuring about the channel structure adopted in the body of the paper: the baseline risk aversion is consistent with the ownership rate Lockwood reports, without recourse to extreme preferences. Adding the two preference channels brings the baseline-$\gamma$ prediction to \ownEightChannelExt{} and the structural public-care aversion channel yields the nine-channel structural baseline of \ownNineChannelLTC{} (the disciplined reading).
 
-For each draw, the full model is solved by backward induction on the production grid ($60 \times 20 \times 51$) and ownership is evaluated on the HRS population sample. The 300 bisection searches (each requiring 8--12 solves) are parallelized across available CPU cores.
+For each draw, the full model is solved by backward induction on a reduced $60 \times 20 \times 51$ grid---coarser than the production $\pNWealth \times \pNAnnuity \times \pNAlpha$ grid, to keep the 300-draw bisection exercise tractable---and ownership is evaluated on the HRS population sample. The 300 bisection searches (each requiring 8--12 solves) are parallelized across available CPU cores.
 
 
 %% ================================================================
@@ -418,9 +418,9 @@ For each draw, the full model is solved by backward induction on the production 
 
 \subsection{Backward induction}
 
-The model is solved by backward induction from the terminal period $T = 46$ (age 110) to $t = 1$ (age 65). At the terminal period, the individual consumes all available resources and leaves residual wealth as a bequest:
+The model is solved by backward induction from the terminal period $T = 46$ (age 110) to $t = 1$ (age 65). At the terminal period, survival probability is zero and the individual divides available resources between consumption and a terminal bequest:
 \[
-V(W, A, H, T) = \max_{c \leq W + A_T + \text{SS}(T) - m_T} \Big\{ u(c) + v\big((1+r)(W + A_T + \text{SS}(T) - m_T - c)\big) \Big\}.
+V(W, A, H, T) = \max_{c \leq W + A_T + \text{SS}(T) - m_T} \Big\{ u(c) + \beta \, v\big(W + A_T + \text{SS}(T) - m_T - c\big) \Big\}.
 \]
 
 For $t = T-1, \ldots, 1$, the value function is computed at each grid point $(W_i, A_j, H_k)$ by solving the one-period consumption problem using Brent's method on the interval $[\underline{c}, \; W + A_t + \text{SS}(t) - m]$. The continuation value $V(W', A', H', t+1)$ is evaluated by piecewise linear interpolation over the wealth grid with flat extrapolation beyond the grid boundaries.
