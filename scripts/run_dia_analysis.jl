@@ -62,7 +62,7 @@ grid_kw = (n_wealth=N_WEALTH, n_annuity=N_ANNUITY, n_alpha=N_ALPHA,
 # build_grids reads the grid sizes from the params it is handed, so p_fair must
 # carry grid_kw; otherwise grids fall back to ModelParams defaults rather than the
 # production grid the DIA exhibit is meant to use.
-p_fair = ModelParams(; mwr=1.0, r=R_RATE, grid_kw...)
+p_fair = ModelParams(; mwr=1.0, r=R_RATE, inflation_rate=INFLATION, grid_kw...)
 fair_pr = compute_payout_rate(p_fair, base_surv)
 
 # ===================================================================
@@ -70,7 +70,10 @@ fair_pr = compute_payout_rate(p_fair, base_surv)
 # ===================================================================
 ss_zero(age, p) = 0.0
 
-common_kw = (gamma=GAMMA, beta=BETA, r=R_RATE,
+# inflation_rate must enter the PRICING params, not only the solve: the model
+# erodes nominal payments at pi, so the payout must be the nominal rate
+# (discounted at the Fisher nominal rate), matching the production convention.
+common_kw = (gamma=GAMMA, beta=BETA, r=R_RATE, inflation_rate=INFLATION,
              stochastic_health=true, n_health_states=3, n_quad=N_QUAD,
              c_floor=C_FLOOR, hazard_mult=HAZARD_MULT,
              survival_pessimism=SURVIVAL_PESSIMISM)
