@@ -64,7 +64,7 @@ const HAZARD_MULT_AGE_MIDPOINTS = [69.5, 79.5, 90.0]    # band midpoints
 const CONSUMPTION_DECLINE = 0.02  # age-varying consumption needs (Aguiar-Hurst 2013)
 const HEALTH_UTILITY = [1.0, 0.92, 0.82]  # state-dep utility — FLN (2013) central
                                            # within their 95% CI. Reichling-Smetters
-                                           # (2015) used softer [1, 0.95, 0.90]; FLN
+                                           # (2015) used softer [1, 0.95, 0.85]; FLN
                                            # raw central is [1, 0.90, 0.75]. Choosing
                                            # the midpoint avoids picking either
                                            # endpoint while staying within the

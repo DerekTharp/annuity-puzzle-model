@@ -256,7 +256,7 @@ The model implementation is checked against three prior papers in the annuity-pu
 \section{Deferred Income Annuity Extension}
 \label{app:dia}
 
-Deferred income annuities (DIAs) begin payments at a future age, typically 80 or 85. By concentrating payments in late life---when longevity risk is greatest---they offer higher per-dollar payouts. A DIA purchased at 65 with payments beginning at 80 pays roughly 2.7 times the per-period income of an immediate annuity (SPIA) per dollar of premium, and a DIA-85 pays roughly 5.6 times as much.
+Deferred income annuities (DIAs) begin payments at a future age, typically 80 or 85. By concentrating payments in late life---when longevity risk is greatest---they offer higher per-dollar payouts. A DIA purchased at 65 with payments beginning at 80 pays roughly 3.3 times the per-period income of an immediate annuity (SPIA) per dollar of premium, and a DIA-85 roughly 7.5 times as much, at the exhibit's nominal pricing (the corresponding real-rate multiples are 2.7 and 5.6).
 
 Deferred products carry lower money's worth ratios, however. \citet{wettstein2021} estimate an MWR near 0.50 for deferred annuities beginning at age 85; we assume 0.50 for the DIA-80 and 0.45 for the DIA-85, extrapolating their deferral gradient, against \pMwrBaseline{} for SPIAs. The lower MWR reflects the longer deferral period (more discounting), smaller market (less competition), and higher sensitivity to mortality projection errors.
 
@@ -383,7 +383,7 @@ A 10-year period-certain annuity guarantees payments for the first 10 years rega
 
 The period-certain payout rate is lower than the life-only rate because the insurer cannot reclaim payments from early decedents during the guarantee period. The pricing formula replaces survival probabilities with 1.0 for the first 10 years:
 \[
-\text{PV}_{\text{certain}} = \sum_{k=0}^{9} \frac{1}{(1+r_{\text{nom}})^k} + \sum_{k=10}^{T-1} \frac{\prod_{j=1}^{k} s_{\text{base}}(j)}{(1+r_{\text{nom}})^k}.
+\text{PV}_{\text{certain}} = \sum_{k=0}^{9} \frac{1}{(1+r_{\text{nom}})^k} + \sum_{k=10}^{T-1} \frac{\prod_{j=0}^{k-1} s_{\text{base}}(j)}{(1+r_{\text{nom}})^k}.
 \]
 
 The net effect on demand is ambiguous: the guarantee reduces the bequest penalty but also reduces the payout rate (and hence the mortality credit that makes annuities attractive in the first place). In the calibrated model, the period-certain option has a small effect on predicted ownership.
@@ -467,7 +467,7 @@ where $W' = (1+r)(\text{cash} - c^*)$ and the expectation is over the medical ex
 
 The normalized Euler residual at each grid point is $|u'(c^*) - \text{RHS}| / |u'(c^*)|$. Corner solutions ($c^* = \underline{c}$ or $c^* = \text{cash}$) are excluded, as the Euler equation holds with inequality at boundaries.
 
-Table~\ref{tab:euler} reports summary statistics. The median residual is zero: most interior grid points satisfy the Euler equation exactly. The mean residual is \eulerMeanPct, with approximately \eulerPctAboveOne{} of grid points exceeding 1\% and \eulerPctAboveFive{} exceeding 5\%. The maximum residual stays below 1 at the production grid and rises slightly above 1 at the finer $100 \times 40$ grid; these large values are confined to low-wealth states where the finite-difference derivative of the piecewise-linear value function poorly approximates the true marginal value, and the maximum does not fall monotonically with refinement. The share of points above 1\% is stable across resolutions, easing from \eulerPctOneCoarse{} at $40 \times 15$ to \eulerPctOneFine{} at $100 \times 40$.
+Table~\ref{tab:euler} reports summary statistics. The median residual is below $10^{-6}$; the summary statistics are computed over strictly positive residuals, so no grid point satisfies the condition to machine zero, but half sit below that threshold. The mean residual is \eulerMeanPct, with approximately \eulerPctAboveOne{} of grid points exceeding 1\% and \eulerPctAboveFive{} exceeding 5\%. The maximum residual stays below 1 at the production grid and rises slightly above 1 at the finer $100 \times 40$ grid; these large values are confined to low-wealth states where the finite-difference derivative of the piecewise-linear value function poorly approximates the true marginal value, and the maximum does not fall monotonically with refinement. The share of points above 1\% is stable across resolutions, easing from \eulerPctOneCoarse{} at $40 \times 15$ to \eulerPctOneFine{} at $100 \times 40$.
 
 \input{../tables/tex/euler_residuals_table.tex}
 

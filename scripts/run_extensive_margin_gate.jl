@@ -2,7 +2,7 @@
 #
 # The headline model predicts a CONVEX wealth gradient: hard zeros in the bottom
 # three wealth bands, ~33% in the top. The HRS cross-section is CONCAVE/saturating
-# (1.7 / 6.4 / 7.9 / 7.6%). The hard zeros are a representative-agent corner: with
+# (2.5 / 5.8 / 8.2 / 8.2% on the restricted any-annuity proxy). The hard zeros are a representative-agent corner: with
 # a single fixed cost, every household in a band is on the same side of the
 # participation threshold. Real households differ in transaction costs (advisor
 # access, search, literacy), so within a band SOME cross even when the median does
@@ -53,16 +53,18 @@ const NA  = SMOKE ? 15 : N_ANNUITY
 const NAL = SMOKE ? 51 : N_ALPHA
 const SS_CUT_FRAC = SS_CUT_TRUSTEES  # single source: scripts/config.jl
 
-# HRS per-band ownership (any-annuity proxy gradient), read from the Stage 11d
-# output rather than hardcoded so a recomputed validation sample propagates.
+# HRS per-band ownership (any-annuity proxy) on the RESTRICTED analysis sample
+# (wealth >= MIN_WEALTH), so the comparison column shares the same population
+# as the model predictions and the band n's. The unrestricted validation-sample
+# rates (empirical_gradients_cells.csv) include ~1,979 sub-\$5,000 observations
+# in the bottom bin and are NOT comparable band-by-band.
 const BAND_LABELS = ["<30k", "30-120k", "120-350k", ">350k"]
 function load_hrs_band()
-    path = joinpath(@__DIR__, "..", "tables", "csv", "empirical_gradients_cells.csv")
-    isfile(path) || error("Missing $path; run scripts/run_empirical_validation.jl (Stage 11d) first")
-    raw, _ = readdlm(path, ',', Any; header=true)
-    vals = Dict(strip(String(raw[r, 2])) => Float64(raw[r, 4])
-                for r in 1:size(raw, 1) if strip(String(raw[r, 1])) == "wealth_bin")
-    return [vals[l] for l in BAND_LABELS] ./ 100
+    path = joinpath(@__DIR__, "..", "data", "processed", "hrs_lifetime_ownership_by_band.csv")
+    isfile(path) || error("Missing $path; run calibration/q286_by_wealth_band.jl first")
+    raw, hdr = readdlm(path, ',', Any; header=true)
+    ic = findfirst(==("iann_pct"), vec(hdr))
+    return [Float64(raw[b, ic]) for b in 1:4] ./ 100
 end
 const HRS_BAND = load_hrs_band()
 

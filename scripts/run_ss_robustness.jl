@@ -201,8 +201,10 @@ baseline_own = cut_results[1].ownership
 println("  " * "-" ^ 55)
 
 for r in cut_results
-    delta = r.ownership - baseline_own
-    delta_str = r.cut_pct == 0.0 ? "---" : @sprintf("%+.1f pp", delta * 100)
+    # Delta from the DISPLAYED (rounded) levels so the printed row is
+    # internally consistent (level - baseline = delta at one decimal).
+    delta = round(r.ownership * 100; digits=1) - round(baseline_own * 100; digits=1)
+    delta_str = r.cut_pct == 0.0 ? "---" : @sprintf("%+.1f pp", delta)
     label = r.cut_pct == 22.0 ? @sprintf("%.0f (trust fund)", r.cut_pct) :
             r.cut_pct == 100.0 ? @sprintf("%.0f (elimination)", r.cut_pct) :
             @sprintf("%.0f", r.cut_pct)

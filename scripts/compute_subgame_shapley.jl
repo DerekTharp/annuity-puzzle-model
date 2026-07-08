@@ -46,9 +46,11 @@ end
 
 csv = joinpath(ROOT, "tables", "csv", "subgame7_shapley.csv")
 open(csv, "w") do io
+    # Stored in the DROP convention (positive = demand-suppressing), matching
+    # every other Shapley artifact in the deposit.
     println(io, "channel,shapley_value_pp,full_own_pct")
     for p in PLAYERS
-        @printf(io, "%s,%.4f,%.4f\n", NAMES[p], shap[p] * 100, own[mask_of(PLAYERS)] * 100)
+        @printf(io, "%s,%.4f,%.4f\n", NAMES[p], -shap[p] * 100, own[mask_of(PLAYERS)] * 100)
     end
 end
 println("CSV: $csv")

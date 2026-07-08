@@ -197,6 +197,9 @@ function solve_lifecycle_health(
                         # (chi_ltc - 1) * flow_u inverted the sign because
                         # flow_u was negative). Bequest component is
                         # unaffected.
+                        # chi_LTC is defined on Medicaid-financed care states, which arise only
+                        # through the medical-expenditure machinery; it is deliberately inactive
+                        # in medical-off configurations (no publicly-financed care state exists).
                         if p.chi_ltc < 1.0 && medicaid_binding && ih == 3
                             flow_u = flow_utility_sdu(c_k, inc_after, p.gamma, T, ih, p)
                             flow_u_chi = flow_utility_sdu_chi_ltc(c_k, inc_after, p.gamma, T, ih, p)

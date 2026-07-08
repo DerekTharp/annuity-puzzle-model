@@ -427,10 +427,12 @@ open(csv_path, "w") do f
 end
 println("\n  Ownership CSV saved: ", csv_path)
 
-# CEV comparison CSV (DFJ bequests, all health states)
+# CEV comparison CSV (DFJ bequests and no-bequest specs, all health states,
+# so every printed panel of tab:cev_counterfactuals has a machine-readable
+# artifact: bequest_spec column = dfj | none)
 cev_csv_path = joinpath(tables_dir, "csv", "cev_counterfactuals.csv")
 open(cev_csv_path, "w") do f
-    print(f, "wealth,health")
+    print(f, "bequest_spec,wealth,health")
     for (label, _, _, _) in cev_configs
         @printf(f, ",cev_%s,alpha_%s",
             replace(lowercase(label), " " => "_"),
@@ -438,14 +440,16 @@ open(cev_csv_path, "w") do f
     end
     println(f)
     health_names = ["Good", "Fair", "Poor"]
-    for (iw, w) in enumerate(wealth_eval)
-        for ih in 1:3
-            @printf(f, "%.0f,%s", w, health_names[ih])
-            for (label, _, _, _) in cev_configs
-                r = cev_results[label].grid[iw, 2, ih]  # DFJ bequests
-                @printf(f, ",%.4f,%.4f", r.cev, r.alpha_star)
+    for (spec_name, ib) in [("dfj", 2), ("none", 1)]
+        for (iw, w) in enumerate(wealth_eval)
+            for ih in 1:3
+                @printf(f, "%s,%.0f,%s", spec_name, w, health_names[ih])
+                for (label, _, _, _) in cev_configs
+                    r = cev_results[label].grid[iw, ib, ih]
+                    @printf(f, ",%.4f,%.4f", r.cev, r.alpha_star)
+                end
+                println(f)
             end
-            println(f)
         end
     end
 end

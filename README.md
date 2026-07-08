@@ -198,6 +198,15 @@ manuscript macro is defined and matches its source CSV.
 | DIA comparison | `scripts/run_dia_analysis.jl` |
 | gamma-stability of the ranking | `scripts/run_shapley_gamma_stability.jl` |
 | Monte Carlo uncertainty | `scripts/run_monte_carlo_uncertainty.jl` |
+| Extensive-margin gate (F* distribution, smoothed gradient) | `scripts/run_extensive_margin_gate.jl` |
+| Gate robustness ("killer table") | `scripts/run_gate_robustness.jl` |
+| Band value-destruction diagnostic | `scripts/run_band3_diagnostic.jl` + `scripts/emit_band_value_destruction_table.jl` |
+| Model-vs-data wealth-band table | `scripts/emit_model_vs_data_band_table.jl` |
+| Channel-partition robustness | `scripts/run_partition_robustness.jl` |
+| psi=0.981 focal-value ranking | `scripts/run_psi981_shapley.jl` |
+| Grid-robustness of the ranking | `scripts/run_grid_robustness_shapley.jl` |
+| Seven-channel sub-game | `scripts/compute_subgame_shapley.jl` |
+| Alternative-baseline Shapley + by-band policy MWRs | `scripts/run_referee_proofing.jl` |
 | Grid convergence, Euler residuals | `scripts/grid_convergence_full.jl`, `scripts/run_euler_diagnostics.jl` -> `scripts/emit_diagnostic_tables.jl` |
 
 **Development vs. production grids.** Grid sizes and quadrature nodes are set in

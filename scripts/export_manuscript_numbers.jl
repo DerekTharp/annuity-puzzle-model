@@ -17,6 +17,7 @@
 
 using DelimitedFiles
 using Printf
+using Statistics
 
 include(joinpath(@__DIR__, "config.jl"))
 
@@ -185,17 +186,22 @@ function cev_grid_row(wealth::Int, health::AbstractString)
     error("(wealth=$wealth, health=$health) not in welfare_cev_grid.csv")
 end
 
-function cev_counterfactual_row(wealth::Int, health::AbstractString)
-    rows, _ = read_csv("cev_counterfactuals.csv")
+function cev_counterfactual_row(wealth::Int, health::AbstractString; bequest_spec::AbstractString="dfj")
+    rows, hdr = read_csv("cev_counterfactuals.csv")
+    # Schema-aware: the writer added a leading bequest_spec column (dfj | none);
+    # older CSVs hold DFJ-only rows without it.
+    has_spec = String(hdr[1]) == "bequest_spec"
+    off = has_spec ? 1 : 0
     for r in eachrow(rows)
-        if Int(r[1]) == wealth && String(r[2]) == health
-            return (cev_baseline=Float64(r[3]), alpha_baseline=Float64(r[4]),
-                    cev_group=Float64(r[5]), alpha_group=Float64(r[6]),
-                    cev_real=Float64(r[7]), alpha_real=Float64(r[8]),
-                    cev_best=Float64(r[9]), alpha_best=Float64(r[10]))
+        has_spec && String(r[1]) != bequest_spec && continue
+        if Int(r[1 + off]) == wealth && String(r[2 + off]) == health
+            return (cev_baseline=Float64(r[3 + off]), alpha_baseline=Float64(r[4 + off]),
+                    cev_group=Float64(r[5 + off]), alpha_group=Float64(r[6 + off]),
+                    cev_real=Float64(r[7 + off]), alpha_real=Float64(r[8 + off]),
+                    cev_best=Float64(r[9 + off]), alpha_best=Float64(r[10 + off]))
         end
     end
-    error("(wealth=$wealth, health=$health) not in cev_counterfactuals.csv")
+    error("(wealth=$wealth, health=$health, spec=$bequest_spec) not in cev_counterfactuals.csv")
 end
 
 function population_cev(bequest_spec::AbstractString)
@@ -323,9 +329,9 @@ function monte_carlo_summary()
     vals = sort(Float64.(raw[:, own_col]))
     n = length(vals)
     n == 0 && return nothing
-    pick(q) = vals[max(1, round(Int, q * n))]
-    return (n=n, mean=sum(vals)/n, median=vals[div(n, 2)],
-            q05=pick(0.05), q25=pick(0.25), q75=pick(0.75), q95=pick(0.95),
+    return (n=n, mean=sum(vals)/n, median=Statistics.median(vals),
+            q05=Statistics.quantile(vals, 0.05), q25=Statistics.quantile(vals, 0.25),
+            q75=Statistics.quantile(vals, 0.75), q95=Statistics.quantile(vals, 0.95),
             min=vals[1], max=vals[end])
 end
 
@@ -665,7 +671,7 @@ function build_macros!()
     let path = joinpath(CSV_DIR, "subgame7_shapley.csv")
         if isfile(path)
             raw, _ = readdlm(path, ',', Any; header=true)  # channel, shapley_pp (ownership convention), full_own_pct
-            s = Dict{String,Float64}(String(raw[r, 1]) => -Float64(raw[r, 2]) for r in 1:size(raw, 1))  # flip to drop convention
+            s = Dict{String,Float64}(String(raw[r, 1]) => Float64(raw[r, 2]) for r in 1:size(raw, 1))  # already drop convention
             def!("subgameLoads",     fmt_num(s["Loads"]; digits=1))
             def!("subgameBequests",  fmt_num(s["Bequests"]; digits=1))
             def!("subgameMedRS",     fmt_num(s["Medical+R-S"]; digits=1))

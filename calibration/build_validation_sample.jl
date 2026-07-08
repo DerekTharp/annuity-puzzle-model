@@ -118,6 +118,8 @@ function main()
                          health3=health3, wealth=wealth, hous_wealth=hous,
                          ss_db_income=ss_db,
                          liv10=liv10, liv10r=liv10r, beq10k=beq10k, beq100=beq100,
+# NOTE: despite the name, own_life_ann holds the ANY-ANNUITY income proxy
+# (r{w}iann > 0), not the life-contingent q286 measure; see the Table 11 note.
                          own_life_ann=own, weight=wt))
             n_wave += 1
         end
