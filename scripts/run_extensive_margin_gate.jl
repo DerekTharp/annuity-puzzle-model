@@ -229,7 +229,7 @@ println("  F* distribution CSV written: $fstar_csv")
 mkpath(joinpath(@__DIR__, "..", "tables", "csv"))
 gate_csv = joinpath(@__DIR__, "..", "tables", "csv", "extensive_margin_gate.csv")
 open(gate_csv, "w") do f
-    println(f, "band,n,hrs_pct,hard_pct,smoothed_base_pct,smoothed_cut_pct,response_pp,response_share_pct")
+    println(f, "band,n,hrs_iann_pct,hard_pct,smoothed_base_pct,smoothed_cut_pct,response_pp,response_share_pct")
     for b in 1:4
         share = tot_rise_count > 0 ? nb[b]*rises[b]/tot_rise_count*100 : 0.0
         @printf(f, "%s,%d,%.4f,%.4f,%.4f,%.4f,%.4f,%.2f\n", BAND_LABELS[b], nb[b],
@@ -243,7 +243,7 @@ println("\n  CSV written: $gate_csv")
 
 grad_csv = joinpath(@__DIR__, "..", "tables", "csv", "wealth_gradient_modeldata.csv")
 open(grad_csv, "w") do f
-    println(f, "band,wealth_label,hrs_pct,model_hard_pct,model_smoothed_pct")
+    println(f, "band,wealth_label,hrs_iann_pct,model_hard_pct,model_smoothed_pct")
     for b in 1:4
         @printf(f, "%d,%s,%.4f,%.4f,%.4f\n", b, BAND_LABELS[b], HRS_BAND[b]*100, hard_band(b,:base)*100, smooth_base(b)*100)
     end

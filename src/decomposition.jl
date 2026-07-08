@@ -26,6 +26,9 @@ end
 # Source: calibration/build_ss_profile.jl — single nonworking retirees 65-69,
 # waves 5-9, CPI-deflated to 2014 dollars; SS = r{w}isret weighted mean among
 # claimers; DB = r{w}ipen (pension only) unconditional weighted mean.
+# Naming note: the QUARTILE names below are historical. These are the four
+# FIXED dollar wealth bands (breaks 30k/120k/350k, 2014 dollars) used
+# throughout the paper, not sample quartiles.
 const SS_OBS = [13_018.0, 13_648.0, 14_517.0, 14_896.0]
 const DB_OBS = [5_266.0, 7_540.0, 11_407.0, 11_977.0]
 const SS_QUARTILE_LEVELS = SS_OBS .+ DB_OBS   # [18284, 21188, 25924, 26873]

@@ -625,7 +625,52 @@ function build_macros!()
         ("NineLTC",        "Public-care aversion (LTC)"),
     ]
         def!("shap" * key,       fmt_num(sh9[name].value_pp; digits=1))
-        def!("shapShare" * key,  fmt_pct(sh9[name].share_pct; digits=0))
+        # One decimal for sub-half-percent shares so a small negative share
+        # renders as "-0.4\%" rather than the confusing "-0\%".
+        def!("shapShare" * key,  abs(sh9[name].share_pct) < 0.5 ?
+             fmt_pct(sh9[name].share_pct; digits=1) : fmt_pct(sh9[name].share_pct; digits=0))
+    end
+    # Share of the summed positive (suppressing) contributions, alongside the
+    # net-drop shares above: the net-drop denominator includes offsetting
+    # negative components (SS, LTC), which can make single-channel shares read
+    # larger than the suppressor pool supports.
+    let pos = sum(v.value_pp for v in values(sh9) if v.value_pp > 0)
+        def!("shapPosShareNineLoads", fmt_pct(100 * sh9["Loads"].value_pp / pos; digits=0))
+    end
+    # Net drop the nine-channel game attributes (frictionless floor-inclusive
+    # benchmark minus the full model), and the grand-coalition Med+R-S marginal
+    # used for the duality discussion (bitmask 507 = 511 with bit 2 off).
+    def!("shapNineTotalDrop", fmt_num(sum(v.value_pp for v in values(sh9)); digits=1) * "~pp")
+    def!("ownGrandNoMedRS", fmt_pct(subset_ownership(511 & ~(1 << 2)); digits=1))
+
+    # ======================================================================
+    # Section F3 — Ranking robustness sub-games (post-processed, no solves):
+    # grid_robustness_shapley.csv (512-subset game at finer grids) and
+    # subgame7_shapley.csv (weighted-utility channels removed as players).
+    # ======================================================================
+    let path = joinpath(CSV_DIR, "grid_robustness_shapley.csv")
+        if isfile(path)
+            raw, _ = readdlm(path, ',', Any; header=true)  # grid, channel, shapley_pp, abs_rank, full_own_pct
+            g = Dict{Tuple{String,String},Float64}(
+                (String(raw[r, 1]), String(raw[r, 2])) => Float64(raw[r, 3]) for r in 1:size(raw, 1))
+            fo = Dict{String,Float64}(String(raw[r, 1]) => Float64(raw[r, 5]) for r in 1:size(raw, 1))
+            def!("gridShapLoadsHundred",        fmt_num(g[("g100x40", "Loads")]; digits=1))
+            def!("gridShapBequestsHundred",     fmt_num(g[("g100x40", "Bequests")]; digits=1))
+            def!("gridShapLoadsHundredTwenty",  fmt_num(g[("g120x50", "Loads")]; digits=1))
+            def!("gridShapBequestsHundredTwenty", fmt_num(g[("g120x50", "Bequests")]; digits=1))
+            def!("gridOwnHundred",              fmt_pct(fo["g100x40"]; digits=1))
+            def!("gridOwnHundredTwenty",        fmt_pct(fo["g120x50"]; digits=1))
+        end
+    end
+    let path = joinpath(CSV_DIR, "subgame7_shapley.csv")
+        if isfile(path)
+            raw, _ = readdlm(path, ',', Any; header=true)  # channel, shapley_pp (ownership convention), full_own_pct
+            s = Dict{String,Float64}(String(raw[r, 1]) => -Float64(raw[r, 2]) for r in 1:size(raw, 1))  # flip to drop convention
+            def!("subgameLoads",     fmt_num(s["Loads"]; digits=1))
+            def!("subgameBequests",  fmt_num(s["Bequests"]; digits=1))
+            def!("subgameMedRS",     fmt_num(s["Medical+R-S"]; digits=1))
+            def!("subgamePessimism", fmt_num(s["Pessimism"]; digits=1))
+        end
     end
 
     # ======================================================================
@@ -1170,8 +1215,9 @@ function write_shapley_nine_table()
         println(f, "Channel & Shapley (pp) & Share (\\%) \\\\")
         println(f, raw"\midrule")
         for (name, val) in ordered
+            display = name == "SS" ? "Pre-existing income (SS+DB)" : name
             @printf(f, "%s & %+.2f & %+.1f \\\\\n",
-                    name, val.value_pp, val.share_pct)
+                    display, val.value_pp, val.share_pct)
         end
         println(f, raw"\midrule")
         @printf(f, "Total demand drop & %+.2f & 100.0 \\\\\n", total_drop_pp)
@@ -1179,7 +1225,7 @@ function write_shapley_nine_table()
         println(f, raw"\end{tabular}")
         println(f, raw"\begin{tablenotes}")
         println(f, raw"\small")
-        @printf(f, "\\item Exact Shapley values over all \$2^9 = 512\$ subsets of the nine structural channels (SDU and PED held off). Positive values are demand-suppressing contributions; negative values are demand-boosting (Social Security raises annuitization at the margin by providing the income floor).\n")
+        @printf(f, "\\item Exact Shapley values over all \$2^9 = 512\$ subsets of the nine structural channels (SDU and PED held off). Positive values are demand-suppressing contributions; negative values are demand-boosting averaged across channel configurations (pre-existing Social Security and DB income raises annuitization on average by providing the income floor, though at the fully-loaded grand coalition it substitutes for private annuities; see text).\n")
         @printf(f, "\\item Frictionless baseline: %.1f\\%%. Nine-channel structural prediction: %.1f\\%%. Total demand drop: %.1f pp.\n",
                 own_frictionless_pct, own_full_pct, total_drop_pp)
         println(f, raw"\item The eleven-channel exploratory Shapley (Table~\ref{A-tab:shapley_exact}, appendix) layers the two behavioral channels (SDU, PED) and is reported as a sensitivity exercise rather than the disciplined attribution.")

@@ -197,7 +197,8 @@ function figure_2_gamma_sensitivity()
         markersize = 4,
         markercolor = CB_BLUE,
         markerstrokewidth = 0,
-        legend = :topleft,
+        legend = :bottomright,
+        background_color_legend = RGBA(1, 1, 1, 0.75),
         label = "Full model",
         xlabel = "Risk Aversion (γ)",
         ylabel = "Predicted Ownership (%)",
@@ -214,7 +215,7 @@ function figure_2_gamma_sensitivity()
     obs_lo = read_numbers_macro("pctHRSLifetime";   default=3.64)
     obs_hi = read_numbers_macro("pctHRSIannPooled"; default=6.06)
     hspan!([obs_lo, obs_hi], color = CB_GREEN, alpha = 0.18,
-           label = @sprintf("Observed range (%.1f-%.1f%%)", obs_lo, obs_hi))
+           label = @sprintf("Observed range (%.2f-%.2f%%)", obs_lo, obs_hi))
 
     # Mark baseline gamma
     vline!([GAMMA], color = CB_RED, linestyle = :dash, linewidth = 1.0, label = "")
@@ -298,7 +299,7 @@ function figure_3_hazard_sensitivity()
     obs_hi3 = read_numbers_macro("pctHRSIannPooled"; default=6.06)
     hspan!([obs_lo3, obs_hi3], color = CB_GREEN, alpha = 0.15, label = "")
     annotate!(3.85, obs_hi3 - 0.5,
-              Plots.text(@sprintf("Observed (%.1f-%.1f%%)", obs_lo3, obs_hi3), 8, :right, :darkgreen))
+              Plots.text(@sprintf("Observed (%.2f-%.2f%%)", obs_lo3, obs_hi3), 8, :right, :darkgreen))
 
     # Value labels above bars
     for (i, val) in enumerate(ownership)
