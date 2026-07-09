@@ -4,4 +4,4 @@ Highlights
 - Pricing loads dominate; bequests, the most-cited explanation, rank mid-pack
 - The channel ranking is stable across risk aversion even as the level is fragile
 - Predicted annuity ownership rises with wealth, concentrating in the top band
-- A 22% Social Security cut lifts private annuity demand mainly among the wealthy
+- A 22% SS cut lifts annuity demand only among the pension-linked and wealthy

@@ -283,6 +283,17 @@ function main()
         "11i. Emit model-vs-data wealth-band table",
         joinpath(SCRIPTS_DIR, "emit_model_vs_data_band_table.jl"))
 
+    # --- Stage 11j: Two-product extension (group access mixture) ---
+    # Requires data/processed/group_access_by_band.csv (Stage 0f raw-gated
+    # rebuild via calibration/build_group_access.jl; committed aggregate).
+    # Produces: two_product_gradient.csv, two_product_ss_cut.csv, two_product.tex
+    run_stage(
+        "11j. Two-product extension (16 solves)",
+        joinpath(SCRIPTS_DIR, "run_two_product.jl"); parallel=true)
+    run_stage(
+        "11j-emit. Two-product table",
+        joinpath(SCRIPTS_DIR, "emit_two_product_table.jl"))
+
     # --- Stage 12: Robustness and sensitivity ---
     # Produces: robustness_gamma_inflation.tex, retention_rates.tex, robustness_full.csv
     t = run_stage(
@@ -441,6 +452,7 @@ function main()
         "grid_convergence.tex",       # Stage 14e output; appendix \input
         "implied_gamma.tex",
         "model_vs_data_band.tex",     # Stage 11i output; sec:empirical \input
+        "two_product.tex",            # Stage 11j output; counterfactuals \input
         "moment_validation.tex",
         "monte_carlo_summary.tex",  # Stage 13c output; appendix \input
         # multigamma_decomposition.tex is no longer required in the

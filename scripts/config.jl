@@ -171,3 +171,12 @@ end
 # Projected OASI trust-fund shortfall (2026 Trustees: ~22% cut at late-2032
 # depletion). Single source for every SS-cut counterfactual stage.
 const SS_CUT_TRUSTEES = 0.22
+
+# Two-product extension: group/employer annuity pricing. TSP- and TIAA-class
+# institutional annuities price near the population-fair benchmark; 0.95 is
+# the public-option/institutional MWR used in the policy counterfactuals.
+# Access by wealth band comes from data/processed/group_access_by_band.csv
+# (employer-pension linkage; see calibration/build_group_access.jl).
+const GROUP_MWR = 0.95
+const GROUP_ACCESS_PATH = joinpath(@__DIR__, "..", "data", "processed",
+                                   "group_access_by_band.csv")

@@ -680,6 +680,30 @@ function build_macros!()
     end
 
     # ======================================================================
+    # Section F4 — Two-product extension (group access mixture)
+    # ======================================================================
+    let gp = joinpath(CSV_DIR, "two_product_gradient.csv"),
+        cp = joinpath(CSV_DIR, "two_product_ss_cut.csv")
+        if isfile(gp) && isfile(cp)
+            g, gh = readdlm(gp, ',', Any; header=true)
+            c, ch = readdlm(cp, ',', Any; header=true)
+            gc(n) = findfirst(==(n), vec(gh)); cc(n) = findfirst(==(n), vec(ch))
+            for b in 1:4
+                key = ["Qone", "Qtwo", "Qthree", "Qfour"][b]
+                def!("tpAccess" * key, fmt_pct(Float64(g[b, gc("access_pct")]); digits=1))
+                def!("tpMix" * key,    fmt_pct(Float64(g[b, gc("mixture_pct")]); digits=2))
+                def!("tpGroup" * key,  fmt_pct(Float64(g[b, gc("group_pct")]); digits=2))
+                def!("tpCutResp" * key, fmt_num(Float64(c[b, cc("response_pp")]); digits=2) * "~pp")
+                def!("tpCutMix" * key, fmt_pct(Float64(c[b, cc("mixture_cut_pct")]); digits=2))
+            end
+            def!("tpAgg", fmt_pct(Float64(g[5, gc("mixture_pct")]); digits=1))
+            tot = sum(Float64(c[b, cc("response_pp")]) * Float64(c[b, cc("n")]) for b in 1:4)
+            top = Float64(c[4, cc("response_pp")]) * Float64(c[4, cc("n")])
+            def!("tpTopShare", fmt_pct(100 * top / tot; digits=0))
+        end
+    end
+
+    # ======================================================================
     # Section G — Welfare: CEV at headline cells
     # ======================================================================
     cev = cev_grid_row(100_000, "Good")

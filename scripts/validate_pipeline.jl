@@ -53,6 +53,7 @@ const EXPECTED_TEX_FILES = Set([
     "grid_convergence.tex",
     "implied_gamma.tex",
     "model_vs_data_band.tex",
+    "two_product.tex",
     "moment_validation.tex",
     "monte_carlo_summary.tex",
     "pairwise_interactions.tex",

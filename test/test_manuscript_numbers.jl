@@ -402,3 +402,34 @@ using Distributions: Normal, Hypergeometric, cdf, pdf
         end
     end
 end
+
+@testset "two-product extension integrity" begin
+    csv_dir2 = joinpath(REPO_ROOT, "tables", "csv")
+    g, gh = readdlm(joinpath(csv_dir2, "two_product_gradient.csv"), ',', Any; header=true)
+    c, ch = readdlm(joinpath(csv_dir2, "two_product_ss_cut.csv"), ',', Any; header=true)
+    gc(n) = findfirst(==(n), vec(gh)); cc2(n) = findfirst(==(n), vec(ch))
+    # Mixture identity: mixture = access*group + (1-access)*retail, per band
+    for b in 1:4
+        acc = Float64(g[b, gc("access_pct")]) / 100
+        mixv = acc * Float64(g[b, gc("group_pct")]) + (1 - acc) * Float64(g[b, gc("retail_pct")])
+        @test isapprox(mixv, Float64(g[b, gc("mixture_pct")]); atol=0.01)
+    end
+    # Cut-table baseline consistency with the gradient table
+    for b in 1:4
+        @test isapprox(Float64(c[b, cc2("mixture_base_pct")]),
+                       Float64(g[b, gc("mixture_pct")]); atol=0.01)
+    end
+    # Emitted tex carries the CSV values
+    tex2 = read(joinpath(REPO_ROOT, "tables", "tex", "two_product.tex"), String)
+    for b in 1:4
+        @test occursin(@sprintf("%.2f", Float64(g[b, gc("mixture_pct")])), tex2)
+        @test occursin(@sprintf("%+.2f", Float64(c[b, cc2("response_pp")])), tex2)
+    end
+    # Access rates match the committed coverage calibration
+    acc_c, ah = readdlm(joinpath(REPO_ROOT, "data", "processed", "group_access_by_band.csv"),
+                        ',', Any; header=true)
+    for b in 1:4
+        @test isapprox(Float64(g[b, gc("access_pct")]),
+                       100 * Float64(acc_c[b, findfirst(==("access_unw"), vec(ah))]); atol=0.01)
+    end
+end
