@@ -251,7 +251,7 @@ if RUN_DIAG_ROBUSTNESS
     )
     full_rate = full_sample.steps[end].ownership_rate
     @printf("\n  Full model (all %d agents, min_wealth=0):  %6.1f%%\n", n_pop, full_rate * 100)
-    @printf("  Lockwood (2012) observed:                    %6.1f%%\n", 3.6)
+    @printf("  Lockwood (2012) reported single-retiree rate:  %6.1f%%\n", 3.6)
 else
     println("\nSkipping diagnostic robustness sweep + full-sample comparison.")
     println("(Stage 12 run_robustness.jl produces a parallel-executed CSV with the same data.)")

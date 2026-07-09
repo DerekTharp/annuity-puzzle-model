@@ -20,7 +20,7 @@ end
 include(joinpath(@__DIR__, "config.jl"))
 
 const PSI_FOCAL = 0.981
-const NW = 40; const NA = 15; const NAL = 51   # coarse: ranking is grid-robust
+const NW = 60; const NA = 20; const NAL = 101  # within ~1pp of production per the convergence table
 const N_CH = 9
 const NAMES = ["SS", "Bequests", "Medical+R-S", "Pessimism", "Age needs",
                "State utility", "Loads", "Inflation", "Public-care (LTC)"]

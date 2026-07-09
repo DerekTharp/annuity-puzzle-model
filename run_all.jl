@@ -123,6 +123,35 @@ function main()
         end
     end
 
+    # --- Stages 0d-0f: remaining raw-gated HRS rebuilds ---
+    # Each is skipped when its committed output exists (or when raw HRS data
+    # are absent); ANNUITY_FORCE_HRS_REBUILD=1 forces regeneration. These
+    # complete the documented rebuild path for every processed input,
+    # including the person-level validation extract that is not redistributed.
+    for (label, script, outfile) in [
+        ("0d. Build HRS validation sample (person-level; not redistributed)",
+         joinpath(PROJECT_DIR, "calibration", "build_validation_sample.jl"),
+         joinpath(PROJECT_DIR, "data", "processed", "hrs_validation_sample.csv")),
+        ("0e. q286 lifetime ownership by wealth band",
+         joinpath(PROJECT_DIR, "calibration", "q286_by_wealth_band.jl"),
+         joinpath(PROJECT_DIR, "data", "processed", "hrs_lifetime_ownership_by_band.csv")),
+        ("0f. Group-annuity access by wealth band (pension linkage)",
+         joinpath(PROJECT_DIR, "calibration", "build_group_access.jl"),
+         joinpath(PROJECT_DIR, "data", "processed", "group_access_by_band.csv")),
+    ]
+        if isfile(outfile) && !force_rebuild
+            @printf("  Skipping %s: output already exists.\n", label[1:2])
+            push!(timings, label[1:2] * " (skipped)" => 0.0)
+        else
+            try
+                t = run_stage(label, script)
+                push!(timings, label[1:2] => t)
+            catch e
+                @warn "Stage failed (raw HRS data likely unavailable). Skipping; using checked-in output where applicable." label exception=e
+            end
+        end
+    end
+
     # --- Stage 1: Lockwood (2012) replication ---
     # Console-only WTP replication table (no file output). The appendix prose
     # is hand-maintained; the numbers are gated by test/test_lockwood.jl.
@@ -284,8 +313,8 @@ function main()
         joinpath(SCRIPTS_DIR, "emit_model_vs_data_band_table.jl"))
 
     # --- Stage 11j: Two-product extension (group access mixture) ---
-    # Requires data/processed/group_access_by_band.csv (Stage 0f raw-gated
-    # rebuild via calibration/build_group_access.jl; committed aggregate).
+    # Requires data/processed/group_access_by_band.csv (rebuilt by Stage 0f
+    # when raw HRS data are present; committed aggregate otherwise).
     # Produces: two_product_gradient.csv, two_product_ss_cut.csv, two_product.tex
     run_stage(
         "11j. Two-product extension (16 solves)",

@@ -97,13 +97,23 @@ spot instance, or 12+ hours on a 16-core Mac Studio. Individual scripts run
 in minutes to tens of minutes. Use `julia --project=. -p N` to parallelize
 compute-heavy scripts across N cores.
 
+### Fast verification path
+
+For a laptop-scale check without the full 7-hour run: the test suite
+(`julia --project=. test/runtests.jl`, ~6 minutes) locks every manuscript
+number to its source CSV and exercises the solver on production-relevant
+configurations; `EMG_SMOKE=1` runs the extensive-margin gate on a coarse grid
+in minutes; and any single exhibit script can be run alone (see the exhibit
+map below). The committed CSVs are the outputs of a from-scratch production
+run, so the locks verify the deposit without re-solving.
+
 For AWS execution see `scripts/aws/launch.sh` (provisions a spot instance,
 syncs the project, runs the full pipeline, and auto-terminates on completion).
 
 ## Configuration
 
 Baseline parameters are defined in `scripts/config.jl`. Key values: gamma=2.5,
-beta=0.97, **MWR=0.87** (Wettstein 2021 modern-pricing), inflation=2%, DFJ
+beta=0.97, **MWR=0.87** (a deliberately conservative modern-market choice above the Mitchell-et-al./Wettstein anchors), inflation=2%, DFJ
 bequests (theta=56.96, kappa=$272,628), hazard multipliers [0.50, 1.0, 3.75],
 survival pessimism psi=0.96 (Heimer-Myrseth-Schoenle 2019; Payne et al. 2013),
 age-varying needs delta_c=0.02, health-utility weights [1.0, 0.92, 0.82]
@@ -143,6 +153,14 @@ shipped (HRS conditions of use) and must be regenerated locally:
   `calibration/estimate_health_transitions.jl`.
 - `data/processed/hrs_hazard_ratios.csv` -- health-specific mortality hazard
   ratios by age band; `calibration/compute_hazard_ratios.jl`.
+- `data/processed/hrs_lifetime_ownership_by_band.csv` -- lifetime annuity
+  ownership by wealth band, person-wave and person-level counts;
+  `calibration/q286_by_wealth_band.jl`.
+- `data/processed/group_access_by_band.csv` -- group-annuity access rates by
+  wealth band (employer-pension linkage); `calibration/build_group_access.jl`.
+- `data/processed/hrs_validation_sample.csv` -- person-level validation
+  extract (person-level, NOT shipped; regenerated via
+  ANNUITY_FORCE_HRS_REBUILD=1); `calibration/build_validation_sample.jl`.
 - `data/processed/hrs_validation_sample.csv` -- cross-sectional sample for the
   empirical ownership-gradient validation; `calibration/build_validation_sample.jl`.
 - `data/processed/hrs_acquisition_decomposition.csv` and

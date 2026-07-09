@@ -433,3 +433,20 @@ end
                        100 * Float64(acc_c[b, findfirst(==("access_unw"), vec(ah))]); atol=0.01)
     end
 end
+
+@testset "v1.6 artifacts: forced-65 + Panel C locks" begin
+    fa, _ = readdlm(joinpath(REPO_ROOT, "tables", "csv", "forced_age65_shapley.csv"), ',', Any; header=true)
+    @test macros["forcedAgeOwn"] == fmt_pct(Float64(fa[1, 4]); digits=1)
+    v = Dict(String(fa[r, 1]) => Float64(fa[r, 2]) for r in 1:size(fa, 1))
+    @test v["Loads"] > v["Bequests"]  # ranking preserved under forced age
+    @test argmax(last, collect(v))[1] == "Loads"
+    cev, ch = readdlm(joinpath(REPO_ROOT, "tables", "csv", "cev_counterfactuals.csv"), ',', Any; header=true)
+    @test String(ch[1]) == "bequest_spec"          # new schema present
+    @test size(cev, 1) == 30                        # both specs, 15 rows each
+    # Direct CSV read (the schema-aware helper lives in the export script)
+    best_col = findfirst(==("cev_best_feasible"), vec(ch))
+    row = findfirst(r -> String(cev[r, 1]) == "none" && Int(cev[r, 2]) == 1_000_000 &&
+                         String(cev[r, 3]) == "Good", 1:size(cev, 1))
+    @test row !== nothing
+    @test macros["cevNoBqOneMillBestFeas"] == fmt_pct(Float64(cev[row, best_col]) * 100; digits=1)
+end

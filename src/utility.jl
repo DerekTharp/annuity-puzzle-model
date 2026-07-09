@@ -16,7 +16,9 @@ end
 
 """
 Bequest utility: V(b) = θ * (b + κ)^(1-γ) / (1-γ).
-κ > 0 makes bequests a luxury good (Lockwood 2018).
+κ > 0 makes bequests a luxury good; parameter values are Lockwood (2012)'s
+DFJ specification (BAP_sim2.m), and the luxury-good interpretation of κ is
+developed in Lockwood (2018).
 Returns 0 when θ = 0 (no bequest motive).
 """
 function bequest_utility(b::Float64, gamma::Float64, theta::Float64, kappa::Float64)

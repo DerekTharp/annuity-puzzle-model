@@ -680,6 +680,19 @@ function build_macros!()
     end
 
     # ======================================================================
+    # Section F5 — Forced-age-65 ranking check (forced_age65_shapley.csv)
+    # ======================================================================
+    let path = joinpath(CSV_DIR, "forced_age65_shapley.csv")
+        if isfile(path)
+            raw, _ = readdlm(path, ',', Any; header=true)
+            def!("forcedAgeOwn", fmt_pct(Float64(raw[1, 4]); digits=1))
+            v = Dict(String(raw[r, 1]) => Float64(raw[r, 2]) for r in 1:size(raw, 1))
+            def!("forcedAgeLoads", fmt_num(v["Loads"]; digits=1))
+            def!("forcedAgeBequests", fmt_num(v["Bequests"]; digits=1))
+        end
+    end
+
+    # ======================================================================
     # Section F4 — Two-product extension (group access mixture)
     # ======================================================================
     let gp = joinpath(CSV_DIR, "two_product_gradient.csv"),
@@ -788,6 +801,15 @@ function build_macros!()
                 def!("bybandMwr" * key * "Qfour", fmt_pct(Float64(raw[r, 6]); digits=1))
             end
         end
+    end
+
+    # Panel C (no-bequest) counterfactual CEVs, from the bequest_spec="none"
+    # rows of cev_counterfactuals.csv (Table 17 Panel C lock coverage).
+    for (suffix, wealth) in [("FiveHundredK", 500_000), ("OneMill", 1_000_000)]
+        cc = cev_counterfactual_row(wealth, "Good"; bequest_spec="none")
+        def!("cevNoBq" * suffix * "GroupPrice", fmt_pct(cc.cev_group * 100; digits=1))
+        def!("cevNoBq" * suffix * "RealAnn",    fmt_pct(cc.cev_real * 100; digits=1))
+        def!("cevNoBq" * suffix * "BestFeas",   fmt_pct(cc.cev_best * 100; digits=1))
     end
 
     # ======================================================================
@@ -989,7 +1011,7 @@ function build_macros!()
 
     # FLN raw endpoint [1, 0.90, 0.75]: state-utility sensitivity lower bound.
     # The production calibration is the FLN central midpoint (ownEightChannelExt).
-    def!("ownNineChannelFLN",  fmt_pct(fln.ownership_pct; digits=1))
+    def!("ownEightChFLNRaw",  fmt_pct(fln.ownership_pct; digits=1))
 
     # Reichling-Smetters softer mapping (robustness case)
     def!("pHealthUtilFairRS",  fmt_num(rs.phi_fair;  digits=2))

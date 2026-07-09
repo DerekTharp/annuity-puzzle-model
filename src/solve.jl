@@ -298,8 +298,9 @@ function solve_lifecycle_health(
                     # income-first convention mechanically inflates the
                     # source-dependent utility channel's contribution (it
                     # shrinks the high-utility income envelope in high-medical
-                    # states); a portfolio-first robustness specification is
-                    # reported in the manuscript appendix.
+                    # states). The manuscript discloses this ordering dependence
+                    # of the SDU attribution; the structural nine-channel
+                    # headline is unaffected (SDU is off there).
                     mu_m, sigma_m = medical_expense_params(age, ih, p)
                     inc_gross = ss_val + A_real
                     V_total = 0.0

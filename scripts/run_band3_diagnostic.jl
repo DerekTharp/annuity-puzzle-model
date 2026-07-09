@@ -1,6 +1,6 @@
 # Band-3 value-destruction diagnostic.
 #
-# The clean q286 lifetime-SPIA gradient is hump-shaped (1.6/3.7/5.2/4.5% by
+# The clean q286 lifetime-SPIA gradient is hump-shaped (1.69/3.37/5.34/4.46% by
 # wealth band), peaking in band 3 ($120-350k). The model predicts 0% ownership
 # in band 3 even at a zero transaction cost (fstar_distribution.csv:
 # frac_value_destroying=1.0). This script asks WHY: for band-3 (and band-2)

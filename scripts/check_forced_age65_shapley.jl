@@ -4,8 +4,8 @@
 # observed age (65-69). This script recomputes the nine-channel structural
 # Shapley with every respondent forced to age 65, to confirm that the channel
 # RANKING is unchanged even though the predicted level falls (~7.9% -> ~6.0%).
-# A coarse grid is used because the ranking is grid-robust (Section 6); the level
-# is not the object here.
+# Grid 60x20x101; pricing follows the production four-branch convention.
+# Output: tables/csv/forced_age65_shapley.csv
 #
 # Usage: julia --project=. -p 8 scripts/check_forced_age65_shapley.jl
 
@@ -19,8 +19,9 @@ else
 end
 include(joinpath(@__DIR__, "config.jl"))
 
-# Coarse grid for speed (ranking is grid-robust)
-const NW = 40; const NA = 15; const NAL = 51
+# 60x20x101: the coarsest grid the deposited convergence table places within
+# ~1pp of production; alpha grid at the production resolution.
+const NW = 60; const NA = 20; const NAL = 101
 
 hrs_raw = readdlm(HRS_PATH, ',', Any; skipstart=1)
 has_health = assert_hrs_schema(hrs_raw, HRS_PATH)
@@ -51,7 +52,7 @@ grids = build_grids(ModelParams(; gamma=GAMMA, beta=BETA, r=R_RATE,
         HAZARD_MULT, THETA_DFJ, KAPPA_DFJ, MWR_LOADED, FIXED_COST, MIN_PURCHASE,
         INFLATION, SURVIVAL_PESSIMISM, SS_QUARTILE_LEVELS, CONSUMPTION_DECLINE,
         HEALTH_UTILITY, CHI_LTC, LAMBDA_W, PSI_PURCHASE, PSI_PURCHASE_C_REF,
-        grids, base_surv, fair_pr_nom, pop65)
+        grids, base_surv, fair_pr, fair_pr_nom, pop65)
     cfg = build_subset_config(bitmask_to_channels(mask);
         theta_dfj=THETA_DFJ, kappa_dfj=KAPPA_DFJ, mwr_loaded=MWR_LOADED,
         fixed_cost=FIXED_COST, min_purchase=MIN_PURCHASE, inflation_val=INFLATION,
@@ -61,7 +62,10 @@ grids = build_grids(ModelParams(; gamma=GAMMA, beta=BETA, r=R_RATE,
         health_utility=Float64.(HEALTH_UTILITY), chi_ltc_val=CHI_LTC,
         lambda_w_val=LAMBDA_W, psi_purchase_val=PSI_PURCHASE,
         psi_purchase_c_ref_val=PSI_PURCHASE_C_REF)
-    pr = cfg.mwr * fair_pr_nom
+    has_loads = cfg.mwr < 1.0; has_infl = cfg.inflation_rate > 0
+    pr = has_loads && has_infl ? cfg.mwr * fair_pr_nom :
+         has_loads              ? cfg.mwr * fair_pr :
+         has_infl               ? fair_pr_nom : fair_pr
     p = ModelParams(; gamma=GAMMA, beta=BETA, r=R_RATE, stochastic_health=true,
         n_health_states=3, n_quad=N_QUAD, c_floor=C_FLOOR,
         hazard_mult=Float64.(HAZARD_MULT), theta=cfg.theta, kappa=cfg.kappa,
@@ -84,7 +88,7 @@ pairs = pmap(m -> solve_one(m, gkw, GAMMA, BETA, R_RATE, N_QUAD, C_FLOOR,
         HAZARD_MULT, THETA_DFJ, KAPPA_DFJ, MWR_LOADED, FIXED_COST, MIN_PURCHASE,
         INFLATION, SURVIVAL_PESSIMISM, SS_QUARTILE_LEVELS, CONSUMPTION_DECLINE,
         HEALTH_UTILITY, CHI_LTC, LAMBDA_W, PSI_PURCHASE, PSI_PURCHASE_C_REF,
-        grids, base_surv, fair_pr_nom, pop65), 0:511)
+        grids, base_surv, fair_pr, fair_pr_nom, pop65), 0:511)
 lookup = Dict{Int,Float64}(pairs)
 shap = exact_shapley(9, lookup)
 names = ["SS", "Bequests", "Med+R-S", "Pessimism", "Age needs", "State util",
@@ -95,3 +99,13 @@ order = sortperm(shap; rev=true)
 for (rank, i) in enumerate(order)
     @printf("  %2d. %-12s %+7.2f pp\n", rank, names[i], shap[i] * 100)
 end
+
+csv = joinpath(@__DIR__, "..", "tables", "csv", "forced_age65_shapley.csv")
+open(csv, "w") do io
+    println(io, "channel,shapley_value_pp,abs_rank,full_own_forced_pct")
+    rk = zeros(Int, 9); for (k, i) in enumerate(sortperm(abs.(shap); rev=true)); rk[i] = k; end
+    for i in 1:9
+        @printf(io, "%s,%.4f,%d,%.4f\n", names[i], shap[i] * 100, rk[i], lookup[511] * 100)
+    end
+end
+println("CSV: $csv")
