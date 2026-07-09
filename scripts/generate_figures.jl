@@ -1,11 +1,12 @@
 # Figure generation for "Private Annuities and Social Security Cuts"
 #
-# Produces 5 publication-quality figures:
+# Produces 6 publication-quality figures:
 #   1. Sequential decomposition bar chart
 #   2. Gamma sensitivity curve
 #   3. Hazard multiplier sensitivity
 #   4. Policy function (optimal alpha by wealth)
 #   5. CEV heatmap
+#   6. Two-product extension (band gradient + cut incidence)
 #
 # Run: julia --project=. scripts/generate_figures.jl
 
@@ -451,6 +452,84 @@ end
 # =====================================================================
 # Figure 5: CEV Heatmap
 # =====================================================================
+
+# =====================================================================
+# Figure 6: Two-Product Extension — Band Gradient and Cut Incidence
+# =====================================================================
+function figure_6_two_product()
+    println("Generating Figure 6: Two-Product Extension...")
+
+    g_raw, g_hdr = readdlm(joinpath(@__DIR__, "..", "tables", "csv", "two_product_gradient.csv"),
+                           ',', Any; header=true)
+    c_raw, c_hdr = readdlm(joinpath(@__DIR__, "..", "tables", "csv", "two_product_ss_cut.csv"),
+                           ',', Any; header=true)
+    gc(name) = findfirst(==(name), vec(g_hdr))
+    cc(name) = findfirst(==(name), vec(c_hdr))
+
+    bands   = 1:4
+    access  = [Float64(g_raw[b, gc("access_pct")]) for b in bands]
+    single  = [Float64(g_raw[b, gc("retail_pct")]) for b in bands]
+    mixture = [Float64(g_raw[b, gc("mixture_pct")]) for b in bands]
+    observed = [Float64(g_raw[b, gc("observed_lifetime_pct")]) for b in bands]
+    resp    = [Float64(c_raw[b, cc("response_pp")]) for b in bands]
+
+    xticklabels = ["<\$30k\naccess $(round(Int, a))%" for a in access]
+    xticklabels = [@sprintf("%s\naccess %.0f%%", l, a) for (l, a) in
+                   zip(["<\$30k", "\$30-120k", "\$120-350k", ">\$350k"], access)]
+
+    # Panel A: grouped bars, y-axis capped to keep the interior legible;
+    # the two model top-band bars exceed the cap and are drawn clipped with
+    # their true values labeled (stated in the caption).
+    ycap = 9.0
+    pa = plot(; xticks=(bands, xticklabels), ylims=(0, ycap), legend=:topleft,
+              background_color_legend=RGBA(1, 1, 1, 0.75),
+              ylabel="Ownership (%)", title="A. Ownership by wealth band",
+              titlefontsize=11, size=(470, 380), left_margin=5Plots.mm,
+              bottom_margin=8Plots.mm)
+    w = 0.25
+    series = [(single, CB_BLUE, "Single-product", -0.27),
+              (mixture, CB_ORANGE, "Two-product mixture", 0.0),
+              (observed, CB_GREEN, "Observed (lifetime)", 0.27)]
+    for (vals, col, lab, off) in series
+        bar!(pa, bands .+ off, min.(vals, ycap * 0.98); bar_width=w, color=col,
+             linecolor=col, label=lab)
+        for (b, v) in zip(bands, vals)
+            if v > ycap
+                # Clipped bar: full value inside the bar (rotated, low enough to
+                # fit) plus white break marks so the bar reads as truncated.
+                annotate!(pa, b + off, ycap - 1.6,
+                          Plots.text(@sprintf("%.1f", v), 7, :white, :center, rotation=90))
+                for dy in (0.0, 0.18)
+                    plot!(pa, [b + off - w/2, b + off + w/2],
+                          [ycap - 0.75 + dy, ycap - 0.55 + dy];
+                          color=:white, linewidth=2.5, label="")
+                end
+            elseif v > 0.0
+                annotate!(pa, b + off, min(v, ycap * 0.98) + 0.3,
+                          Plots.text(@sprintf("%.2f", v), 6, :black, :center))
+            end
+        end
+    end
+
+    # Panel B: diverging response bars around zero
+    pb = plot(; xticks=(bands, ["<\$30k", "\$30-120k", "\$120-350k", ">\$350k"]),
+              ylims=(-1.8, 13), legend=false,
+              ylabel="Response (pp)", title="B. Response to a 22% SS cut",
+              titlefontsize=11, size=(470, 380), left_margin=5Plots.mm,
+              bottom_margin=8Plots.mm)
+    cols = [r >= 0 ? CB_BLUE : CB_RED for r in resp]
+    bar!(pb, bands, resp; bar_width=0.5, color=cols, linecolor=cols, label="")
+    hline!(pb, [0.0]; color=CB_BLACK, linewidth=0.8, label="")
+    for (b, r) in zip(bands, resp)
+        annotate!(pb, b, r + (r >= 0 ? 0.45 : -0.5),
+                  Plots.text(@sprintf("%+.2f", r), 8, :black, :center))
+    end
+
+    p = plot(pa, pb; layout=(1, 2), size=(940, 390), top_margin=3Plots.mm)
+    savefig_both(p, "fig6_two_product")
+    return p
+end
+
 function figure_5_cev_heatmap()
     println("Generating Figure 5: CEV Heatmap...")
 
@@ -550,6 +629,7 @@ function main()
     println()
 
     figure_5_cev_heatmap()
+    figure_6_two_product()
     println()
 
     println("=" ^ 60)

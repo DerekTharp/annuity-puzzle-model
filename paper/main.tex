@@ -633,7 +633,7 @@ Table~\ref{tab:counterfactuals} reports predicted ownership under twelve policy 
 
 \paragraph{A two-product extension: the employer channel.} The single-product boundary stated in Section~\ref{sec:empirical} invites the natural extension: give households access to the institutionally priced annuitization the observed interior ownership points to. We add a second product---the same immediate life annuity priced at MWR $= 0.95$, the TSP- and TIAA-class institutional benchmark---accessible to the fraction of each wealth band with employer-pension linkage in the RAND HRS analysis sample (receipt of employer pension income: \tpAccessQone, \tpAccessQtwo, \tpAccessQthree, and \tpAccessQfour{} across the four bands). Access is calibrated to coverage, not to any ownership rate, preserving the paper's out-of-sample discipline, and product choice is dominance-ordered (the group product is the same contract at a better price), so band-level ownership is the access-probability mixture of the two single-product predictions, with no new state variable. One feature of the access data deserves note before any model output: access peaks in the third band, precisely where observed lifetime ownership peaks, so the coverage data independently corroborate the employer-channel reading of the interior gradient.
 
-Table~\ref{tab:two_product} reports the result. The mixture generates interior ownership where the single-product model predicted none: \tpMixQtwo{} in the second band and \tpMixQthree{} in the third, against observed rates of 3.37\% and 5.34\%---the right shape and order of magnitude, at roughly a third of observed levels, with the bottom band remaining at zero and the top-band overshoot unchanged (that miss reflects within-band preference homogeneity, not product scope).
+Table~\ref{tab:two_product} reports the result, and Figure~\ref{fig:two_product} shows it: the single-product step function, the mixture's interior gradient, and the observed profile in Panel A; the two-signed cut response in Panel B. The mixture generates interior ownership where the single-product model predicted none: \tpMixQtwo{} in the second band and \tpMixQthree{} in the third, against observed rates of 3.37\% and 5.34\%---the right shape and order of magnitude, at roughly a third of observed levels, with the bottom band remaining at zero and the top-band overshoot unchanged (that miss reflects within-band preference homogeneity, not product scope).
 
 \input{../tables/tex/two_product.tex}
 
@@ -835,6 +835,13 @@ This research did not receive any specific grant from funding agencies in the pu
 \includegraphics[width=0.8\textwidth]{../figures/pdf/fig5_cev_heatmap.pdf}
 \caption{Consumption-equivalent variation (\%) from annuity market access, by initial wealth and health status. No-bequest specification ($\theta = 0$). Full model with medical costs, Reichling--Smetters correlation, MWR $= \pMwrBaseline$, and 2\% inflation.}
 \label{fig:cev}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\textwidth]{../figures/pdf/fig6_two_product.pdf}
+\caption{The two-product extension by wealth band. Panel A: predicted ownership under the single-product (retail SPIA) model, the two-product access mixture, and observed lifetime-contract ownership; group-annuity access rates (employer-pension linkage, RAND HRS) are printed beneath each band. The two top-band model bars exceed the axis limit and are truncated at the break marks; their values (33.5\% and 57.2\%) are printed within the bars. Panel B: the change in mixture ownership under a 22\% Social Security benefit cut. The negative lower-middle response is the income effect: the cut removes part of the income floor that made the group annuity rational for marginal buyers.}
+\label{fig:two_product}
 \end{figure}
 
 \end{document}
