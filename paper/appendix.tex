@@ -38,7 +38,7 @@
 \providecommand{\pPsiPurchase}{0.05}
 \providecommand{\pChiLTC}{0.49}
 
-\title{Online Appendix for ``Private Annuities and Social Security Cuts: An Order-Independent Decomposition of the Annuity Puzzle''}
+\title{Online Appendix for ``Loads, Not Bequests: An Order-Independent Decomposition of the Annuity Puzzle''}
 \author{Derek Tharp}
 \date{\today}
 
@@ -49,6 +49,8 @@
 \appendix
 \setcounter{section}{0}
 \renewcommand{\thesection}{\Alph{section}}
+\renewcommand{\thetable}{A\arabic{table}}
+\renewcommand{\thefigure}{A\arabic{figure}}
 
 
 %% ================================================================
@@ -446,7 +448,7 @@ At $t = 1$, the optimal annuitization fraction $\alpha^*$ is found by grid searc
 
 \subsection{Population evaluation}
 
-Ownership is evaluated on a population of HRS individuals with observed initial wealth, age, and self-reported health. Pre-existing annuitized income $y$ is assigned at the wealth-band level (the four $\text{SS}_{\text{obs}} + \text{DB}_{\text{obs}}$ levels of Table~\ref{M-tab:calibration}), not per individual; for each individual, the optimal $\alpha^*$ is then computed at their specific $(W_0, y_{b(W_0)}, H_0)$. Ownership is defined as $\alpha^* > 0$. The ownership rate is the fraction of the eligible population (wealth $\geq$ \pMinWealth) that annuitizes any positive amount. The wealth grid extends to \pWMaxMillions, covering the 99.5th percentile of the HRS wealth distribution. Individuals above the grid maximum (\pctHRSAboveWmax{} of the sample) are capped at the grid maximum and evaluated at the cap, rather than extrapolated beyond it.
+Ownership is evaluated on a population of HRS individuals with observed initial wealth, age, and self-reported health. Pre-existing annuitized income $y$ is assigned at the wealth-band level (the four $\text{SS}_{\text{obs}} + \text{DB}_{\text{obs}}$ levels of Table~\ref{M-tab:calibration}), not per individual; for each individual, the optimal $\alpha^*$ is then computed at their specific $(W_0, y_{b(W_0)}, H_0)$. Ownership is defined as $\alpha^* > 0$. The ownership rate is the fraction of the eligible population (wealth $\geq$ \pMinWealth) that annuitizes any positive amount. The wealth grid extends to \pWMaxMillions, covering the 99.5th percentile of the HRS wealth distribution. Individuals above the grid maximum (\pctHRSAboveWmax{} of the sample) are capped at the grid maximum and evaluated at the cap, rather than extrapolated beyond it. A related bound applies to the annuity-income grid, which tops out at the full-annuitization payout of the grid-maximum wealth: for roughly one percent of the eligible sample---top-band households with large pre-existing income---the implied annuity income at $\alpha = 1$ exceeds the grid ceiling by up to ten percent, which biases against high-purchase allocations and is therefore conservative for the low-ownership findings.
 
 \subsection{Computational performance}
 
@@ -465,7 +467,7 @@ u'(c^*) = \beta(1+r) \, \mathbb{E}_m\!\left[ s(t,H) \sum_{H'} \pi(H,H',t) \, V_W
 \]
 where $W' = (1+r)(\text{cash} - c^*)$ and the expectation is over the medical expense shock $m$. The marginal value of next-period wealth $V_W$ is computed by finite differences on the piecewise-linear value function interpolant.
 
-The normalized Euler residual at each grid point is $|u'(c^*) - \text{RHS}| / |u'(c^*)|$. Corner solutions ($c^* = \underline{c}$ or $c^* = \text{cash}$) are excluded, as the Euler equation holds with inequality at boundaries.
+The residuals are computed for the structural configuration (source-dependent utility off); the SDU channel's kinked marginal utility is not covered by this diagnostic. The normalized Euler residual at each grid point is $|u'(c^*) - \text{RHS}| / |u'(c^*)|$. Corner solutions ($c^* = \underline{c}$ or $c^* = \text{cash}$) are excluded, as the Euler equation holds with inequality at boundaries.
 
 Table~\ref{tab:euler} reports summary statistics. The median residual is below $10^{-6}$; the summary statistics are computed over strictly positive residuals, so no grid point satisfies the condition to machine zero, but half sit below that threshold. The mean residual is \eulerMeanPct, with approximately \eulerPctAboveOne{} of grid points exceeding 1\% and \eulerPctAboveFive{} exceeding 5\%. The maximum residual stays below 1 at the production grid and rises slightly above 1 at the finer $100 \times 40$ grid; these large values are confined to low-wealth states where the finite-difference derivative of the piecewise-linear value function poorly approximates the true marginal value, and the maximum does not fall monotonically with refinement. The share of points above 1\% is stable across resolutions, easing from \eulerPctOneCoarse{} at $40 \times 15$ to \eulerPctOneFine{} at $100 \times 40$.
 

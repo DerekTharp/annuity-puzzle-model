@@ -1,4 +1,4 @@
-# Private Annuities and Social Security Cuts: An Order-Independent Decomposition of the Annuity Puzzle
+# Loads, Not Bequests: An Order-Independent Decomposition of the Annuity Puzzle
 
 Replication package for Tharp (working paper). A calibrated lifecycle model
 nests the channels proposed to explain low voluntary annuity demand among US

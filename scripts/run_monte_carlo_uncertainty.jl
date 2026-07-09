@@ -216,11 +216,11 @@ flush(stdout)
 ownership_vals = [r.ownership_pct for r in results]
 sort!(ownership_vals)
 n = length(ownership_vals)
-q05 = ownership_vals[max(1, round(Int, 0.05 * n))]
-q25 = ownership_vals[max(1, round(Int, 0.25 * n))]
-med = ownership_vals[div(n, 2)]
-q75 = ownership_vals[max(1, round(Int, 0.75 * n))]
-q95 = ownership_vals[max(1, round(Int, 0.95 * n))]
+q05 = quantile(ownership_vals, 0.05)
+q25 = quantile(ownership_vals, 0.25)
+med = median(ownership_vals)
+q75 = quantile(ownership_vals, 0.75)
+q95 = quantile(ownership_vals, 0.95)
 frac_1_10 = count(x -> 1.0 <= x <= 10.0, ownership_vals) / n * 100
 frac_3_6 = count(x -> 3.0 <= x <= 6.0, ownership_vals) / n * 100
 

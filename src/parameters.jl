@@ -27,10 +27,11 @@ using TOML
                                        # Blanchett-Finke 2024-25 spending differential).
                                        # Implementation: c_eff = c_income + lambda_w * c_portfolio
     chi_ltc::Float64 = 1.0            # public-care aversion (Ameriks 2011 JF; 2020 JPE).
-                                       # 1.0 = channel off; values below 1.0 multiply
-                                       # flow utility by chi_ltc when the consumption
-                                       # floor binds AND health = Poor (Medicaid-LTC
-                                       # binding state).
+                                       # 1.0 = channel off; values below 1.0 apply a
+                                       # CONSUMPTION-EQUIVALENT transform, u(chi_ltc*c),
+                                       # when the consumption floor binds AND health =
+                                       # Poor (Medicaid-LTC binding state) -- not a
+                                       # multiplier on the (negative) CRRA utility.
 
     # Demographics
     age_start::Int = 65

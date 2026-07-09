@@ -94,7 +94,7 @@ function terminal_value(
     A::Float64,
     ss::Float64,
     p::ModelParams,
-    t::Int=36,           # period index (default T=36 for age 100)
+    t::Int,           # period index (default T=36 for age 100)
     ih::Int=2,           # health state (default Fair)
 )
     cash = W + A + ss

@@ -247,8 +247,8 @@ sort!(gammas)
 
 if n_conv > 0
     med = gammas[max(1, div(n_conv, 2))]
-    q25 = gammas[max(1, round(Int, 0.25 * n_conv))]
-    q75 = gammas[max(1, round(Int, 0.75 * n_conv))]
+    q25 = quantile(gammas, 0.25)
+    q75 = quantile(gammas, 0.75)
     mn = sum(gammas) / n_conv
     frac_chetty = count(g -> 1.0 <= g <= 3.0, gammas) / n_conv * 100
     frac_narrow = count(g -> 2.0 <= g <= 2.5, gammas) / n_conv * 100

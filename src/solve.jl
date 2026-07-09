@@ -124,6 +124,8 @@ function solve_lifecycle_health(
     ss_func::Function;
     compute_bequest_decomp::Bool=false,
 )
+    # The health machinery hardcodes three states in several places.
+    @assert p.n_health_states == 3 "solve_lifecycle_health requires n_health_states == 3"
     nW = length(grids.W)
     nA = length(grids.A)
     nH = 3

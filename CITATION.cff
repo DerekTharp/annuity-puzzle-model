@@ -1,6 +1,6 @@
 cff-version: 1.2.0
 message: "If you use this replication package, please cite both the software and the associated paper."
-title: "Private Annuities and Social Security Cuts: An Order-Independent Decomposition of the Annuity Puzzle (replication package)"
+title: "Loads, Not Bequests: An Order-Independent Decomposition of the Annuity Puzzle (replication package)"
 type: software
 authors:
   - given-names: Derek
@@ -24,7 +24,7 @@ keywords:
   - public economics
 preferred-citation:
   type: article
-  title: "Private Annuities and Social Security Cuts: An Order-Independent Decomposition of the Annuity Puzzle"
+  title: "Loads, Not Bequests: An Order-Independent Decomposition of the Annuity Puzzle"
   authors:
     - given-names: Derek
       family-names: Tharp
