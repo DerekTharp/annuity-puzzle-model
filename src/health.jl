@@ -296,6 +296,68 @@ function build_health_survival(base_surv::Vector{Float64}, p::ModelParams;
     nH = 3
     surv_health = Matrix{Float64}(undef, T, nH)
     psi = psi_override === nothing ? p.survival_pessimism : psi_override
+    if p.hazard_normalize
+        # Anchor aggregate mortality to the life table. The raw multipliers
+        # give s_base^mu(h); averaged over health states this overstates
+        # aggregate mortality relative to the table (the multipliers are
+        # relative hazards, not table-anchored levels). Normalize in hazard
+        # space: scale every multiplier by a common age-specific factor m(t)
+        # chosen so the population-weighted survival reproduces base_surv at
+        # each age, s(t,h) = s_base(t)^(m(t) mu(h)). Hazard ratios across
+        # health states are preserved exactly, and survival stays below one
+        # by construction. Shares evolve under the normalized objective
+        # survivals and the health transition matrices; pessimism scales
+        # beliefs after the objective anchor is set.
+        trans = build_all_health_transitions(p)
+        pi_h = copy(p.initial_health_shares)
+        pi_h ./= sum(pi_h)
+        for t in 1:T
+            age = p.age_start + t - 1
+            mus = [_get_hazard_mult(h, age, p) for h in 1:nH]
+            b = base_surv[t]
+            s_obj = zeros(nH)
+            if b > 0.0 && b < 1.0 && p.health_mortality_corr
+                # f(m) = sum_h pi_h b^(m mu_h) is strictly decreasing in m;
+                # bisect for f(m) = b.
+                lo, hi = 0.0, 1.0
+                while sum(pi_h[h] * b^(hi * mus[h]) for h in 1:nH) > b
+                    hi *= 2.0
+                    hi > 1e6 && error("hazard normalization failed to bracket")
+                end
+                for _ in 1:80
+                    mid = 0.5 * (lo + hi)
+                    if sum(pi_h[h] * b^(mid * mus[h]) for h in 1:nH) > b
+                        lo = mid
+                    else
+                        hi = mid
+                    end
+                end
+                m = 0.5 * (lo + hi)
+                s_obj = [b^(m * mus[h]) for h in 1:nH]
+            else
+                s_obj = [health_adjusted_survival(b, h, age, p) for h in 1:nH]
+            end
+            for h in 1:nH
+                s = s_obj[h]
+                if psi < 1.0
+                    s = clamp(s * psi, 0.0, 1.0)
+                end
+                surv_health[t, h] = s
+            end
+            if t < T
+                alive = [pi_h[h] * s_obj[h] for h in 1:nH]
+                tot = sum(alive)
+                if tot > 0.0
+                    nxt = zeros(nH)
+                    for h in 1:nH, h2 in 1:nH
+                        nxt[h2] += alive[h] * trans[t][h, h2]
+                    end
+                    pi_h = nxt ./ sum(nxt)
+                end
+            end
+        end
+        return surv_health
+    end
     for t in 1:T
         age = p.age_start + t - 1
         for h in 1:nH

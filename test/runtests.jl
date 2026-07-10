@@ -14,6 +14,7 @@ const PROJECT_DIR = dirname(TEST_DIR)
 const TEST_FILES = [
     "test_utility.jl",
     "test_limiting_cases.jl",
+    "test_hazard_normalization.jl",
     "test_lockwood.jl",
     "test_health.jl",
     "test_phase4.jl",
