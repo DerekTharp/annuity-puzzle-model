@@ -51,6 +51,11 @@ if has_health
 else
     population[:, 4] .= 2.0  # default Fair if health not in CSV
 end
+# The DIA exhibit evaluates a single age-65 purchase with age-65 pricing
+# (repricing disabled below), so respondents are evaluated at age 65; and
+# the eligibility filter matches the headline evaluation population.
+population[:, 3] .= AGE_START
+population = population[population[:, 1] .>= MIN_WEALTH, :]
 
 p_base = ModelParams(age_start=AGE_START, age_end=AGE_END)
 base_surv = production_base_survival(p_base)

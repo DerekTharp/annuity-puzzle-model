@@ -332,6 +332,7 @@ pw = run_pairwise_interactions(
     c_floor=C_FLOOR,
     mwr_loaded=MWR_LOADED,
     fixed_cost_val=FIXED_COST,
+    min_purchase_val=MIN_PURCHASE,
     inflation_val=INFLATION,
     n_wealth=N_WEALTH, n_annuity=N_ANNUITY, n_alpha=N_ALPHA,
     W_max=W_MAX, n_quad=N_QUAD,

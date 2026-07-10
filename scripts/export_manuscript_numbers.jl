@@ -706,6 +706,32 @@ function build_macros!()
         end
     end
 
+    # Bequest order-dependence exhibits (subset_enumeration.csv):
+    # grand-coalition removal (ownership without bequests minus the full
+    # model) and the sequential increment when bequests enter second, after
+    # SS alone.
+    def!("grandRemovalBequests",
+         fmt_num(subset_ownership(511 - B_BEQUESTS) - subset_ownership(511); digits=1))
+    def!("seqBequestsSecond",
+         fmt_num(subset_ownership(B_SS) - subset_ownership(B_SS | B_BEQUESTS); digits=1))
+
+    # Focal-psi Shapley: pessimism's tier margin over the next channel.
+    let path = joinpath(CSV_DIR, "shapley_psi981.csv")
+        if isfile(path)
+            raw, _ = readdlm(path, ',', Any; header=true)
+            vals = Dict(String(raw[r, 1]) => (Float64(raw[r, 2]), Int(raw[r, 3]))
+                        for r in 1:size(raw, 1))
+            pess_v, pess_rk = vals["Pessimism"]
+            next_v = NaN
+            for (ch, (v, rk)) in vals
+                rk == pess_rk + 1 && (next_v = v)
+            end
+            isnan(next_v) && error("shapley_psi981.csv: no channel ranked below Pessimism")
+            def!("psiFocalPessimismAbs", fmt_num(abs(pess_v); digits=1))
+            def!("psiFocalNextAbs",      fmt_num(abs(next_v); digits=1))
+        end
+    end
+
     # ======================================================================
     # Section F5 — Forced-age-65 ranking check (forced_age65_shapley.csv)
     # ======================================================================
@@ -787,6 +813,8 @@ function build_macros!()
             tot = sum(Float64(c[b, cc("response_pp")]) * Float64(c[b, cc("n")]) for b in 1:4)
             top = Float64(c[4, cc("response_pp")]) * Float64(c[4, cc("n")])
             def!("tpTopShare", fmt_pct(100 * top / tot; digits=0))
+            def!("tpRetailTop", fmt_pct(Float64(g[4, gc("retail_pct")]); digits=1))
+            def!("tpMixTop",    fmt_pct(Float64(g[4, gc("mixture_pct")]); digits=1))
         end
     end
 
@@ -971,6 +999,9 @@ function build_macros!()
         def!("quadThirteen", fmt_pct(cq(13); digits=1))
         def!("quadFifteen",  fmt_pct(cq(15); digits=1))
         def!("quadBand",     fmt_num(cq(15) - cq(9); digits=1))
+        def!("gridConvCoarse", fmt_pct(cg("40x15"); digits=1))
+        def!("quadLowDeviation",
+             fmt_num(maximum(abs(cq(n) - cq(9)) for n in (3, 5, 7)); digits=1))
     end
 
     # Annuitization-grid (alpha) convergence macros for prose.
@@ -1136,6 +1167,26 @@ function build_macros!()
         def!("gammaStabNGamma",      string(length(gam)))
         def!("ownGammaSweepLow",     fmt_pct(minimum(fullo); digits=1))
         def!("ownGammaSweepHigh",    fmt_pct(maximum(fullo); digits=1))
+    end
+
+    # gamma = 2.0 boundary values quoted in the stability discussion:
+    # suppressor leaders on the ownership and mean-purchase statistics.
+    gd_path = joinpath(CSV_DIR, "shapley_gamma_stability.csv")
+    if isfile(gd_path)
+        gd, gdh = read_csv("shapley_gamma_stability.csv")
+        g2(ch, col) = begin
+            for r in 1:size(gd, 1)
+                if isapprox(Float64(gd[r, colof(gdh, "gamma")]), 2.0; atol=1e-6) &&
+                   strip(string(gd[r, colof(gdh, "channel")])) == ch
+                    return Float64(gd[r, colof(gdh, col)])
+                end
+            end
+            error("shapley_gamma_stability.csv: gamma=2.0 row for $ch missing")
+        end
+        def!("rpLoadsAtGammaTwoOwn",      fmt_num(g2("Loads", "shapley_ownership_pp"); digits=1))
+        def!("rpBequestsAtGammaTwoOwn",   fmt_num(g2("Bequests", "shapley_ownership_pp"); digits=1))
+        def!("rpBequestsAtGammaTwoAlpha", fmt_num(g2("Bequests", "shapley_meanalpha_pp"); digits=1))
+        def!("rpLoadsAtGammaTwoAlpha",    fmt_num(g2("Loads", "shapley_meanalpha_pp"); digits=1))
     end
 
     # By-wealth 9-channel Shapley: Loads rank across bins (Class 3).

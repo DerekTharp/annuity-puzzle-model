@@ -145,9 +145,9 @@ _ghi = GAMMA_HI
 _gtol = GAMMA_TOL
 
 results = parallel_solve(draws) do d
-    # Mean SS across quartiles (avoids 4x per-quartile solving overhead)
-    _ss_mean_val = sum(SS_QUARTILE_LEVELS) / length(SS_QUARTILE_LEVELS)
-    ss_mean_func(age, p) = _ss_mean_val
+    # Headline 4-band SS schedule: solve per quartile, aggregate on the
+    # population, matching the production evaluation convention.
+    _ss_levels = Float64.(SS_QUARTILE_LEVELS)
 
     # Solve ownership at a given gamma
     function _solve_own(gamma)
@@ -181,9 +181,9 @@ results = parallel_solve(draws) do d
             chi_ltc=_chi_ltc,
             grid_kw...)
 
-        sol = solve_lifecycle_health(p_full, grids, _bs, ss_mean_func)
-        result = compute_ownership_rate_health(sol, _pop, loaded_pr_nom; base_surv=_bs)
-        return result.ownership_rate
+        res = solve_and_evaluate(p_full, grids, _bs, _ss_levels, _pop,
+                                 loaded_pr_nom; verbose=false)
+        return res.ownership
     end
 
     # Bisection: find gamma such that ownership(gamma, d) ≈ target

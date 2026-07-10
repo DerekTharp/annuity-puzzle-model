@@ -150,8 +150,9 @@ _age_e = AGE_END
 _agp = A_GRID_POW
 
 results = parallel_solve(draws) do d
-    _ss_mean_val = sum(SS_QUARTILE_LEVELS) / length(SS_QUARTILE_LEVELS)
-    ss_mean_func(age, p) = _ss_mean_val
+    # Headline 4-band SS schedule: solve per quartile, aggregate on the
+    # population, matching the production evaluation convention.
+    _ss_levels = Float64.(SS_QUARTILE_LEVELS)
 
     hm = [0.50, 1.0, d.hazard_poor]
 
@@ -193,9 +194,9 @@ results = parallel_solve(draws) do d
         psi_purchase_c_ref=PSI_PURCHASE_C_REF,
         grid_kw...)
 
-    sol = solve_lifecycle_health(p_full, grids, _bs, ss_mean_func)
-    own_result = compute_ownership_rate_health(sol, _pop, loaded_pr_nom; base_surv=_bs)
-    own = own_result.ownership_rate * 100
+    res = solve_and_evaluate(p_full, grids, _bs, _ss_levels, _pop,
+                             loaded_pr_nom; verbose=false)
+    own = res.ownership * 100
 
     # Liveness heartbeat: one line per completed draw in the master log.
     @printf("    [heartbeat] draw done: mwr=%.3f psi=%.3f hp=%.2f -> own=%.1f%%\n",

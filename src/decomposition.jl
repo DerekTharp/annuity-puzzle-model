@@ -898,6 +898,7 @@ function run_pairwise_interactions(
     c_floor::Float64=3000.0,
     mwr_loaded::Float64=0.82,
     fixed_cost_val::Float64=1000.0,
+    min_purchase_val::Float64=0.0,
     inflation_val::Float64=0.03,
     n_wealth::Int=50,
     n_annuity::Int=15,
@@ -979,6 +980,7 @@ function run_pairwise_interactions(
     push!(channel_specs,
         ("Loads",
          (theta=0.0, kappa=0.0, mwr=mwr_loaded, fixed_cost=fixed_cost_val,
+          min_purchase=min_purchase_val,
           inflation_rate=0.0, medical_enabled=false, health_mortality_corr=false,
           survival_pessimism=1.0),
          loaded_pr, false))

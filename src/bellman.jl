@@ -41,7 +41,10 @@ function solve_consumption(
     if cash < p.c_floor
         c_star = p.c_floor
         W_next = 0.0
-        V_flow = flow_utility_sdu(c_star, inc, p.gamma, t, ih, p)
+        # Wealth W is fully drawn; the rest of floor consumption is income
+        # plus the government top-up, which is income-like for SDU accounting
+        # (same convention as the Medicaid branch: inc = c_floor - W).
+        V_flow = flow_utility_sdu(c_star, p.c_floor - W, p.gamma, t, ih, p)
         V_cont = surv * V_next_interp(W_next)
         V_beq = (1.0 - surv) * bequest_utility(W_next, p.gamma, p.theta, p.kappa)
         return (V_flow + p.beta * (V_cont + V_beq), c_star)
