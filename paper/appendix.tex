@@ -540,6 +540,50 @@ The use of piecewise-linear interpolation means derivatives are discontinuous at
 
 
 \bibliographystyle{aer}
+%% ================================================================
+%%  ADDITIONAL TABLES AND FIGURES
+%% ================================================================
+\section{Additional Tables and Figures}
+\label{app:additional_exhibits}
+
+Display items referenced from the main text: the \citet{pashchenko2013} channel comparison, the joint parameter-uncertainty summary, the lifecycle moment check, the cross-sectional ownership logit, the Social Security cut schedule, the welfare counterfactual CEVs, and the risk-aversion, hazard-multiplier, policy-function, and welfare-surface figures.
+
+\input{../tables/tex/pashchenko_comparison.tex}
+\input{../tables/tex/monte_carlo_summary.tex}
+\input{../tables/tex/moment_validation.tex}
+\input{../tables/tex/empirical_gradients_logit.tex}
+\input{../tables/tex/ss_cut_robustness.tex}
+\input{../tables/tex/cev_counterfactuals.tex}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.8\textwidth]{../figures/pdf/fig2_gamma_sensitivity.pdf}
+\caption{Predicted ownership by coefficient of relative risk aversion ($\gamma$). All other parameters at baseline values ($\pi = \pInflation$, MWR $= \pMwrBaseline$, DFJ bequests). The shaded band marks observed ownership of \pctHRSLifetime--\pctHRSIannPooled.}
+\label{fig:gamma}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.8\textwidth]{../figures/pdf/fig3_hazard_sensitivity.pdf}
+\caption{Predicted ownership by hazard multiplier specification. Each specification varies the Good- and Poor-health multipliers while holding Fair at 1.0. Labels indicate the empirical source for each calibration. The shaded band marks observed ownership of \pctHRSLifetime--\pctHRSIannPooled.}
+\label{fig:hazard}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\textwidth]{../figures/pdf/fig4_policy_functions.pdf}
+\caption{Optimal annuitization fraction ($\alpha^*$) at age 65 by initial wealth, for Good health ($H = 1$). Left panel: no bequest motive and no medical-expenditure risk, with pricing loads, inflation, and survival pessimism active. Right panel: full nine-channel structural model (DFJ bequests, medical-expenditure risk, Reichling--Smetters health-mortality correlation, survival pessimism, age-varying consumption needs, state-dependent utility, public-care aversion, pricing loads, and inflation). Both panels use MWR $= \pMwrBaseline$, $\pi = \pInflation$, and a uniform Social Security income at the sample mean.}
+\label{fig:policy}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.8\textwidth]{../figures/pdf/fig5_cev_heatmap.pdf}
+\caption{Consumption-equivalent variation (\%) from annuity market access, by initial wealth and health status. No-bequest specification ($\theta = 0$). Full model with medical costs, Reichling--Smetters correlation, MWR $= \pMwrBaseline$, and 2\% inflation.}
+\label{fig:cev}
+\end{figure}
+
+
 \bibliography{bibliography}
 
 \end{document}
