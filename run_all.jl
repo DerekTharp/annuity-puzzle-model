@@ -185,7 +185,8 @@ function main()
     # Produces: moment_validation.tex/.csv
     t = run_stage(
         "5. Moment Validation",
-        joinpath(SCRIPTS_DIR, "run_moment_validation.jl"))
+        joinpath(SCRIPTS_DIR, "run_moment_validation.jl");
+        parallel=true)
     push!(timings, "Moments" => t)
 
     # --- Stage 6: CEV welfare analysis ---
@@ -244,6 +245,25 @@ function main()
         "10c. Nine-Channel Shapley at Focal psi=0.981",
         joinpath(SCRIPTS_DIR, "run_psi981_shapley.jl"); parallel=true)
     push!(timings, "Shapley psi=0.981" => t)
+
+    # --- Stage 10d: Loads-split Shapley (11 players, 2048 subsets) ---
+    # Produces: shapley_loads_split.csv/.tex (unbundles MWR wedge, fixed
+    # cost, and minimum purchase as separate players)
+    t = run_stage(
+        "10d. Loads-Split Shapley (2048 subsets)",
+        joinpath(SCRIPTS_DIR, "run_loads_split_shapley.jl"); parallel=true)
+    push!(timings, "Loads-split Shapley" => t)
+
+    # --- Stage 10e: Sex-blended mortality Shapley (512 subsets) ---
+    # Requires data/processed/blended_lifetable.csv (committed aggregate;
+    # rebuilt from ssa2003_sex_qx.csv by calibration/build_blended_lifetable.jl).
+    run_stage(
+        "10e-prep. Build sex-blended life table",
+        joinpath(CALIB_DIR, "build_blended_lifetable.jl"))
+    t = run_stage(
+        "10e. Sex-Blended Mortality Shapley (512 subsets)",
+        joinpath(SCRIPTS_DIR, "run_blended_mortality_shapley.jl"); parallel=true)
+    push!(timings, "Blended-mortality Shapley" => t)
 
     # --- Stage 11: SS cut robustness ---
     # Produces: ss_cut_robustness.tex/.csv
@@ -322,6 +342,12 @@ function main()
     run_stage(
         "11j-emit. Two-product table",
         joinpath(SCRIPTS_DIR, "emit_two_product_table.jl"))
+
+    # --- Stage 11k: Period-certain pricing comparison (Appendix H) ---
+    # Produces: period_certain_pricing.csv
+    run_stage(
+        "11k. Period-certain pricing comparison",
+        joinpath(SCRIPTS_DIR, "emit_period_certain_pricing.jl"))
 
     # --- Stage 12: Robustness and sensitivity ---
     # Produces: robustness_gamma_inflation.tex, retention_rates.tex, robustness_full.csv
@@ -497,6 +523,8 @@ function main()
         "shapley_exact.tex",
         "shapley_nine.tex",
         "shapley_psi981.tex",        # Stage 10c output; app:psi_ranking \input
+        "shapley_loads_split.tex",   # Stage 10d output; loads-split appendix \input
+        "shapley_blended_mortality.tex",  # Stage 10e output; blended-mortality appendix \input
         "ss_cut_robustness.tex",
         "welfare_cev_grid.tex",
         "welfare_counterfactuals.tex",

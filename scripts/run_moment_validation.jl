@@ -15,11 +15,14 @@
 #   - Jones et al. (2018) (medical expenditures)
 #   - Lockwood (2012) (bequests)
 #
-# This diagnostic simulates a representative agent with SS = DB = 0 (ss_zero),
-# unlike the headline decomposition, which decumulates against the observed
-# pre-existing annuitization floor (SS_QUARTILE_LEVELS = SS_OBS + DB_OBS).
-# With no SS/DB income the representative agent decumulates faster and leaves
-# smaller bequests than the SS-funded headline households.
+# Initialization matches the headline evaluation population: trajectories draw
+# initial (wealth, health) jointly from the weighted HRS sample (single
+# retirees 65-69, wealth >= MIN_WEALTH), all started at age 65, with the
+# band-level pre-existing annuitization floor (SS_QUARTILE_LEVELS =
+# SS_OBS + DB_OBS) as income. One solve per wealth band; simulated moments
+# are pooled across bands with band shares proportional to summed HRS
+# weights. No annuity is purchased in the simulation (A = 0), matching the
+# near-zero observed ownership.
 
 using Printf
 using DelimitedFiles
@@ -51,8 +54,6 @@ common_kw = (gamma=GAMMA, beta=BETA, r=R_RATE,
              c_floor=C_FLOOR, hazard_mult=HAZARD_MULT,
              survival_pessimism=SURVIVAL_PESSIMISM)
 
-ss_zero(age, p) = 0.0
-
 # Build model
 println("\nBuilding model...")
 p_base = ModelParams(age_start=AGE_START, age_end=AGE_END)
@@ -75,21 +76,99 @@ p_fair = ModelParams(; common_kw..., mwr=1.0, grid_kw...)
 fair_pr = compute_payout_rate(p_fair, base_surv)
 grids = build_grids(p_fair, max(fair_pr, fair_pr_nom))
 
-println("Solving lifecycle model...")
-t0 = time()
-sol = solve_lifecycle_health(p, grids, base_surv, ss_zero)
-@printf("  Solved in %.1fs\n", time() - t0)
+# HRS population: joint (wealth, health, weight) for initialization
+isfile(HRS_PATH) || error("Missing HRS sample: $HRS_PATH (regenerate via ANNUITY_FORCE_HRS_REBUILD=1)")
+hrs = readdlm(HRS_PATH, ',', Any; skipstart=1)
+has_health = assert_hrs_schema(hrs, HRS_PATH)
+wealth_all = Float64.(hrs[:, 1])
+health_all = has_health ? Float64.(hrs[:, 4]) : fill(2.0, size(hrs, 1))
+weight_all = size(hrs, 2) >= 6 ? Float64.(hrs[:, 6]) : ones(size(hrs, 1))
+keep = wealth_all .>= MIN_WEALTH
+wealth_all = wealth_all[keep]; health_all = health_all[keep]; weight_all = weight_all[keep]
 
-# Representative initial conditions
-W_0 = 250_000.0
+br = SS_QUARTILE_BREAKS
+band_of(w) = w < br[1] ? 1 : w < br[2] ? 2 : w < br[3] ? 3 : 4
+bands = band_of.(wealth_all)
+band_wsum = [sum(weight_all[bands .== b]) for b in 1:4]
+@printf("  HRS init population: %d obs; band weight shares %s\n",
+    length(wealth_all), string(round.(band_wsum ./ sum(band_wsum), digits=3)))
+
+# One solve per wealth band at that band's SS+DB level
+println("Solving lifecycle model (one solve per wealth band)...")
+t0 = time()
+_p = p; _grids = grids; _bs = base_surv
+_ssq = Float64.(SS_QUARTILE_LEVELS)
+sols = parallel_solve(collect(1:4)) do b
+    ss_val = _ssq[b]
+    solve_lifecycle_health(_p, _grids, _bs, (age, pp) -> ss_val)
+end
+@printf("  Solved 4 bands in %.1fs\n", time() - t0)
+
+# Weighted resampling of (W_0, H_0) within band; band allocation by weight share
+using Random
 A_nominal = 0.0  # no annuity purchased
-H_0 = 2          # Fair health
-
-println("Simulating $(N_SIM) lifecycle trajectories...")
+println("Simulating $(N_SIM) lifecycle trajectories (population-initialized)...")
 t0 = time()
-sim = simulate_batch(sol, W_0, A_nominal, H_0, base_surv, ss_zero, p;
-                     n_sim=N_SIM, rng_seed=42)
+band_sims = Vector{Any}(undef, 4)
+for b in 1:4
+    idx = findall(bands .== b)
+    n_b = round(Int, N_SIM * band_wsum[b] / sum(band_wsum))
+    n_b == 0 && continue
+    cw = cumsum(weight_all[idx])
+    rng_init = Random.MersenneTwister(1000 + b)
+    inits = Matrix{Float64}(undef, n_b, 2)
+    for i in 1:n_b
+        j = idx[searchsortedfirst(cw, rand(rng_init) * cw[end])]
+        inits[i, 1] = wealth_all[j]
+        inits[i, 2] = health_all[j]
+    end
+    ss_val = _ssq[b]
+    band_sims[b] = simulate_batch(sols[b], inits, A_nominal, base_surv,
+                                  (age, pp) -> ss_val, p; rng_seed=42 + b)
+end
 @printf("  Simulated in %.1fs\n", time() - t0)
+
+# Pool band batches into one moment set (field names match simulate_batch)
+active = [band_sims[b] for b in 1:4 if isassigned(band_sims, b)]
+let Tp = p.T
+    n_total = sum(s.n_sim for s in active)
+    alive_ct = zeros(Int, Tp)
+    hc = zeros(Int, Tp, 3)
+    med_sum = zeros(Tp)
+    for s in active
+        alive_ct .+= s.alive_count
+        hc .+= s.health_counts
+        med_sum .+= s.mean_medical_by_age .* s.alive_count
+    end
+    aw = vcat((s.all_wealth for s in active)...)
+    p25 = zeros(Tp); p50 = zeros(Tp); p75 = zeros(Tp)
+    for t in 1:Tp
+        vals = filter(!isnan, aw[:, t])
+        if length(vals) >= 4
+            sort!(vals)
+            n = length(vals)
+            p25[t] = vals[max(1, round(Int, 0.25 * n))]
+            p50[t] = vals[max(1, round(Int, 0.50 * n))]
+            p75[t] = vals[max(1, round(Int, 0.75 * n))]
+        end
+    end
+    beq = vcat((s.bequests for s in active)...)
+    sort_beq = sort(beq)
+    prev = zeros(Tp, 3)
+    for t in 1:Tp, h in 1:3
+        prev[t, h] = alive_ct[t] > 0 ? hc[t, h] / alive_ct[t] : 0.0
+    end
+    global sim = (
+        wealth_p25=p25, wealth_p50=p50, wealth_p75=p75,
+        health_prevalence=prev,
+        mean_medical_by_age=[alive_ct[t] > 0 ? med_sum[t] / alive_ct[t] : 0.0 for t in 1:Tp],
+        alive_fraction=alive_ct ./ n_total,
+        mean_bequest=sum(beq) / n_total,
+        median_bequest=sort_beq[max(1, div(n_total, 2))],
+        frac_bequest_above_10k=count(b -> b > 10_000, beq) / n_total,
+        n_sim=n_total,
+    )
+end
 
 # ===================================================================
 # Empirical targets (from literature, 2014 dollars)
@@ -257,7 +336,7 @@ open(tex_path, "w") do f
     println(f, raw"\end{tabular}")
     println(f, raw"\begin{tablenotes}")
     println(f, raw"\small")
-    println(f, raw"\item Simulated: 100,000 trajectories, initial wealth \$250,000, Fair health.")
+    println(f, raw"\item Simulated: 100,000 trajectories, initial wealth and health drawn jointly from the weighted HRS sample (single retirees 65--69, wealth $\geq$ \$5{,}000), all initialized at age 65, with band-level SS+DB income; no annuity purchased.")
     println(f, raw"\item Empirical: HRS exit interviews (bequests); Jones et al.\ (2018) (medical).")
     println(f, raw"\end{tablenotes}")
     println(f, raw"\end{table}")

@@ -425,17 +425,35 @@ function build_macros!()
     # (r{w}iann income proxy) measures so the manuscript can present both with
     # sampling tolerance.
     # ----------------------------------------------------------------------
-    function wilson_ci(k::Int, n::Int; z::Float64=1.96)
-        # Wilson score interval — robust for proportions near zero.
-        p = k / n
+    function wilson_ci(phat::Float64, n::Real; z::Float64=1.96)
+        # Wilson score interval — robust for proportions near zero. Takes the
+        # point estimate and the effective sample size, so the interval can be
+        # evaluated at the person-wave rate with the person count as n
+        # (persons repeat across waves; the person is the independent unit).
         denom = 1 + z^2 / n
-        center = (p + z^2 / (2n)) / denom
-        halfwidth = z * sqrt(p * (1 - p) / n + z^2 / (4 * n^2)) / denom
+        center = (phat + z^2 / (2n)) / denom
+        halfwidth = z * sqrt(phat * (1 - phat) / n + z^2 / (4 * n^2)) / denom
         return (lo = center - halfwidth, hi = center + halfwidth)
     end
+    wilson_ci(k::Int, n::Int; z::Float64=1.96) = wilson_ci(k / n, n; z=z)
 
     hrs_lifetime_path = joinpath(REPO_ROOT, "data", "processed", "hrs_lifetime_ownership.csv")
-    if isfile(hrs_lifetime_path)
+    hrs_band_path = joinpath(REPO_ROOT, "data", "processed", "hrs_lifetime_ownership_by_band.csv")
+    if isfile(hrs_lifetime_path) && isfile(hrs_band_path)
+        # Person-level totals from the by-band CSV (persons appear in up to
+        # five waves; the lifetime indicator is time-invariant, so the person
+        # count is the effective sample size for inference).
+        n_persons = 0
+        n_life_persons = 0
+        for (i, line) in enumerate(eachline(hrs_band_path))
+            i == 1 && continue
+            isempty(strip(line)) && continue
+            f = split(line, ',')
+            n_persons += parse(Int, f[9])
+            n_life_persons += parse(Int, f[10])
+        end
+        n_persons > 0 || error("no person-level counts in $hrs_band_path")
+
         for (i, line) in enumerate(eachline(hrs_lifetime_path))
             i == 1 && continue
             startswith(line, "POOLED,") || continue
@@ -450,13 +468,23 @@ function build_macros!()
             def!("pctHRSLifetime",       fmt_pct(lifetime_pct; digits=2))
             def!("pctHRSIannPooled",     fmt_pct(iann_pct;     digits=2))
 
-            # Wilson 95% CIs for both measures
-            ci_life = wilson_ci(n_lifetime, n_elig)
-            ci_iann = wilson_ci(n_iann, n_elig)
+            # Wilson 95% CIs at the person-wave point estimates, evaluated at
+            # the person-level effective sample size (n = unique persons, not
+            # person-waves). For the lifetime-cumulative indicator this is the
+            # exact within-person-correlation-one cluster correction; for the
+            # income proxy it is conservative.
+            ci_life = wilson_ci(n_lifetime / n_elig, n_persons)
+            ci_iann = wilson_ci(n_iann / n_elig, n_persons)
             def!("pctHRSLifetimeCILow",  fmt_pct(100 * ci_life.lo; digits=2))
             def!("pctHRSLifetimeCIHigh", fmt_pct(100 * ci_life.hi; digits=2))
             def!("pctHRSIannCILow",      fmt_pct(100 * ci_iann.lo; digits=2))
             def!("pctHRSIannCIHigh",     fmt_pct(100 * ci_iann.hi; digits=2))
+
+            # Person-level transparency macros
+            def!("nHRSPersons", commas(n_persons))
+            def!("nHRSLifetimeOwnersPersons", fmt_int(n_life_persons))
+            def!("pctHRSLifetimePersonLevel",
+                 fmt_pct(100 * n_life_persons / n_persons; digits=2))
             break
         end
     end
@@ -689,6 +717,47 @@ function build_macros!()
             v = Dict(String(raw[r, 1]) => Float64(raw[r, 2]) for r in 1:size(raw, 1))
             def!("forcedAgeLoads", fmt_num(v["Loads"]; digits=1))
             def!("forcedAgeBequests", fmt_num(v["Bequests"]; digits=1))
+        end
+    end
+
+    # ======================================================================
+    # Section F6 — Period-certain pricing (period_certain_pricing.csv)
+    # ======================================================================
+    let path = joinpath(CSV_DIR, "period_certain_pricing.csv")
+        if isfile(path)
+            raw, _ = readdlm(path, ',', Any; header=true)
+            v = Dict(String(raw[r, 1]) => Float64(raw[r, 4]) for r in 1:size(raw, 1))
+            def!("pctPeriodCertainCutNom",  fmt_pct(v["nominal"]; digits=1))
+            def!("pctPeriodCertainCutReal", fmt_pct(v["real"];    digits=1))
+        end
+    end
+
+    # ======================================================================
+    # Section F7 — Loads-split Shapley (shapley_loads_split.csv)
+    # ======================================================================
+    let path = joinpath(CSV_DIR, "shapley_loads_split.csv")
+        if isfile(path)
+            raw, _ = readdlm(path, ',', Any; header=true)
+            v = Dict(String(raw[r, 1]) => Float64(raw[r, 2]) for r in 1:size(raw, 1))
+            def!("splitMWRWedge",    fmt_num(v["MWR wedge"];    digits=1))
+            def!("splitFixedCost",   fmt_num(v["Fixed cost"];   digits=1))
+            def!("splitMinPurchase", fmt_num(v["Min purchase"]; digits=1))
+            def!("splitBequests",    fmt_num(v["Bequests"];     digits=1))
+            def!("splitFullOwn",     fmt_pct(Float64(raw[1, 4]); digits=1))
+        end
+    end
+
+    # ======================================================================
+    # Section F8 — Sex-blended mortality Shapley (shapley_blended_mortality.csv)
+    # ======================================================================
+    let path = joinpath(CSV_DIR, "shapley_blended_mortality.csv")
+        if isfile(path)
+            raw, _ = readdlm(path, ',', Any; header=true)
+            v = Dict(String(raw[r, 1]) => Float64(raw[r, 2]) for r in 1:size(raw, 1))
+            def!("blendedLoads",    fmt_num(v["Loads"];    digits=1))
+            def!("blendedBequests", fmt_num(v["Bequests"]; digits=1))
+            def!("blendedOwn",      fmt_pct(Float64(raw[1, 4]); digits=1))
+            def!("blendedFemaleShare", fmt_pct(100 * Float64(raw[1, 6]); digits=1))
         end
     end
 

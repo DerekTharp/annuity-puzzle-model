@@ -19,7 +19,6 @@ const TEST_DIR = @__DIR__
 const REPO_ROOT = dirname(TEST_DIR)
 const NUMBERS_TEX = joinpath(REPO_ROOT, "paper", "numbers.tex")
 const CSV_DIR = joinpath(REPO_ROOT, "tables", "csv")
-const HRS_CSV = joinpath(REPO_ROOT, "data", "processed", "lockwood_hrs_sample.csv")
 
 # Channel bit mask constants (must match run_subset_enumeration.jl).
 # Eleven channels in Model 1: nine rational/preference/structural + two
@@ -102,12 +101,6 @@ function welfare_ownership(scenario::AbstractString)
         return parse(Float64, f[7])  # ownership_pct
     end
     error("scenario $(repr(scenario)) not in welfare_counterfactuals.csv")
-end
-
-function hrs_observed_pct()
-    raw = readdlm(HRS_CSV, ',', Any; skipstart=1)
-    own = count(Float64.(raw[:, 5]) .> 0)
-    return 100 * own / size(raw, 1)
 end
 
 # ---------------------------------------------------------------------------
@@ -210,9 +203,72 @@ macros = load_macros()
     # their CI variants) are emitted from the HRS sample. The legacy
     # `pctHRSObserved` summary macro is no longer emitted because the
     # manuscript cites the pooled and lifetime measures separately.
+    # Period-certain pricing macros must match period_certain_pricing.csv.
+    @testset "period-certain pricing lock" begin
+        path = joinpath(CSV_DIR, "period_certain_pricing.csv")
+        if !isfile(path)
+            @test_skip "period_certain_pricing.csv absent"
+        else
+            for line in eachline(path)
+                startswith(line, "convention") && continue
+                f = split(line, ',')
+                red = parse(Float64, f[4])
+                key = f[1] == "nominal" ? "pctPeriodCertainCutNom" : "pctPeriodCertainCutReal"
+                @test macros[key] == fmt_pct(red; digits=1)
+            end
+        end
+    end
+
     @testset "HRS observed ownership" begin
         for k in ("pctHRSIannPooled", "pctHRSLifetime")
             @test haskey(macros, k)
+        end
+
+        # Value locks: point estimates from the person-wave POOLED row; CIs
+        # are Wilson intervals at the person-wave rate evaluated at the
+        # person-level effective sample size (unique persons from the by-band
+        # CSV). Mirrors the export logic so numbers.tex cannot silently
+        # desync from the CSVs.
+        life_csv = joinpath(REPO_ROOT, "data", "processed", "hrs_lifetime_ownership.csv")
+        band_csv = joinpath(REPO_ROOT, "data", "processed", "hrs_lifetime_ownership_by_band.csv")
+        if !isfile(life_csv) || !isfile(band_csv)
+            @test_skip "HRS ownership CSVs absent"
+        else
+            n_persons = 0
+            n_life_persons = 0
+            for (i, line) in enumerate(eachline(band_csv))
+                i == 1 && continue
+                isempty(strip(line)) && continue
+                f = split(line, ',')
+                n_persons += parse(Int, f[9])
+                n_life_persons += parse(Int, f[10])
+            end
+            pooled = ""
+            for line in eachline(life_csv)
+                startswith(line, "POOLED,") && (pooled = line)
+            end
+            toks = split(chopprefix(pooled, "POOLED,"), ',')
+            n_elig = parse(Int, toks[1])
+            n_iann = parse(Int, toks[2])
+            n_lifetime = parse(Int, toks[4])
+
+            function wilson(phat, n; z=1.96)
+                denom = 1 + z^2 / n
+                center = (phat + z^2 / (2n)) / denom
+                hw = z * sqrt(phat * (1 - phat) / n + z^2 / (4 * n^2)) / denom
+                return (center - hw, center + hw)
+            end
+            lo_l, hi_l = wilson(n_lifetime / n_elig, n_persons)
+            lo_i, hi_i = wilson(n_iann / n_elig, n_persons)
+            @test macros["pctHRSLifetime"] == fmt_pct(100 * n_lifetime / n_elig; digits=2)
+            @test macros["pctHRSIannPooled"] == fmt_pct(100 * n_iann / n_elig; digits=2)
+            @test macros["pctHRSLifetimeCILow"]  == fmt_pct(100 * lo_l; digits=2)
+            @test macros["pctHRSLifetimeCIHigh"] == fmt_pct(100 * hi_l; digits=2)
+            @test macros["pctHRSIannCILow"]  == fmt_pct(100 * lo_i; digits=2)
+            @test macros["pctHRSIannCIHigh"] == fmt_pct(100 * hi_i; digits=2)
+            @test macros["nHRSPersons"] == "1,502"
+            @test macros["nHRSLifetimeOwnersPersons"] == string(n_life_persons)
+            @test macros["pctHRSLifetimePersonLevel"] == fmt_pct(100 * n_life_persons / n_persons; digits=2)
         end
     end
 

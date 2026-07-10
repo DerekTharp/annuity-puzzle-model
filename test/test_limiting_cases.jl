@@ -158,3 +158,28 @@ end
     end
     println("Bequest (κ=0) test passed.")
 end
+
+@testset "Period-certain pricing limits" begin
+    # guarantee_years = 0 must recover the life-only payout exactly, and the
+    # payout must fall monotonically as the guarantee window lengthens (the
+    # insurer forgoes more of the mortality credit).
+    p = ModelParams(gamma = 2.5, beta = 0.97, r = 0.02, mwr = 1.0,
+                    age_start = 65, age_end = 110)
+    base_surv = build_lockwood_survival(p)
+    life = compute_payout_rate(p, base_surv)
+    pc0 = compute_payout_rate_period_certain(p, base_surv; guarantee_years = 0)
+    @test isapprox(pc0, life; rtol = 1e-12)
+    prev = life
+    for gy in (5, 10, 20)
+        pc = compute_payout_rate_period_certain(p, base_surv; guarantee_years = gy)
+        @test pc < prev
+        prev = pc
+    end
+    # Nominal pricing variant follows the same ordering.
+    p_nom = ModelParams(gamma = 2.5, beta = 0.97, r = 0.02, mwr = 1.0,
+                        inflation_rate = 0.02, age_start = 65, age_end = 110)
+    life_nom = compute_payout_rate(p_nom, base_surv)
+    pc10_nom = compute_payout_rate_period_certain(p_nom, base_surv; guarantee_years = 10)
+    @test pc10_nom < life_nom
+    println("Period-certain pricing limits test passed.")
+end

@@ -13,6 +13,7 @@ run main.tex          # main.aux for the appendix's M- refs
 run appendix.tex      # appendix.aux for main's A- refs
 run main.tex          # resolve A- refs
 bibtex main > /dev/null || true
+bibtex appendix > /dev/null || true
 run appendix.tex      # resolve M- refs against final main.aux
 run main.tex          # settle bibliography + page numbers
 run main.tex
@@ -26,6 +27,18 @@ for pdf in main.pdf appendix.pdf; do
         fail=1
     else
         echo "OK: $pdf has no unresolved references"
+    fi
+done
+
+# The '??' check misses undefined citations, which natbib renders as a bare
+# '?'. Check the .log files directly.
+for log in main.log appendix.log; do
+    if grep -qiE "citation .* undefined|there were undefined citations" "$log"; then
+        echo "FAIL: $log reports undefined citations:" >&2
+        grep -iE "citation .* undefined" "$log" | head -5 >&2
+        fail=1
+    else
+        echo "OK: $log has no undefined citations"
     fi
 done
 exit $fail

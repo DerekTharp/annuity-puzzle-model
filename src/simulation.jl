@@ -198,6 +198,29 @@ function simulate_batch(
     n_sim::Int=10_000,
     rng_seed::Int=42,
 )
+    inits = hcat(fill(W_0, n_sim), fill(Float64(H_0), n_sim))
+    return simulate_batch(sol, inits, A_nominal, base_surv, ss_func, p;
+                          rng_seed=rng_seed)
+end
+
+"""
+Simulate one trajectory per row of `inits` (columns: initial wealth, initial
+health state) and return the same aggregate statistics as the fixed-state
+method, plus the per-trajectory wealth paths for cross-batch pooling. All
+trajectories share one annuity income, SS function, and solved policy, so
+callers with band-varying SS must call once per band and pool.
+"""
+function simulate_batch(
+    sol::HealthSolution,
+    inits::Matrix{Float64},
+    A_nominal::Float64,
+    base_surv::Vector{Float64},
+    ss_func::Function,
+    p::ModelParams;
+    rng_seed::Int=42,
+)
+    n_sim = size(inits, 1)
+    size(inits, 2) == 2 || error("inits must be n_sim x 2 (wealth, health)")
     rng = Random.MersenneTwister(rng_seed)
     T = p.T
     g = sol.grids
@@ -242,7 +265,7 @@ function simulate_batch(
 
     for i in 1:n_sim
         result = simulate_lifecycle(
-            sol, W_0, A_nominal, H_0, base_surv, ss_func, p;
+            sol, inits[i, 1], A_nominal, Int(inits[i, 2]), base_surv, ss_func, p;
             rng=rng, c_interps=c_interps,
         )
         death_t = result.age_at_death - p.age_start + 1
@@ -318,6 +341,7 @@ function simulate_batch(
         wealth_p25=wealth_p25,
         wealth_p50=wealth_p50,
         wealth_p75=wealth_p75,
+        all_wealth=all_wealth,
         n_sim=n_sim,
     )
 end

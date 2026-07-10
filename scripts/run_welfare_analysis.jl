@@ -320,6 +320,8 @@ open(tex_path, "w") do io
         "Full model with medical costs, health-mortality correlation, ",
         "MWR = $MWR_LOADED, inflation = $(Int(INFLATION*100))\\%, ",
         "\$\\gamma = $GAMMA\$.")
+    @printf(io, "\\item Welfare model uses representative SS income (\\\$%s/yr, midpoint of the middle wealth-bin floors) for all wealth cells.\n",
+        replace(@sprintf("%d", round(Int, ss_rep_doc)), r"(\d)(?=(\d{3})+$)" => s"\1{,}"))
     println(io, "\\end{tablenotes}")
     println(io, "\\end{table}")
 end

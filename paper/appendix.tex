@@ -264,7 +264,7 @@ Deferred products carry lower money's worth ratios, however. \citet{wettstein202
 
 \input{../tables/tex/dia_comparison.tex}
 
-Table~\ref{tab:dia} compares predicted ownership and welfare across product types. The exhibit is solved without pre-existing Social Security or defined-benefit income, so its SPIA ownership levels are not comparable to the headline configuration; the comparison is internal to the table's common environment. The DIA results suggest that product innovation alone is unlikely to resolve low annuity demand. The channels suppressing SPIA demand---valuation risk, survival pessimism, inflation erosion, bequest motives---apply with similar force to deferred products, and the inferior pricing of DIAs partially offsets their actuarial advantage.
+Table~\ref{tab:dia} compares predicted ownership and welfare across product types. The exhibit is solved without pre-existing Social Security or defined-benefit income, so its SPIA ownership levels are not comparable to the headline configuration; the comparison is internal to the table's common environment. The DIA results suggest that product innovation alone is unlikely to resolve low annuity demand. The channels suppressing SPIA demand---valuation risk, survival pessimism, inflation erosion, bequest motives---also bear on deferred products, and the inferior pricing of DIAs partially offsets their actuarial advantage.
 
 
 %% ================================================================
@@ -358,7 +358,7 @@ Category & Specification & Ownership (\%) \\
 \subsection{Robustness to channel partition}
 \label{app:partition}
 
-The nine-channel game combines medical-expenditure risk with the Reichling--Smetters health--mortality correlation into one channel, and combines Social Security income with defined-benefit pension income into one pre-existing-annuitization channel. Both groupings reflect the economics: the R-S correlation has quantitative bite in this framework only through its interaction with medical risk, and SS and DB income enter the budget constraint identically, as non-commutable real annuity flows. To confirm that the channel \emph{ranking} does not depend on these choices, Table~\ref{tab:partition_robustness} recomputes the exact Shapley values over two alternative ten-channel partitions: Panel A unbundles medical risk from the R-S correlation, and Panel B splits Social Security income from DB pension income. In both partitions the ranking is preserved---pricing loads remain the dominant suppressor of demand and bequest motives remain mid-pack---so the headline ordering is an artifact of neither bundling choice.
+The nine-channel game combines medical-expenditure risk with the Reichling--Smetters correlation into one channel, and combines Social Security and defined-benefit pension income into one pre-existing-annuitization channel. Both groupings reflect the economics: the R-S correlation has quantitative bite in this framework only through its interaction with medical risk, and SS and DB income enter the budget constraint identically, as non-commutable real annuity flows. To confirm that the channel \emph{ranking} does not depend on these choices, Table~\ref{tab:partition_robustness} recomputes the exact Shapley values over two alternative ten-channel partitions: Panel A unbundles medical risk from the R-S correlation, and Panel B splits Social Security income from DB pension income. In both partitions the ranking is preserved---pricing loads remain the dominant suppressor of demand and bequest motives remain mid-pack---so the headline ordering is an artifact of neither bundling choice.
 
 \input{../tables/tex/partition_robustness.tex}
 
@@ -381,14 +381,15 @@ For reference, the exact lognormal moment $E[\exp(\sigma \varepsilon)] = \exp(\s
 \section{Period-Certain Annuity}
 \label{app:period_certain}
 
-A 10-year period-certain annuity guarantees payments for the first 10 years regardless of survival. During the guarantee period, death triggers a lump-sum payment of the present value of remaining guaranteed payments to the estate, partially offsetting the bequest penalty of life-only annuities.
+A 10-year period-certain annuity guarantees payments for the first 10 years regardless of survival: in market contracts, death during the guarantee window passes the remaining guaranteed payments (or their present value) to the estate, partially offsetting the bequest penalty of life-only annuities.
 
 The period-certain payout rate is lower than the life-only rate because the insurer cannot reclaim payments from early decedents during the guarantee period. The pricing formula replaces survival probabilities with 1.0 for the first 10 years:
 \[
 \text{PV}_{\text{certain}} = \sum_{k=0}^{9} \frac{1}{(1+r_{\text{nom}})^k} + \sum_{k=10}^{T-1} \frac{\prod_{j=0}^{k-1} s_{\text{base}}(j)}{(1+r_{\text{nom}})^k}.
 \]
+Under the production mortality table and discounting, the 10-year guarantee lowers the fair payout rate by \pctPeriodCertainCutNom{} under nominal pricing (\pctPeriodCertainCutReal{} under real pricing); the forgone first-decade mortality credit funds the guarantee.
 
-The net effect on demand is ambiguous: the guarantee reduces the bequest penalty but also reduces the payout rate (and hence the mortality credit that makes annuities attractive in the first place). In the calibrated model, the period-certain option has a small effect on predicted ownership.
+Only the pricing side of this product is implemented in the replication package (\texttt{emit\_\allowbreak period\_\allowbreak certain\_\allowbreak pricing\allowbreak .jl}). The household side---crediting the estate with the present value of remaining guaranteed payments at death---does not enter the value function, so the model does not compute the net demand effect of the guarantee, which is ambiguous a priori: the guarantee reduces the bequest penalty but gives up part of the mortality credit that makes annuitization attractive in the first place. Two features of the calibrated model bound the plausible upside: bequest motives contribute \shapNineBequests{} pp in the nine-channel Shapley decomposition---mid-pack---and under the DFJ luxury-good specification the marginal bequest utility of median-wealth retirees is low, so a product margin that operates only through the bequest penalty is unlikely to overturn the loads-dominated ranking. A full household-side valuation of guarantee riders is left as an extension.
 
 
 %% ================================================================
