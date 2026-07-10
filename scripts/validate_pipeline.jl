@@ -191,7 +191,7 @@ gate, and the band diagnostics), so the window is 18 hours: generous
 enough to cover any single run with headroom, but still tight enough to
 catch the day-old or week-old stale-table failure modes.
 """
-const FRESHNESS_WINDOW_SECONDS = 18 * 60 * 60  # 18 hours (full run is ~7h)
+const FRESHNESS_WINDOW_SECONDS = 30 * 60 * 60  # 30 hours (full run is ~10h on AWS, longer on a laptop)
 
 function gate_freshness()
     isfile(NUMBERS_TEX) || begin

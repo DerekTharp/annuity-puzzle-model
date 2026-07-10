@@ -88,7 +88,8 @@ _p2m = PLAYER_TO_MODULE
 # else on — a complete 3-player sub-game conditional on the other channels.
 masks = collect(0:2047)
 if SMOKE
-    base_others = 0b11000111111 & ~(0b111 << 6)  # players 1-6, 10, 11 on; 7-9 off
+    # Int literals throughout: 0b111 is UInt8 and (0b111 << 6) truncates.
+    base_others = 63 | (1 << 9) | (1 << 10)  # players 1-6, 10, 11 on; 7-9 off
     masks = [base_others | (l << 6) for l in 0:7]
 end
 
@@ -134,7 +135,7 @@ lookup = Dict{Int,Float64}(r.mask => r.ownership for r in results)
 
 if SMOKE
     # Conditional 3-player game over the loads bits (others fixed on).
-    base_others = masks[1] & ~(0b111 << 6)
+    base_others = masks[1] & ~(7 << 6)
     sub = Dict{Int,Float64}(l => lookup[base_others | (l << 6)] for l in 0:7)
     shap3 = exact_shapley(3, sub)
     @printf("\n  Conditional loads sub-game (others on): empty=%.2f%% full=%.2f%%\n",
