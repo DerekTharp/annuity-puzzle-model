@@ -246,6 +246,33 @@ function main()
         joinpath(SCRIPTS_DIR, "run_psi981_shapley.jl"); parallel=true)
     push!(timings, "Shapley psi=0.981" => t)
 
+    # --- Stage 10f: Seven-channel sub-game (post-processing of Stage 10) ---
+    # Produces: subgame7_shapley.csv (no solves; reads subset_enumeration.csv)
+    run_stage(
+        "10f. Seven-Channel Sub-Game Shapley (post-processing)",
+        joinpath(SCRIPTS_DIR, "compute_subgame_shapley.jl"))
+
+    # --- Stage 10g: Forced-age-65 ranking check ---
+    # Produces: forced_age65_shapley.csv
+    t = run_stage(
+        "10g. Forced-Age-65 Shapley (512 subsets)",
+        joinpath(SCRIPTS_DIR, "check_forced_age65_shapley.jl"); parallel=true)
+    push!(timings, "Forced-65 Shapley" => t)
+
+    # --- Stage 10h: Referee-proofing alternative-baseline games ---
+    # Produces: referee_proofing_shapley.csv, referee_proofing_byband.csv
+    t = run_stage(
+        "10h. Alternative-Baseline Shapley Games (3 x 512) + By-Band Policy MWRs",
+        joinpath(SCRIPTS_DIR, "run_referee_proofing.jl"); parallel=true)
+    push!(timings, "Referee proofing" => t)
+
+    # --- Stage 10i: Grid-robustness of the ranking (heavy: 2 x 512 at fine grids) ---
+    # Produces: grid_robustness_shapley.csv
+    t = run_stage(
+        "10i. Grid-Robustness Shapley (100x40 and 120x50)",
+        joinpath(SCRIPTS_DIR, "run_grid_robustness_shapley.jl"); parallel=true)
+    push!(timings, "Grid-robustness Shapley" => t)
+
     # --- Stage 10d: Loads-split Shapley (11 players, 2048 subsets) ---
     # Produces: shapley_loads_split.csv/.tex (unbundles MWR wedge, fixed
     # cost, and minimum purchase as separate players)

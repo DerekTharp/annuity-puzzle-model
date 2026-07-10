@@ -95,14 +95,14 @@ otherwise produce.
 
 ## Runtime
 
-The full pipeline takes approximately 7 hours on a 192-vCPU AWS c7a.48xlarge
+The full pipeline takes approximately 10 hours on a 192-vCPU AWS c7a.48xlarge
 spot instance, or 12+ hours on a 16-core Mac Studio. Individual scripts run
 in minutes to tens of minutes. Use `julia --project=. -p N` to parallelize
 compute-heavy scripts across N cores.
 
 ### Fast verification path
 
-For a laptop-scale check without the full 7-hour run: the test suite
+For a laptop-scale check without the full 10-hour run: the test suite
 (`julia --project=. test/runtests.jl`, ~6 minutes) locks every manuscript
 number to its source CSV and exercises the solver on production-relevant
 configurations; `EMG_SMOKE=1` runs the extensive-margin gate on a coarse grid
