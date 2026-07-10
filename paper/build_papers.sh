@@ -30,6 +30,17 @@ for pdf in main.pdf appendix.pdf; do
     fi
 done
 
+# Multiply-defined labels compile silently but corrupt cross-references.
+for log in main.log appendix.log; do
+    if grep -q "multiply defined" "$log"; then
+        echo "FAIL: $log reports multiply defined labels:" >&2
+        grep -B1 "multiply defined" "$log" | head -6 >&2
+        fail=1
+    else
+        echo "OK: $log has no multiply defined labels"
+    fi
+done
+
 # The '??' check misses undefined citations, which natbib renders as a bare
 # '?'. Check the .log files directly.
 for log in main.log appendix.log; do

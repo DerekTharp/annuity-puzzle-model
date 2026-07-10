@@ -21,10 +21,15 @@ include(joinpath(@__DIR__, "..", "scripts", "config.jl"))
     grid_kw = (n_wealth=N_WEALTH, n_annuity=N_ANNUITY, n_alpha=N_ALPHA,
                W_max=W_MAX, age_start=AGE_START, age_end=AGE_END,
                annuity_grid_power=A_GRID_POW)
-    p = ModelParams(; gamma=GAMMA, beta=BETA, r=R_RATE, mwr=MWR_LOADED,
-                    inflation_rate=INFLATION, grid_kw...)
-    payout_rate = compute_payout_rate(p, base_surv)
-    g = build_grids(p, payout_rate)
+    # Mirror production grid sizing exactly: grids are built at mwr = 1.0
+    # with the larger of the fair real and fair nominal payout rates
+    # (run_subset_enumeration.jl convention), not the loaded payout.
+    p_fair = ModelParams(; gamma=GAMMA, beta=BETA, r=R_RATE, mwr=1.0, grid_kw...)
+    fair_pr = compute_payout_rate(p_fair, base_surv)
+    p_fair_nom = ModelParams(; gamma=GAMMA, beta=BETA, r=R_RATE, mwr=1.0,
+                             inflation_rate=INFLATION, grid_kw...)
+    fair_pr_nom = compute_payout_rate(p_fair_nom, base_surv)
+    g = build_grids(p_fair, max(fair_pr, fair_pr_nom))
 
     W_min = first(g.W)
     W_max = last(g.W)
@@ -73,35 +78,44 @@ include(joinpath(@__DIR__, "..", "scripts", "config.jl"))
     # min(W, W_max). The audit documents how often A_total exceeds A_max
     # (forcing the value function to be evaluated at the annuity-grid
     # boundary) and bounds the maximum overshoot.
-    @testset "Annuity-income grid clamping (alpha = 1, per-band SS)" begin
-        eligible_wealth = wealth[pop_eligible]
-        effective_wealth = clamp.(eligible_wealth, W_min, W_max)
-        band_ss = [Float64(SS_QUARTILE_LEVELS[band_of(x)]) for x in eligible_wealth]
-        max_a_total = band_ss .+ effective_wealth .* payout_rate
+    @testset "Annuity-income grid clamping (alpha = 1, production evaluation)" begin
+        # Mirror the production evaluation: Social Security flows through the
+        # income function (never the annuity state), and agents older than 65
+        # are repriced at their observed age (higher payout per premium
+        # dollar), which is what actually produces the boundary cases.
+        ages = Int.(round.(Float64.(raw[:, 3])))
+        eligible_idx = findall(pop_eligible)
+        loaded_nom_by_age = Dict{Int, Float64}()
+        for a in unique(ages[eligible_idx])
+            p_a = ModelParams(; gamma=GAMMA, beta=BETA, r=R_RATE, mwr=1.0,
+                              inflation_rate=INFLATION, grid_kw...,
+                              age_start=a)
+            surv_a = build_lockwood_survival(p_a)
+            loaded_nom_by_age[a] = MWR_LOADED * compute_payout_rate(p_a, surv_a)
+        end
+        # Purchases at age a > 65 are stored in age-65 nominal units:
+        # A_state = premium * (1+pi)^(t-1) * payout (wtp.jl purchase block).
+        max_a_total = [clamp(wealth[i], W_min, W_max) * loaded_nom_by_age[ages[i]] *
+                       (1.0 + INFLATION)^(ages[i] - AGE_START)
+                       for i in eligible_idx]
         n_above = count(max_a_total .> A_max)
         n_below = count(max_a_total .< A_min)
         @test n_below == 0
-        # The annuity grid is sized to W_max * payout_rate. Adding band SS
-        # on top can produce A_total slightly above this bound for the
-        # highest-wealth agents at alpha=1 (currently ~1.4% of the eligible
-        # sample, maximum overshoot ~12% of A_max). If either threshold
-        # breaches, the grid needs to be widened.
         pct_above = 100.0 * n_above / max(n_eligible, 1)
-        @info "Annuity-grid clamping at alpha=1, per-band SS" n_above pct_above A_max
-        @test pct_above < 1.6
+        @info "Annuity-grid clamping at alpha=1, production evaluation" n_above pct_above A_max
+        @test pct_above < 0.6
         if n_above > 0
             max_overshoot_pct = 100.0 * (maximum(max_a_total) - A_max) / A_max
             @info "Maximum overshoot (% of A_max)" max_overshoot_pct
-            @test max_overshoot_pct < 13.0
+            @test max_overshoot_pct < 8.0
         end
     end
 
     @testset "Headline grid ranges (manuscript reference)" begin
-        @info "Production grid bounds" W_min W_max A_min A_max payout_rate
+        @info "Production grid bounds" W_min W_max A_min A_max fair_pr fair_pr_nom
         @test W_max ≈ W_MAX rtol=1e-9
-        # A_max equals W_max × payout_rate; see build_annuity_grid docstring
-        # for the documented small-overshoot behavior at alpha=1 for the
-        # top wealth quartile.
-        @test A_max ≈ W_max * payout_rate rtol=1e-6
+        # A_max equals W_max × max(fair real, fair nominal) payout, the
+        # production grid-sizing convention.
+        @test A_max ≈ W_max * max(fair_pr, fair_pr_nom) rtol=1e-6
     end
 end

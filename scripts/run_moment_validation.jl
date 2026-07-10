@@ -337,7 +337,7 @@ open(tex_path, "w") do f
     println(f, raw"\begin{tablenotes}")
     println(f, raw"\small")
     println(f, raw"\item Simulated: 100,000 trajectories, initial wealth and health drawn jointly from the weighted HRS sample (single retirees 65--69, wealth $\geq$ \$5{,}000), all initialized at age 65, with band-level SS+DB income; no annuity purchased.")
-    println(f, raw"\item Empirical: HRS exit interviews (bequests); Jones et al.\ (2018) (medical).")
+    println(f, raw"\item Empirical: HRS exit-interview bequest moments.")
     println(f, raw"\end{tablenotes}")
     println(f, raw"\end{table}")
 end
