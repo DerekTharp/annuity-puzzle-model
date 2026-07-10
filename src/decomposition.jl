@@ -254,6 +254,7 @@ function run_decomposition(
     age_end::Int=100,
     annuity_grid_power::Float64=2.0,
     hazard_mult::Vector{Float64}=[0.6, 1.0, 2.0],
+    hazard_normalize::Bool=false,
     hazard_mult_by_age::Union{Nothing,Matrix{Float64}}=nothing,
     hazard_mult_age_midpoints::Union{Nothing,Vector{Float64}}=nothing,
     survival_pessimism::Float64=1.0,
@@ -284,13 +285,13 @@ function run_decomposition(
     common_kw = if hazard_mult_by_age !== nothing && hazard_mult_age_midpoints !== nothing
         (gamma=gamma, beta=beta, r=r,
          stochastic_health=true, n_health_states=3, n_quad=n_quad,
-         c_floor=c_floor, hazard_mult=hazard_mult,
+         c_floor=c_floor, hazard_mult=hazard_mult, hazard_normalize=hazard_normalize,
          hazard_mult_by_age=hazard_mult_by_age,
          hazard_mult_age_midpoints=hazard_mult_age_midpoints)
     else
         (gamma=gamma, beta=beta, r=r,
          stochastic_health=true, n_health_states=3, n_quad=n_quad,
-         c_floor=c_floor, hazard_mult=hazard_mult)
+         c_floor=c_floor, hazard_mult=hazard_mult, hazard_normalize=hazard_normalize)
     end
 
     # Payout rates: real (Steps 0-5) and nominal (Step 6/7)
@@ -643,6 +644,7 @@ function run_multiplicative_analysis(
     age_end::Int=100,
     annuity_grid_power::Float64=2.0,
     hazard_mult::Vector{Float64}=[0.6, 1.0, 2.0],
+    hazard_normalize::Bool=false,
     survival_pessimism::Float64=1.0,
     min_wealth::Float64=0.0,
     ss_levels::Vector{Float64}=Float64[],
@@ -663,7 +665,7 @@ function run_multiplicative_analysis(
 
     common_kw = (gamma=gamma, beta=beta, r=r,
                  stochastic_health=true, n_health_states=3, n_quad=n_quad,
-                 c_floor=c_floor, hazard_mult=hazard_mult)
+                 c_floor=c_floor, hazard_mult=hazard_mult, hazard_normalize=hazard_normalize)
 
     p_fair = ModelParams(; gamma=gamma, beta=beta, r=r, mwr=1.0, grid_kw...)
     fair_pr = compute_payout_rate(p_fair, base_surv)
@@ -906,6 +908,7 @@ function run_pairwise_interactions(
     age_end::Int=100,
     annuity_grid_power::Float64=2.0,
     hazard_mult::Vector{Float64}=[0.6, 1.0, 2.0],
+    hazard_normalize::Bool=false,
     survival_pessimism::Float64=1.0,
     min_wealth::Float64=0.0,
     ss_levels::Vector{Float64}=Float64[],
@@ -926,7 +929,7 @@ function run_pairwise_interactions(
 
     common_kw = (gamma=gamma, beta=beta, r=r,
                  stochastic_health=true, n_health_states=3, n_quad=n_quad,
-                 c_floor=c_floor, hazard_mult=hazard_mult)
+                 c_floor=c_floor, hazard_mult=hazard_mult, hazard_normalize=hazard_normalize)
 
     p_fair = ModelParams(; gamma=gamma, beta=beta, r=r, mwr=1.0, grid_kw...)
     fair_pr = compute_payout_rate(p_fair, base_surv)

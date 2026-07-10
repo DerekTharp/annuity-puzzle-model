@@ -448,6 +448,7 @@ function compute_cev_grid(
     age_end::Int=110,
     annuity_grid_power::Float64=3.0,
     hazard_mult::Vector{Float64}=[0.50, 1.0, 3.0],
+    hazard_normalize::Bool=false,
     survival_pessimism::Float64=1.0,
     consumption_decline::Float64=0.0,
     health_utility::Vector{Float64}=[1.0, 1.0, 1.0],
@@ -483,7 +484,7 @@ function compute_cev_grid(
     # CEV computation uses the same model the production solve uses.
     common_kw = (gamma=gamma, beta=beta, r=r,
                  stochastic_health=true, n_health_states=3, n_quad=n_quad,
-                 c_floor=c_floor, hazard_mult=hazard_mult,
+                 c_floor=c_floor, hazard_mult=hazard_mult, hazard_normalize=hazard_normalize,
                  survival_pessimism=survival_pessimism,
                  consumption_decline=consumption_decline,
                  health_utility=health_utility)
