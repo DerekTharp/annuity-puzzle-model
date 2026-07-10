@@ -41,11 +41,11 @@ population[:, 3] = Float64.(hrs_raw[:, 3])
 population[:, 4] = has_health ? Float64.(hrs_raw[:, 4]) : fill(2.0, n_pop)
 
 p_base = ModelParams(age_start=AGE_START, age_end=AGE_END)
-base_surv = build_lockwood_survival(p_base)
+base_surv = production_base_survival(p_base)
 
 _theta=THETA_DFJ; _kappa=KAPPA_DFJ; _mwr=MWR_LOADED; _fc=FIXED_COST; _minp=MIN_PURCHASE
 _infl=INFLATION; _ssq=Float64.(SS_QUARTILE_LEVELS); _gamma=GAMMA; _beta=BETA; _r=R_RATE
-_cf=C_FLOOR; _hm=Float64.(HAZARD_MULT); _nq=N_QUAD; _cd=CONSUMPTION_DECLINE
+_cf=C_FLOOR; _hm=Float64.(HAZARD_MULT); _hn=HAZARD_NORMALIZE; _nq=N_QUAD; _cd=CONSUMPTION_DECLINE
 _hu=Float64.(HEALTH_UTILITY); _chi=CHI_LTC; _lw=LAMBDA_W; _pp=PSI_PURCHASE; _ppc=PSI_PURCHASE_C_REF
 _bs=base_surv; _pop=population; _minw=MIN_WEALTH; _psi=SURVIVAL_PESSIMISM
 _grids_spec=GRIDS; _wmax=W_MAX; _agp=A_GRID_POW; _as=AGE_START; _ae=AGE_END
@@ -68,7 +68,7 @@ results = parallel_solve(specs) do spec
     has_loads = cfg.mwr < 1.0; has_infl = cfg.inflation_rate > 0
     pr = has_loads && has_infl ? cfg.mwr * fair_nom : has_loads ? cfg.mwr * fair : has_infl ? fair_nom : fair
     common = (gamma=_gamma, beta=_beta, r=_r, stochastic_health=true, n_health_states=3,
-              n_quad=_nq, c_floor=_cf, hazard_mult=_hm)
+              n_quad=_nq, c_floor=_cf, hazard_mult=_hm, hazard_normalize=_hn)
     grids = build_grids(ModelParams(; common..., mwr=1.0, gkw...), max(fair, fair_nom))
     p = ModelParams(; common..., theta=cfg.theta, kappa=cfg.kappa, mwr=cfg.mwr,
         fixed_cost=cfg.fixed_cost, min_purchase=cfg.min_purchase, inflation_rate=cfg.inflation_rate,

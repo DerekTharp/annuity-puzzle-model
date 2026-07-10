@@ -440,19 +440,15 @@ function build_macros!()
     hrs_lifetime_path = joinpath(REPO_ROOT, "data", "processed", "hrs_lifetime_ownership.csv")
     hrs_band_path = joinpath(REPO_ROOT, "data", "processed", "hrs_lifetime_ownership_by_band.csv")
     if isfile(hrs_lifetime_path) && isfile(hrs_band_path)
-        # Person-level totals from the by-band CSV (persons appear in up to
-        # five waves; the lifetime indicator is time-invariant, so the person
-        # count is the effective sample size for inference).
-        n_persons = 0
+        # Person-level lifetime-owner total from the by-band CSV (for the
+        # transparency macros; persons appear in up to five waves).
         n_life_persons = 0
         for (i, line) in enumerate(eachline(hrs_band_path))
             i == 1 && continue
             isempty(strip(line)) && continue
             f = split(line, ',')
-            n_persons += parse(Int, f[9])
             n_life_persons += parse(Int, f[10])
         end
-        n_persons > 0 || error("no person-level counts in $hrs_band_path")
 
         for (i, line) in enumerate(eachline(hrs_lifetime_path))
             i == 1 && continue
@@ -463,24 +459,27 @@ function build_macros!()
             n_lifetime = parse(Int, toks[4])
             iann_pct  = parse(Float64, toks[5])
             lifetime_pct = parse(Float64, toks[7])
+            n_persons = parse(Int, toks[8])
+            kish_neff = parse(Float64, toks[9])
             def!("nHRSLifetimeEligible", commas(n_elig))
             def!("nHRSLifetimeOwners",   fmt_int(n_lifetime))
             def!("pctHRSLifetime",       fmt_pct(lifetime_pct; digits=2))
             def!("pctHRSIannPooled",     fmt_pct(iann_pct;     digits=2))
 
             # Wilson 95% CIs at the person-wave point estimates, evaluated at
-            # the person-level effective sample size (n = unique persons, not
-            # person-waves). For the lifetime-cumulative indicator this is the
-            # exact within-person-correlation-one cluster correction; for the
-            # income proxy it is conservative.
-            ci_life = wilson_ci(n_lifetime / n_elig, n_persons)
-            ci_iann = wilson_ci(n_iann / n_elig, n_persons)
+            # the Kish effective sample size under within-person correlation
+            # one: n_eff = (sum m_i)^2 / sum m_i^2 over persons' eligible
+            # wave counts. Conservative for the income proxy, which is not
+            # fully time-invariant.
+            ci_life = wilson_ci(n_lifetime / n_elig, kish_neff)
+            ci_iann = wilson_ci(n_iann / n_elig, kish_neff)
             def!("pctHRSLifetimeCILow",  fmt_pct(100 * ci_life.lo; digits=2))
             def!("pctHRSLifetimeCIHigh", fmt_pct(100 * ci_life.hi; digits=2))
             def!("pctHRSIannCILow",      fmt_pct(100 * ci_iann.lo; digits=2))
             def!("pctHRSIannCIHigh",     fmt_pct(100 * ci_iann.hi; digits=2))
 
             # Person-level transparency macros
+            def!("nHRSKishNeff", fmt_num(kish_neff; digits=0))
             def!("nHRSPersons", commas(n_persons))
             def!("nHRSLifetimeOwnersPersons", fmt_int(n_life_persons))
             def!("pctHRSLifetimePersonLevel",
@@ -748,16 +747,22 @@ function build_macros!()
     end
 
     # ======================================================================
-    # Section F8 — Sex-blended mortality Shapley (shapley_blended_mortality.csv)
+    # Section F8 — Male-table mortality Shapley (shapley_male_mortality.csv)
+    # and the blended-table female share (blended_lifetable.csv)
     # ======================================================================
-    let path = joinpath(CSV_DIR, "shapley_blended_mortality.csv")
+    let path = joinpath(CSV_DIR, "shapley_male_mortality.csv")
         if isfile(path)
             raw, _ = readdlm(path, ',', Any; header=true)
             v = Dict(String(raw[r, 1]) => Float64(raw[r, 2]) for r in 1:size(raw, 1))
-            def!("blendedLoads",    fmt_num(v["Loads"];    digits=1))
-            def!("blendedBequests", fmt_num(v["Bequests"]; digits=1))
-            def!("blendedOwn",      fmt_pct(Float64(raw[1, 4]); digits=1))
-            def!("blendedFemaleShare", fmt_pct(100 * Float64(raw[1, 6]); digits=1))
+            def!("maleTableLoads",    fmt_num(v["Loads"];    digits=1))
+            def!("maleTableBequests", fmt_num(v["Bequests"]; digits=1))
+            def!("maleTableOwn",      fmt_pct(Float64(raw[1, 4]); digits=1))
+        end
+    end
+    let path = joinpath(REPO_ROOT, "data", "processed", "blended_lifetable.csv")
+        if isfile(path)
+            raw, _ = readdlm(path, ',', Any; header=true)
+            def!("pctFemaleShare", fmt_pct(100 * Float64(raw[1, 4]); digits=1))
         end
     end
 

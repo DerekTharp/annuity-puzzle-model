@@ -88,7 +88,7 @@ else
 end
 
 p_base = ModelParams(age_start=AGE_START, age_end=AGE_END)
-base_surv = build_lockwood_survival(p_base)
+base_surv = production_base_survival(p_base)
 
 # Draw nuisance parameters (gamma fixed)
 rng = Random.MersenneTwister(12345)
@@ -137,7 +137,7 @@ _theta = THETA_DFJ
 _kappa = KAPPA_DFJ
 _beta = BETA
 _r = R_RATE
-_c_floor = C_FLOOR
+_c_floor = C_FLOOR; _hn = HAZARD_NORMALIZE
 _fixed_cost = FIXED_COST
 _min_purchase = MIN_PURCHASE
 _nw = _NW
@@ -161,7 +161,7 @@ results = parallel_solve(draws) do d
 
     common_kw = (gamma=_gamma, beta=_beta, r=_r,
                  stochastic_health=true, n_health_states=3, n_quad=_nq,
-                 c_floor=_c_floor, hazard_mult=hm)
+                 c_floor=_c_floor, hazard_mult=hm, hazard_normalize=_hn)
 
     # Nominal loaded payout rate
     p_fair_nom = ModelParams(; gamma=_gamma, beta=_beta, r=_r, mwr=1.0,

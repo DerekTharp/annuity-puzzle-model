@@ -43,7 +43,7 @@ pop_band = Dict(b => pop[[band_of(pop[i, 1]) == b for i in 1:size(pop, 1)], :] f
 
 # --- Common objects ---
 pb = ModelParams(age_start=AGE_START, age_end=AGE_END)
-base_surv = build_lockwood_survival(pb)
+base_surv = production_base_survival(pb)
 gkw = (n_wealth=N_WEALTH, n_annuity=N_ANNUITY, n_alpha=N_ALPHA, W_max=W_MAX,
        age_start=AGE_START, age_end=AGE_END, annuity_grid_power=A_GRID_POW)
 fair     = compute_payout_rate(ModelParams(; gamma=GAMMA, beta=BETA, r=R_RATE, mwr=1.0, gkw...), base_surv)
@@ -65,7 +65,7 @@ CONFIGS = [
     (name="- Public-care (LTC)",   d=(chi=1.0,)),
 ]
 
-_gamma=GAMMA; _beta=BETA; _r=R_RATE; _nq=N_QUAD; _cf=C_FLOOR; _hm=Float64.(HAZARD_MULT)
+_gamma=GAMMA; _beta=BETA; _r=R_RATE; _nq=N_QUAD; _cf=C_FLOOR; _hm=Float64.(HAZARD_MULT); _hn=HAZARD_NORMALIZE
 _theta=THETA_DFJ; _kappa=KAPPA_DFJ; _mwr=MWR_LOADED; _fc=FIXED_COST; _minp=MIN_PURCHASE
 _infl=INFLATION; _psi=SURVIVAL_PESSIMISM; _cd=CONSUMPTION_DECLINE; _hu=Float64.(HEALTH_UTILITY); _chi=CHI_LTC
 _ssq=Float64.(SS_QUARTILE_LEVELS); _fair=fair; _fairn=fair_nom; _g=grids; _bs=base_surv
@@ -93,7 +93,7 @@ results = parallel_solve(tasks) do task
     pr = has_loads && has_infl ? mwr * _fairn : has_loads ? mwr * _fair : has_infl ? _fairn : _fair
 
     p = ModelParams(; gamma=_gamma, beta=_beta, r=_r, stochastic_health=true,
-        n_health_states=3, n_quad=_nq, c_floor=_cf, hazard_mult=_hm,
+        n_health_states=3, n_quad=_nq, c_floor=_cf, hazard_mult=_hm, hazard_normalize=_hn,
         theta=theta, kappa=_kappa, mwr=mwr, fixed_cost=_fc, min_purchase=minp,
         inflation_rate=infl, medical_enabled=medical, health_mortality_corr=corr,
         survival_pessimism=psi, consumption_decline=cd, health_utility=hu, chi_ltc=chi, _gkw...)

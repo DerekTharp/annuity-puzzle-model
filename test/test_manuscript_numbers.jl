@@ -206,7 +206,7 @@ macros = load_macros()
     # Loads-split and blended-mortality macros must match their CSVs.
     @testset "loads-split + blended-mortality locks" begin
         sp = joinpath(CSV_DIR, "shapley_loads_split.csv")
-        bp = joinpath(CSV_DIR, "shapley_blended_mortality.csv")
+        bp = joinpath(CSV_DIR, "shapley_male_mortality.csv")
         if !isfile(sp) || !isfile(bp)
             @test_skip "batch Shapley CSVs absent (stages 10d/10e not yet run)"
         else
@@ -226,9 +226,9 @@ macros = load_macros()
 
             braw, _ = readdlm(bp, ',', Any; header=true)
             bv = Dict(String(braw[r, 1]) => Float64(braw[r, 2]) for r in 1:size(braw, 1))
-            @test macros["blendedLoads"]    == fmt_num(bv["Loads"];    digits=1)
-            @test macros["blendedBequests"] == fmt_num(bv["Bequests"]; digits=1)
-            @test macros["blendedOwn"]      == fmt_pct(Float64(braw[1, 4]); digits=1)
+            @test macros["maleTableLoads"]    == fmt_num(bv["Loads"];    digits=1)
+            @test macros["maleTableBequests"] == fmt_num(bv["Bequests"]; digits=1)
+            @test macros["maleTableOwn"]      == fmt_pct(Float64(braw[1, 4]); digits=1)
             bpos = [v for (k, v) in bv if v > 0]
             @test bv["Loads"] == maximum(bpos)
         end

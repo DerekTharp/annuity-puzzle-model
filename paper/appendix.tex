@@ -553,12 +553,12 @@ The nine-channel game bundles the money's worth wedge, the fixed purchase cost, 
 %% ================================================================
 %%  SEX-BLENDED MORTALITY ROBUSTNESS
 %% ================================================================
-\section{Sex-Blended Mortality Robustness}
-\label{app:blended_mortality}
+\section{Mortality-Convention Robustness}
+\label{app:male_mortality}
 
-The headline model prices the annuity and evaluates survival off a single life table matching the male column of the SSA 2003 period table, while the model-eligible sample is \blendedFemaleShare{} female (Section~\ref{M-sec:calibration}). Table~\ref{tab:shapley_blended} recomputes the full nine-channel game with the life table replaced by the survivorship mixture of the SSA 2003 male and female period tables at the sample's female share, used for both survival and pricing, preserving the headline's same-table convention; the replication package documents the construction. The ranking is unchanged: pricing loads contribute \blendedLoads~pp, within rounding of the headline attribution, and bequest motives remain mid-pack (\blendedBequests~pp). The ownership level falls to \blendedOwn{} because the longer-lived blended population faces a lower fair payout at the same premium---one more instance of the level moving while the ranking does not.
+The headline calibration uses the sex-blended, aggregate-anchored life table (Section~\ref{M-sec:calibration}). Table~\ref{tab:shapley_male} recomputes the full nine-channel game under the prior convention in this literature: the male SSA 2003 table from the \citet{lockwood2012} replication files, with unnormalized health hazards, used for both survival and pricing. The ranking is unchanged: pricing loads contribute \maleTableLoads~pp and bequest motives remain mid-pack (\maleTableBequests~pp). The predicted level is \maleTableOwn{} under the prior convention, against the headline level under the blended anchored table---the level moves with the mortality treatment while the ranking does not.
 
-\input{../tables/tex/shapley_blended_mortality.tex}
+\input{../tables/tex/shapley_male_mortality.tex}
 
 %% ================================================================
 %%  ADDITIONAL TABLES AND FIGURES

@@ -22,7 +22,7 @@ n_pop = size(hrs_raw, 1)
 println("Data loaded ($n_pop obs)"); flush(stdout)
 
 p_base = ModelParams(age_start=AGE_START, age_end=AGE_END)
-base_surv = build_lockwood_survival(p_base)
+base_surv = production_base_survival(p_base)
 
 ss_mean_val = sum(SS_QUARTILE_LEVELS) / length(SS_QUARTILE_LEVELS)
 ss_func(age, p) = ss_mean_val
@@ -50,7 +50,7 @@ function run_euler_check(label, base_surv, ss_func; kw...)
     p_full = ModelParams(; gamma=gamma, beta=BETA, r=R_RATE,
         theta=THETA_DFJ, kappa=KAPPA_DFJ,
         stochastic_health=true, n_health_states=3, n_quad=nq,
-        c_floor=C_FLOOR, hazard_mult=HAZARD_MULT,
+        c_floor=C_FLOOR, hazard_mult=HAZARD_MULT, hazard_normalize=HAZARD_NORMALIZE,
         mwr=MWR_LOADED, fixed_cost=FIXED_COST, inflation_rate=INFLATION,
         medical_enabled=true, health_mortality_corr=true,
         survival_pessimism=SURVIVAL_PESSIMISM,

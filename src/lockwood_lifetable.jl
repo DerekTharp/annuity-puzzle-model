@@ -88,3 +88,34 @@ function build_lockwood_survival(p::ModelParams)
     end
     return surv
 end
+
+"""
+Production base survival: the sex-blended SSA 2003 period table
+(data/processed/blended_lifetable.csv, built by
+calibration/build_blended_lifetable.jl), same conditional-survival contract
+as build_lockwood_survival. The male-only Lockwood table remains available
+for replication checks and the male-table robustness game.
+"""
+function production_base_survival(p::ModelParams;
+        csv_path::String=joinpath(@__DIR__, "..", "data", "processed",
+                                  "blended_lifetable.csv"))
+    isfile(csv_path) || error("Missing $csv_path — run calibration/build_blended_lifetable.jl")
+    cdp = Float64[]
+    for (i, line) in enumerate(eachline(csv_path))
+        i == 1 && continue
+        isempty(strip(line)) && continue
+        push!(cdp, parse(Float64, split(line, ',')[3]))
+    end
+    T = p.T
+    surv = Vector{Float64}(undef, T)
+    for t in 1:T
+        age = p.age_start + t - 1
+        idx = age - 65 + 1
+        if age >= p.age_end || idx < 1 || idx >= length(cdp)
+            surv[t] = age >= p.age_end ? 0.0 : survival_prob_deterministic(age)
+        else
+            surv[t] = (1.0 - cdp[idx + 1]) / (1.0 - cdp[idx])
+        end
+    end
+    return surv
+end

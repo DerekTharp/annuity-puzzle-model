@@ -37,7 +37,7 @@ else
 end
 
 p_base = ModelParams(age_start=65, age_end=110)
-base_surv = build_lockwood_survival(p_base)
+base_surv = production_base_survival(p_base)
 println("Data loaded ($n_pop obs)"); flush(stdout)
 
 results = Tuple{String,String,Float64,Float64}[]  # (category, spec, ownership, mean_alpha)
@@ -60,6 +60,7 @@ function solve_and_report(label, category, base_surv, population; kw...)
     inflation = get(kw_dict, :inflation_val, INFLATION)
     psi = get(kw_dict, :survival_pessimism, SURVIVAL_PESSIMISM)
     hm = get(kw_dict, :hazard_mult, HAZARD_MULT)
+    hn = get(kw_dict, :hazard_normalize, HAZARD_NORMALIZE)
     min_wealth = get(kw_dict, :min_wealth, MIN_WEALTH)
 
     grid_kw = (n_wealth=nw, n_annuity=na, n_alpha=nalpha,
@@ -80,7 +81,7 @@ function solve_and_report(label, category, base_surv, population; kw...)
     p_full = ModelParams(; gamma=gamma, beta=beta, r=r,
         theta=THETA_DFJ, kappa=KAPPA_DFJ,
         stochastic_health=true, n_health_states=3, n_quad=nq,
-        c_floor=C_FLOOR, hazard_mult=hm,
+        c_floor=C_FLOOR, hazard_mult=hm, hazard_normalize=hn,
         mwr=mwr_loaded, fixed_cost=FIXED_COST, min_purchase=MIN_PURCHASE,
         inflation_rate=inflation,
         medical_enabled=true, health_mortality_corr=true,

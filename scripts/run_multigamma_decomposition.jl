@@ -36,7 +36,7 @@ else
 end
 
 p_base = ModelParams(age_start=AGE_START, age_end=AGE_END)
-base_surv = build_lockwood_survival(p_base)
+base_surv = production_base_survival(p_base)
 println("Data loaded ($n_pop obs)"); flush(stdout)
 
 gammas = [2.0, 2.5, 3.0]
@@ -64,7 +64,7 @@ for g in gammas
         W_max=W_MAX, n_quad=N_QUAD,
         age_start=AGE_START, age_end=AGE_END,
         annuity_grid_power=A_GRID_POW,
-        hazard_mult=HAZARD_MULT,
+        hazard_mult=HAZARD_MULT, hazard_normalize=HAZARD_NORMALIZE,
         survival_pessimism=SURVIVAL_PESSIMISM,
         min_wealth=MIN_WEALTH,
         ss_levels=SS_QUARTILE_LEVELS,

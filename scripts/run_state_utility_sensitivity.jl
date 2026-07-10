@@ -76,7 +76,7 @@ end
 # ---------------------------------------------------------------------------
 
 p_base = ModelParams(age_start=AGE_START, age_end=AGE_END)
-base_surv = build_lockwood_survival(p_base)
+base_surv = production_base_survival(p_base)
 
 grid_kw = (n_wealth=N_WEALTH, n_annuity=N_ANNUITY, n_alpha=N_ALPHA,
            W_max=W_MAX, age_start=AGE_START, age_end=AGE_END,
@@ -106,7 +106,7 @@ end
 
 common_kw = (gamma=GAMMA, beta=BETA, r=R_RATE,
              stochastic_health=true, n_health_states=3, n_quad=N_QUAD,
-             c_floor=C_FLOOR, hazard_mult=Float64.(HAZARD_MULT))
+             c_floor=C_FLOOR, hazard_mult=Float64.(HAZARD_MULT), hazard_normalize=HAZARD_NORMALIZE)
 
 # Build grids once (fair payout for coverage)
 p_grid = ModelParams(; common_kw..., mwr=1.0, grid_kw...)

@@ -27,7 +27,7 @@ println("=" ^ 70)
 ss_zero(age, p) = 0.0
 
 p_base = ModelParams(age_start=AGE_START, age_end=AGE_END)
-base_surv = build_lockwood_survival(p_base)
+base_surv = production_base_survival(p_base)
 p_fair = ModelParams(age_start=AGE_START, age_end=AGE_END, mwr=1.0, r=R_RATE)
 fair_pr = compute_payout_rate(p_fair, base_surv)
 
@@ -39,7 +39,7 @@ p = ModelParams(
     mwr=MWR_LOADED, fixed_cost=FIXED_COST, inflation_rate=INFLATION,
     medical_enabled=true, health_mortality_corr=true,
     stochastic_health=true, n_health_states=3, n_quad=N_QUAD,
-    c_floor=C_FLOOR, hazard_mult=HAZARD_MULT,
+    c_floor=C_FLOOR, hazard_mult=HAZARD_MULT, hazard_normalize=HAZARD_NORMALIZE,
     survival_pessimism=SURVIVAL_PESSIMISM,
     consumption_decline=CONSUMPTION_DECLINE, health_utility=HEALTH_UTILITY,
     chi_ltc=CHI_LTC,

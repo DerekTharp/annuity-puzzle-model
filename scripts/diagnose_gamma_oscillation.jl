@@ -67,13 +67,13 @@ end
 # Survival / payout / grids (gamma-independent: computed once)
 # ===================================================================
 p_surv = ModelParams(age_start=AGE_START, age_end=AGE_END)
-base_surv = build_lockwood_survival(p_surv)
+base_surv = production_base_survival(p_surv)
 
 gkw = (n_wealth=NW, n_annuity=NA, n_alpha=NALPHA, W_max=W_MAX,
        age_start=AGE_START, age_end=AGE_END, annuity_grid_power=A_GRID_POW)
 ckw_ref = (gamma=2.5, beta=BETA, r=R_RATE, stochastic_health=true,
            n_health_states=3, n_quad=N_QUAD, c_floor=C_FLOOR,
-           hazard_mult=Float64.(HAZARD_MULT))
+           hazard_mult=Float64.(HAZARD_MULT), hazard_normalize=HAZARD_NORMALIZE)
 p_fg = ModelParams(; ckw_ref..., mwr=1.0, gkw...)
 fair_pr = compute_payout_rate(p_fg, base_surv)
 p_fn = ModelParams(; ckw_ref..., mwr=1.0, inflation_rate=INFLATION, gkw...)
@@ -98,7 +98,7 @@ for gamma in GAMMA_GRID
     t0 = time()
     ckw = (gamma=gamma, beta=BETA, r=R_RATE, stochastic_health=true,
            n_health_states=3, n_quad=N_QUAD, c_floor=C_FLOOR,
-           hazard_mult=Float64.(HAZARD_MULT))
+           hazard_mult=Float64.(HAZARD_MULT), hazard_normalize=HAZARD_NORMALIZE)
     p_model = ModelParams(; ckw...,
         theta=cfg.theta, kappa=cfg.kappa, mwr=cfg.mwr, fixed_cost=cfg.fixed_cost,
         min_purchase=cfg.min_purchase, inflation_rate=cfg.inflation_rate,

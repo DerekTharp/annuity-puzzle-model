@@ -281,16 +281,18 @@ function main()
         joinpath(SCRIPTS_DIR, "run_loads_split_shapley.jl"); parallel=true)
     push!(timings, "Loads-split Shapley" => t)
 
-    # --- Stage 10e: Sex-blended mortality Shapley (512 subsets) ---
-    # Requires data/processed/blended_lifetable.csv (committed aggregate;
-    # rebuilt from ssa2003_sex_qx.csv by calibration/build_blended_lifetable.jl).
+    # --- Stage 10e: Male-table mortality Shapley (512 subsets) ---
+    # The production headline uses the sex-blended, aggregate-anchored table
+    # (data/processed/blended_lifetable.csv, rebuilt from ssa2003_sex_qx.csv
+    # by calibration/build_blended_lifetable.jl); this stage recomputes the
+    # game under the prior convention (male table, unnormalized hazards).
     run_stage(
         "10e-prep. Build sex-blended life table",
         joinpath(CALIB_DIR, "build_blended_lifetable.jl"))
     t = run_stage(
-        "10e. Sex-Blended Mortality Shapley (512 subsets)",
-        joinpath(SCRIPTS_DIR, "run_blended_mortality_shapley.jl"); parallel=true)
-    push!(timings, "Blended-mortality Shapley" => t)
+        "10e. Male-Table Mortality Shapley (512 subsets, prior convention)",
+        joinpath(SCRIPTS_DIR, "run_male_mortality_shapley.jl"); parallel=true)
+    push!(timings, "Male-table Shapley" => t)
 
     # --- Stage 11: SS cut robustness ---
     # Produces: ss_cut_robustness.tex/.csv
@@ -551,7 +553,7 @@ function main()
         "shapley_nine.tex",
         "shapley_psi981.tex",        # Stage 10c output; app:psi_ranking \input
         "shapley_loads_split.tex",   # Stage 10d output; loads-split appendix \input
-        "shapley_blended_mortality.tex",  # Stage 10e output; blended-mortality appendix \input
+        "shapley_male_mortality.tex",  # Stage 10e output; prior-convention mortality appendix \input
         "ss_cut_robustness.tex",
         "welfare_cev_grid.tex",
         "welfare_counterfactuals.tex",

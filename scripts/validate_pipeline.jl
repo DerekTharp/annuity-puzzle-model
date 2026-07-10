@@ -65,7 +65,7 @@ const EXPECTED_TEX_FILES = Set([
     "shapley_nine.tex",
     "shapley_psi981.tex",
     "shapley_loads_split.tex",
-    "shapley_blended_mortality.tex",
+    "shapley_male_mortality.tex",
     "ss_cut_robustness.tex",
     "welfare_cev_grid.tex",
     "welfare_counterfactuals.tex",

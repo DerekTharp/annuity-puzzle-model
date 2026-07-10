@@ -18,7 +18,7 @@ using .AnnuityPuzzle
 include(joinpath(@__DIR__, "config.jl"))
 
 p_base = ModelParams(age_start=AGE_START, age_end=AGE_END)
-base_surv = build_lockwood_survival(p_base)
+base_surv = production_base_survival(p_base)
 
 p_nom  = ModelParams(gamma=GAMMA, beta=BETA, r=R_RATE, mwr=1.0,
                      inflation_rate=INFLATION, age_start=AGE_START, age_end=AGE_END)

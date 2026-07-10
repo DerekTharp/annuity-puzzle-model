@@ -38,7 +38,7 @@ population[:, 3] = Float64.(hrs_raw[:, 3])
 population[:, 4] = has_health ? Float64.(hrs_raw[:, 4]) : fill(2.0, n_pop)
 
 p_base = ModelParams(age_start=AGE_START, age_end=AGE_END)
-base_surv = build_lockwood_survival(p_base)
+base_surv = production_base_survival(p_base)
 gkw = (n_wealth=NW, n_annuity=NA, n_alpha=NAL, W_max=W_MAX, age_start=AGE_START,
        age_end=AGE_END, annuity_grid_power=A_GRID_POW)
 fair     = compute_payout_rate(ModelParams(; gamma=GAMMA, beta=BETA, r=R_RATE, mwr=1.0, gkw...), base_surv)
@@ -46,7 +46,7 @@ fair_nom = INFLATION > 0 ? compute_payout_rate(ModelParams(; gamma=GAMMA, beta=B
 
 _theta=THETA_DFJ; _kappa=KAPPA_DFJ; _mwr=MWR_LOADED; _fc=FIXED_COST; _minp=MIN_PURCHASE
 _infl=INFLATION; _ssq=Float64.(SS_QUARTILE_LEVELS); _gamma=GAMMA; _beta=BETA; _r=R_RATE
-_cf=C_FLOOR; _hm=Float64.(HAZARD_MULT); _nq=N_QUAD; _cd=CONSUMPTION_DECLINE
+_cf=C_FLOOR; _hm=Float64.(HAZARD_MULT); _hn=HAZARD_NORMALIZE; _nq=N_QUAD; _cd=CONSUMPTION_DECLINE
 _hu=Float64.(HEALTH_UTILITY); _chi=CHI_LTC; _lw=LAMBDA_W; _pp=PSI_PURCHASE; _ppc=PSI_PURCHASE_C_REF
 _bs=base_surv; _pop=population; _fair=fair; _fairn=fair_nom; _minw=MIN_WEALTH; _gkw=gkw
 _psi=PSI_FOCAL
@@ -63,7 +63,7 @@ results = parallel_solve([(m=m,) for m in 0:511]) do spec
     has_loads = cfg.mwr < 1.0; has_infl = cfg.inflation_rate > 0
     pr = has_loads && has_infl ? cfg.mwr * _fairn : has_loads ? cfg.mwr * _fair : has_infl ? _fairn : _fair
     common = (gamma=_gamma, beta=_beta, r=_r, stochastic_health=true, n_health_states=3,
-              n_quad=_nq, c_floor=_cf, hazard_mult=_hm)
+              n_quad=_nq, c_floor=_cf, hazard_mult=_hm, hazard_normalize=_hn)
     grids = build_grids(ModelParams(; common..., mwr=1.0, _gkw...), max(_fair, _fairn))
     p = ModelParams(; common..., theta=cfg.theta, kappa=cfg.kappa, mwr=cfg.mwr,
         fixed_cost=cfg.fixed_cost, min_purchase=cfg.min_purchase, inflation_rate=cfg.inflation_rate,

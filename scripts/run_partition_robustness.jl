@@ -62,7 +62,7 @@ flush(stdout)
 
 # --- Survival and payout rates ---
 p_base = ModelParams(age_start=AGE_START, age_end=AGE_END)
-base_surv = build_lockwood_survival(p_base)
+base_surv = production_base_survival(p_base)
 grid_kw = (n_wealth=NW, n_annuity=NA, n_alpha=NAL, W_max=W_MAX,
            age_start=AGE_START, age_end=AGE_END, annuity_grid_power=A_GRID_POW)
 fair_pr     = compute_payout_rate(ModelParams(; gamma=GAMMA, beta=BETA, r=R_RATE, mwr=1.0, grid_kw...), base_surv)
@@ -72,7 +72,7 @@ fair_pr_nom = INFLATION > 0 ?
 
 # --- Config values captured for worker closures ---
 _gamma=GAMMA; _beta=BETA; _r=R_RATE; _n_quad=N_QUAD; _c_floor=C_FLOOR
-_hazard_mult=Float64.(HAZARD_MULT); _theta=THETA_DFJ; _kappa=KAPPA_DFJ
+_hazard_mult=Float64.(HAZARD_MULT), hazard_normalize=HAZARD_NORMALIZE; _theta=THETA_DFJ; _kappa=KAPPA_DFJ
 _mwr_loaded=MWR_LOADED; _fixed_cost=FIXED_COST; _min_purchase=MIN_PURCHASE
 _inflation=INFLATION; _surv_pess=SURVIVAL_PESSIMISM
 _consumption_decline=CONSUMPTION_DECLINE; _health_utility=Float64.(HEALTH_UTILITY)

@@ -30,30 +30,14 @@ const NAMES = ["SS", "Bequests", "Medical+R-S", "Pessimism", "Age needs",
                "State utility", "Loads", "Inflation", "Public-care (LTC)"]
 
 println("=" ^ 70)
-println("  9-CHANNEL EXACT SHAPLEY, SEX-BLENDED LIFE TABLE (production grid)")
+println("  9-CHANNEL EXACT SHAPLEY, MALE TABLE / UNNORMALIZED HAZARDS (production grid)")
 println("=" ^ 70); flush(stdout)
 
-# Blended survival: same conditional-survival contract as
-# build_lockwood_survival (surv[T] = 0 at the terminal age).
-blend_path = joinpath(@__DIR__, "..", "data", "processed", "blended_lifetable.csv")
-isfile(blend_path) || error("Missing $blend_path — run calibration/build_blended_lifetable.jl")
-braw, _ = readdlm(blend_path, ',', Any; header=true)
-cdp = Float64.(braw[:, 3])
-female_share = Float64(braw[1, 4])
+# Male table, prior convention: no hazard normalization.
 p_base = ModelParams(age_start=AGE_START, age_end=AGE_END)
-T = p_base.T
-base_surv = zeros(T)
-for t in 1:T
-    age = AGE_START + t - 1
-    idx = age - 65 + 1
-    if age >= AGE_END || idx >= length(cdp)
-        base_surv[t] = 0.0
-    else
-        base_surv[t] = (1.0 - cdp[idx + 1]) / (1.0 - cdp[idx])
-    end
-end
-@printf("  Blended table loaded (female share %.3f, q65 = %.5f)\n",
-        female_share, 1.0 - base_surv[1]); flush(stdout)
+base_surv = build_lockwood_survival(p_base)
+@printf("  Male (Lockwood/SSA 2003) table loaded (q65 = %.5f)\n",
+        1.0 - base_surv[1]); flush(stdout)
 
 hrs_raw = readdlm(HRS_PATH, ',', Any; skipstart=1)
 has_health = assert_hrs_schema(hrs_raw, HRS_PATH)
@@ -67,7 +51,7 @@ gkw = (n_wealth=N_WEALTH, n_annuity=N_ANNUITY, n_alpha=N_ALPHA, W_max=W_MAX,
        age_start=AGE_START, age_end=AGE_END, annuity_grid_power=A_GRID_POW)
 fair     = compute_payout_rate(ModelParams(; gamma=GAMMA, beta=BETA, r=R_RATE, mwr=1.0, gkw...), base_surv)
 fair_nom = INFLATION > 0 ? compute_payout_rate(ModelParams(; gamma=GAMMA, beta=BETA, r=R_RATE, mwr=1.0, inflation_rate=INFLATION, gkw...), base_surv) : fair
-@printf("  Fair payout (blended table): real %.5f, nominal %.5f\n", fair, fair_nom)
+@printf("  Fair payout (male table): real %.5f, nominal %.5f\n", fair, fair_nom)
 
 _theta=THETA_DFJ; _kappa=KAPPA_DFJ; _mwr=MWR_LOADED; _fc=FIXED_COST; _minp=MIN_PURCHASE
 _infl=INFLATION; _ssq=Float64.(SS_QUARTILE_LEVELS); _gamma=GAMMA; _beta=BETA; _r=R_RATE
@@ -76,7 +60,7 @@ _hu=Float64.(HEALTH_UTILITY); _chi=CHI_LTC; _lw=LAMBDA_W; _pp=PSI_PURCHASE; _ppc
 _psi=SURVIVAL_PESSIMISM
 _bs=base_surv; _pop=population; _fair=fair; _fairn=fair_nom; _minw=MIN_WEALTH; _gkw=gkw
 
-println("Solving 512 nine-channel subsets on the blended table..."); flush(stdout)
+println("Solving 512 nine-channel subsets under the prior mortality convention..."); flush(stdout)
 t0 = time()
 results = parallel_solve([(m=m,) for m in 0:511]) do spec
     mask = spec.m
@@ -104,33 +88,33 @@ end
 lookup = Dict{Int,Float64}(r.mask => r.ownership for r in results)
 shap = exact_shapley(N_CH, lookup)
 order = sortperm(abs.(shap); rev=true)
-@printf("\n  Blended-table Shapley (empty=%.2f%%, full=%.2f%%):\n",
+@printf("\n  Male-table (unnormalized) Shapley (empty=%.2f%%, full=%.2f%%):\n",
         lookup[0] * 100, lookup[511] * 100)
 @printf("  %-20s %12s\n", "Channel", "Shapley (pp)")
 for i in order
     @printf("  %-20s %+11.2f\n", NAMES[i], shap[i] * 100)
 end
 
-csv = joinpath(@__DIR__, "..", "tables", "csv", "shapley_blended_mortality.csv")
+csv = joinpath(@__DIR__, "..", "tables", "csv", "shapley_male_mortality.csv")
 mkpath(dirname(csv))
 open(csv, "w") do io
-    println(io, "channel,shapley_value_pp,abs_rank,full_own_pct,empty_own_pct,female_share")
+    println(io, "channel,shapley_value_pp,abs_rank,full_own_pct,empty_own_pct")
     rk = zeros(Int, N_CH); for (k, i) in enumerate(order); rk[i] = k; end
     for i in 1:N_CH
-        @printf(io, "%s,%.4f,%d,%.4f,%.4f,%.4f\n", NAMES[i], shap[i] * 100, rk[i],
-                lookup[511] * 100, lookup[0] * 100, female_share)
+        @printf(io, "%s,%.4f,%d,%.4f,%.4f\n", NAMES[i], shap[i] * 100, rk[i],
+                lookup[511] * 100, lookup[0] * 100)
     end
 end
 println("  CSV: $csv"); flush(stdout)
 
 vord = sortperm(shap; rev=true)
-texp = joinpath(@__DIR__, "..", "tables", "tex", "shapley_blended_mortality.tex")
+texp = joinpath(@__DIR__, "..", "tables", "tex", "shapley_male_mortality.tex")
 mkpath(dirname(texp))
 open(texp, "w") do io
     println(io, raw"\begin{table}[htbp]")
     println(io, raw"\centering")
-    println(io, raw"\caption{Nine-Channel Shapley Decomposition under the Sex-Blended Life Table}")
-    println(io, raw"\label{tab:shapley_blended}")
+    println(io, raw"\caption{Nine-Channel Shapley Decomposition under the Prior Mortality Convention (Male Table, Unnormalized Hazards)}")
+    println(io, raw"\label{tab:shapley_male}")
     println(io, raw"\begin{threeparttable}")
     println(io, raw"\begin{tabular}{lc}")
     println(io, raw"\toprule")
@@ -143,7 +127,7 @@ open(texp, "w") do io
     println(io, raw"\end{tabular}")
     println(io, raw"\begin{tablenotes}")
     println(io, raw"\small")
-    @printf(io, "\\item Exact Shapley values over all \$2^{9}=512\$ subsets with the single life table replaced by the survivorship mixture of the SSA 2003 male and female period tables at the model-eligible sample's female share (%.1f\\%%), used for both agent survival and annuity pricing (the headline's same-table convention). All other channels and the production grid match the headline game. Positive values are demand-suppressing; pre-existing income is demand-raising.\n", 100 * female_share)
+    println(io, raw"\item Exact Shapley values over all $2^{9}=512$ subsets under the prior mortality convention: the male SSA 2003 table used by \citet{lockwood2012}, with unnormalized health hazards, for both agent survival and annuity pricing. The headline game instead uses the sex-blended, aggregate-anchored table. All other channels and the production grid match the headline game. Positive values are demand-suppressing; pre-existing income is demand-raising.")
     println(io, raw"\end{tablenotes}")
     println(io, raw"\end{threeparttable}")
     println(io, raw"\end{table}")

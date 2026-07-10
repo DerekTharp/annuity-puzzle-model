@@ -58,12 +58,12 @@ if MIN_WEALTH > 0.0
 end
 
 p_surv = ModelParams(age_start=AGE_START, age_end=AGE_END)
-base_surv = build_lockwood_survival(p_surv)
+base_surv = production_base_survival(p_surv)
 gkw = (n_wealth=NW, n_annuity=NA, n_alpha=NALPHA, W_max=W_MAX,
        age_start=AGE_START, age_end=AGE_END, annuity_grid_power=A_GRID_POW)
 ckw = (gamma=GAMMA, beta=BETA, r=R_RATE, stochastic_health=true,
        n_health_states=3, n_quad=N_QUAD, c_floor=C_FLOOR,
-       hazard_mult=Float64.(HAZARD_MULT))
+       hazard_mult=Float64.(HAZARD_MULT), hazard_normalize=HAZARD_NORMALIZE)
 p_fg = ModelParams(; ckw..., mwr=1.0, gkw...)
 fair_pr = compute_payout_rate(p_fg, base_surv)
 p_fn = ModelParams(; ckw..., mwr=1.0, inflation_rate=INFLATION, gkw...)

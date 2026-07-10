@@ -32,7 +32,7 @@ population = load_hrs_population(
 n_pop = size(population, 1)
 
 p_base = ModelParams(age_start=65, age_end=110)
-base_surv = build_lockwood_survival(p_base)
+base_surv = production_base_survival(p_base)
 println("Data loaded ($n_pop obs)"); flush(stdout)
 
 results = Tuple{String,Float64,Float64}[]  # (spec, ownership_pct, mean_alpha)
@@ -57,7 +57,7 @@ function solve_alpha(nalpha)
     p_full = ModelParams(; gamma=2.5, beta=0.97, r=0.02,
         theta=THETA_DFJ, kappa=KAPPA_DFJ,
         stochastic_health=true, n_health_states=3, n_quad=9,
-        c_floor=C_FLOOR, hazard_mult=Float64.(HAZARD_MULT),
+        c_floor=C_FLOOR, hazard_mult=Float64.(HAZARD_MULT), hazard_normalize=HAZARD_NORMALIZE,
         mwr=MWR_LOADED, fixed_cost=FIXED_COST, min_purchase=MIN_PURCHASE, inflation_rate=0.02,
         medical_enabled=true, health_mortality_corr=true,
         survival_pessimism=SURVIVAL_PESSIMISM,

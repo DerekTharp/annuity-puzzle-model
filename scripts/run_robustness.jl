@@ -64,7 +64,7 @@ else
 end
 
 p_base = ModelParams(age_start=AGE_START, age_end=AGE_END)
-base_surv = build_lockwood_survival(p_base)
+base_surv = production_base_survival(p_base)
 
 ss_zero(age, p) = 0.0
 
@@ -296,7 +296,7 @@ grid_kw = (n_wealth=N_WEALTH, n_annuity=N_ANNUITY, n_alpha=N_ALPHA,
 
 common_kw = (gamma=GAMMA, beta=BETA, r=R_RATE,
              stochastic_health=true, n_health_states=3, n_quad=N_QUAD,
-             c_floor=C_FLOOR, hazard_mult=HAZARD_MULT)
+             c_floor=C_FLOOR, hazard_mult=HAZARD_MULT, hazard_normalize=HAZARD_NORMALIZE)
 
 p_fair = ModelParams(; common_kw..., mwr=1.0, grid_kw...)
 fair_pr = compute_payout_rate(p_fair, base_surv)
@@ -314,7 +314,7 @@ grids = build_grids(p_fair, max(fair_pr, fair_pr_nom))
 # previously reported. All preference and structural channels are active.
 mp_full_kw = (gamma=GAMMA, beta=BETA, r=R_RATE,
               stochastic_health=true, n_health_states=3, n_quad=N_QUAD,
-              c_floor=C_FLOOR, hazard_mult=HAZARD_MULT,
+              c_floor=C_FLOOR, hazard_mult=HAZARD_MULT, hazard_normalize=HAZARD_NORMALIZE,
               survival_pessimism=SURVIVAL_PESSIMISM,
               consumption_decline=CONSUMPTION_DECLINE,
               health_utility=Float64.(HEALTH_UTILITY),

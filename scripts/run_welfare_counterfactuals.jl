@@ -64,10 +64,10 @@ grid_kw = (n_wealth=N_WEALTH, n_annuity=N_ANNUITY, n_alpha=N_ALPHA,
 
 common_kw = (gamma=GAMMA, beta=BETA, r=R_RATE,
              stochastic_health=true, n_health_states=3, n_quad=N_QUAD,
-             c_floor=C_FLOOR, hazard_mult=HAZARD_MULT)
+             c_floor=C_FLOOR, hazard_mult=HAZARD_MULT, hazard_normalize=HAZARD_NORMALIZE)
 
 p_base = ModelParams(age_start=AGE_START, age_end=AGE_END)
-base_surv = build_lockwood_survival(p_base)
+base_surv = production_base_survival(p_base)
 
 # Fair payout rates (real and nominal)
 p_fair = ModelParams(; gamma=GAMMA, beta=BETA, r=R_RATE, mwr=1.0, grid_kw...)
@@ -183,7 +183,7 @@ for (i, cfg) in enumerate(configs)
     # in the welfare counterfactuals; they are exercised separately as robustness.
     model_common = (gamma=GAMMA, beta=BETA, r=R_RATE,
                     stochastic_health=true, n_health_states=3, n_quad=N_QUAD,
-                    c_floor=cfg.c_floor, hazard_mult=HAZARD_MULT)
+                    c_floor=cfg.c_floor, hazard_mult=HAZARD_MULT, hazard_normalize=HAZARD_NORMALIZE)
 
     p_model = ModelParams(; model_common...,
         theta=THETA_DFJ, kappa=KAPPA_DFJ,
@@ -297,7 +297,7 @@ for (label, mwr, infl, surv_pess) in cev_configs
         W_max=W_MAX, n_quad=N_QUAD,
         age_start=AGE_START, age_end=AGE_END,
         annuity_grid_power=A_GRID_POW,
-        hazard_mult=HAZARD_MULT,
+        hazard_mult=HAZARD_MULT, hazard_normalize=HAZARD_NORMALIZE,
         survival_pessimism=surv_pess,
         consumption_decline=CONSUMPTION_DECLINE,
         health_utility=Float64.(HEALTH_UTILITY),

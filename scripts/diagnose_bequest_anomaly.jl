@@ -33,12 +33,12 @@ else
 end
 
 p_base = ModelParams(age_start=AGE_START, age_end=AGE_END)
-base_surv = build_lockwood_survival(p_base)
+base_surv = production_base_survival(p_base)
 ss_zero(age, p) = 0.0
 
 common_kw = (gamma=GAMMA, beta=BETA, r=R_RATE,
              stochastic_health=true, n_health_states=3, n_quad=N_QUAD,
-             c_floor=C_FLOOR, hazard_mult=HAZARD_MULT)
+             c_floor=C_FLOOR, hazard_mult=HAZARD_MULT, hazard_normalize=HAZARD_NORMALIZE)
 grid_kw = (n_wealth=N_WEALTH, n_annuity=N_ANNUITY, n_alpha=N_ALPHA,
            W_max=W_MAX, age_start=AGE_START, age_end=AGE_END,
            annuity_grid_power=A_GRID_POW)

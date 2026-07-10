@@ -51,7 +51,7 @@ end
 # Build survival probabilities
 # ===================================================================
 p_base = ModelParams(age_start=AGE_START, age_end=AGE_END)
-base_surv = build_lockwood_survival(p_base)
+base_surv = production_base_survival(p_base)
 
 # ===================================================================
 # Section 1: CEV Grid Table (the heterogeneous welfare map)
@@ -95,7 +95,7 @@ cev_output = compute_cev_grid(
     W_max=W_MAX, n_quad=N_QUAD,
     age_start=AGE_START, age_end=AGE_END,
     annuity_grid_power=A_GRID_POW,
-    hazard_mult=HAZARD_MULT,
+    hazard_mult=HAZARD_MULT, hazard_normalize=HAZARD_NORMALIZE,
     survival_pessimism=SURVIVAL_PESSIMISM,
     consumption_decline=CONSUMPTION_DECLINE,
     health_utility=Float64.(HEALTH_UTILITY),
@@ -348,7 +348,7 @@ p_sim = ModelParams(;
     inflation_rate=INFLATION,
     medical_enabled=true, health_mortality_corr=true,
     stochastic_health=true, n_health_states=3, n_quad=N_QUAD,
-    c_floor=C_FLOOR, hazard_mult=HAZARD_MULT,
+    c_floor=C_FLOOR, hazard_mult=HAZARD_MULT, hazard_normalize=HAZARD_NORMALIZE,
     survival_pessimism=SURVIVAL_PESSIMISM,
     n_wealth=N_WEALTH, n_annuity=N_ANNUITY, n_alpha=N_ALPHA,
     W_max=W_MAX, age_start=AGE_START, age_end=AGE_END,

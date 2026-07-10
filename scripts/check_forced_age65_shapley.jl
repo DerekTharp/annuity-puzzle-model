@@ -35,7 +35,7 @@ pop = pop[pop[:, 1] .>= MIN_WEALTH, :]
 pop65 = copy(pop); pop65[:, 3] .= AGE_START   # force everyone to age 65
 
 p_base = ModelParams(age_start=AGE_START, age_end=AGE_END)
-base_surv = build_lockwood_survival(p_base)
+base_surv = production_base_survival(p_base)
 
 gkw = (n_wealth=NW, n_annuity=NA, n_alpha=NAL, W_max=W_MAX,
        age_start=AGE_START, age_end=AGE_END, annuity_grid_power=A_GRID_POW)
@@ -46,10 +46,10 @@ p_fair_nom = ModelParams(; gamma=GAMMA, beta=BETA, r=R_RATE, mwr=1.0,
 fair_pr_nom = compute_payout_rate(p_fair_nom, base_surv)
 grids = build_grids(ModelParams(; gamma=GAMMA, beta=BETA, r=R_RATE,
     stochastic_health=true, n_health_states=3, n_quad=N_QUAD, c_floor=C_FLOOR,
-    hazard_mult=Float64.(HAZARD_MULT), mwr=1.0, gkw...), max(fair_pr, fair_pr_nom))
+    hazard_mult=Float64.(HAZARD_MULT), hazard_normalize=HAZARD_NORMALIZE, mwr=1.0, gkw...), max(fair_pr, fair_pr_nom))
 
 @everywhere function solve_one(mask, gkw, GAMMA, BETA, R_RATE, N_QUAD, C_FLOOR,
-        HAZARD_MULT, THETA_DFJ, KAPPA_DFJ, MWR_LOADED, FIXED_COST, MIN_PURCHASE,
+        HAZARD_MULT, HAZARD_NORMALIZE, THETA_DFJ, KAPPA_DFJ, MWR_LOADED, FIXED_COST, MIN_PURCHASE,
         INFLATION, SURVIVAL_PESSIMISM, SS_QUARTILE_LEVELS, CONSUMPTION_DECLINE,
         HEALTH_UTILITY, CHI_LTC, LAMBDA_W, PSI_PURCHASE, PSI_PURCHASE_C_REF,
         grids, base_surv, fair_pr, fair_pr_nom, pop65)
@@ -68,7 +68,7 @@ grids = build_grids(ModelParams(; gamma=GAMMA, beta=BETA, r=R_RATE,
          has_infl               ? fair_pr_nom : fair_pr
     p = ModelParams(; gamma=GAMMA, beta=BETA, r=R_RATE, stochastic_health=true,
         n_health_states=3, n_quad=N_QUAD, c_floor=C_FLOOR,
-        hazard_mult=Float64.(HAZARD_MULT), theta=cfg.theta, kappa=cfg.kappa,
+        hazard_mult=Float64.(HAZARD_MULT), hazard_normalize=HAZARD_NORMALIZE, theta=cfg.theta, kappa=cfg.kappa,
         mwr=cfg.mwr, fixed_cost=cfg.fixed_cost, min_purchase=cfg.min_purchase,
         inflation_rate=cfg.inflation_rate, medical_enabled=cfg.medical_enabled,
         health_mortality_corr=cfg.health_mortality_corr,
@@ -85,7 +85,7 @@ println("Enumerating 512 nine-channel subsets at forced age 65 (coarse grid)..."
 flush(stdout)
 t0 = time()
 pairs = pmap(m -> solve_one(m, gkw, GAMMA, BETA, R_RATE, N_QUAD, C_FLOOR,
-        HAZARD_MULT, THETA_DFJ, KAPPA_DFJ, MWR_LOADED, FIXED_COST, MIN_PURCHASE,
+        HAZARD_MULT, HAZARD_NORMALIZE, THETA_DFJ, KAPPA_DFJ, MWR_LOADED, FIXED_COST, MIN_PURCHASE,
         INFLATION, SURVIVAL_PESSIMISM, SS_QUARTILE_LEVELS, CONSUMPTION_DECLINE,
         HEALTH_UTILITY, CHI_LTC, LAMBDA_W, PSI_PURCHASE, PSI_PURCHASE_C_REF,
         grids, base_surv, fair_pr, fair_pr_nom, pop65), 0:511)

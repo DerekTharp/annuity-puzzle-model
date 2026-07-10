@@ -58,7 +58,7 @@ n_eligible = count(population[:, 1] .>= MIN_WEALTH)
 # Build survival probabilities
 # ===================================================================
 p_base = ModelParams(age_start=AGE_START, age_end=AGE_END)
-base_surv = build_lockwood_survival(p_base)
+base_surv = production_base_survival(p_base)
 
 # Fair payout rate for bequest calibration
 p_fair = ModelParams(age_start=AGE_START, age_end=AGE_END, mwr=1.0, r=R_RATE)
@@ -101,7 +101,7 @@ decomp = run_decomposition(
     W_max=W_MAX, n_quad=N_QUAD,
     age_start=AGE_START, age_end=AGE_END,
     annuity_grid_power=A_GRID_POW,
-    hazard_mult=HAZARD_MULT,
+    hazard_mult=HAZARD_MULT, hazard_normalize=HAZARD_NORMALIZE,
     survival_pessimism=SURVIVAL_PESSIMISM,
     min_wealth=MIN_WEALTH,
     ss_levels=SS_LEVELS,
@@ -131,7 +131,7 @@ if RUN_MULTIPLICATIVE
         W_max=W_MAX, n_quad=N_QUAD,
         age_start=AGE_START, age_end=AGE_END,
         annuity_grid_power=A_GRID_POW,
-        hazard_mult=HAZARD_MULT,
+        hazard_mult=HAZARD_MULT, hazard_normalize=HAZARD_NORMALIZE,
         survival_pessimism=SURVIVAL_PESSIMISM,
         min_wealth=MIN_WEALTH,
         ss_levels=SS_LEVELS,
@@ -243,7 +243,7 @@ if RUN_DIAG_ROBUSTNESS
         W_max=W_MAX, n_quad=N_QUAD,
         age_start=AGE_START, age_end=AGE_END,
         annuity_grid_power=A_GRID_POW,
-        hazard_mult=HAZARD_MULT,
+        hazard_mult=HAZARD_MULT, hazard_normalize=HAZARD_NORMALIZE,
         survival_pessimism=SURVIVAL_PESSIMISM,
         min_wealth=0.0,
         ss_levels=SS_LEVELS,
@@ -336,7 +336,7 @@ pw = run_pairwise_interactions(
     W_max=W_MAX, n_quad=N_QUAD,
     age_start=AGE_START, age_end=AGE_END,
     annuity_grid_power=A_GRID_POW,
-    hazard_mult=HAZARD_MULT,
+    hazard_mult=HAZARD_MULT, hazard_normalize=HAZARD_NORMALIZE,
     survival_pessimism=SURVIVAL_PESSIMISM,
     min_wealth=MIN_WEALTH,
     ss_levels=SS_LEVELS,

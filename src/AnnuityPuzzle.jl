@@ -36,6 +36,7 @@ export survival_prob_deterministic, build_survival_probs, cumulative_survival
 export gauss_hermite_normal
 export build_health_transition, build_all_health_transitions
 export health_adjusted_survival, build_health_survival
+export production_base_survival
 export medical_expense_params, mean_medical_expense, apply_medicaid_floor
 export compute_payout_rate, annuity_income, post_purchase_wealth
 export is_feasible_purchase, annuity_income_real, compute_payout_rate_deferred

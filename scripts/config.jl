@@ -55,7 +55,10 @@ const MIN_WEALTH = 5_000.0
 # Constant value [0.50, 1.0, 3.75] — moderate position between
 # DeSalvo et al. (2006) meta and Reichling-Smetters (2015) ~5x without
 # triple-counting against state-dependent utility and public-care aversion.
-const HAZARD_MULT = [0.50, 1.0, 3.75]                   # production / headline
+const HAZARD_MULT = [0.50, 1.0, 3.75]
+# Anchor health-conditional hazards to the (sex-blended) life table so the
+# population-weighted survival reproduces it at every age.
+const HAZARD_NORMALIZE = true                   # production / headline
 const HAZARD_MULT_AGE_BANDS = [0.49 1.00 3.29;          # ages 65-74
                                0.60 1.00 2.77;          # ages 75-84
                                0.74 1.00 1.82]          # ages 85+

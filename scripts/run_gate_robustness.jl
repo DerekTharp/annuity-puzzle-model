@@ -102,7 +102,7 @@ flush(stdout)
 
 # --- Common objects ---
 pbase = ModelParams(age_start=AGE_START, age_end=AGE_END)
-base_surv = build_lockwood_survival(pbase)
+base_surv = production_base_survival(pbase)
 gkw = (n_wealth=NW, n_annuity=NA, n_alpha=NAL, W_max=W_MAX, age_start=AGE_START, age_end=AGE_END, annuity_grid_power=A_GRID_POW)
 fair     = compute_payout_rate(ModelParams(; gamma=GAMMA, beta=BETA, r=R_RATE, mwr=1.0, gkw...), base_surv)
 fair_nom = compute_payout_rate(ModelParams(; gamma=GAMMA, beta=BETA, r=R_RATE, mwr=1.0, inflation_rate=INFLATION, gkw...), base_surv)
@@ -116,7 +116,7 @@ lump = sum(nb[b] * SS_CUT_FRAC * Float64(SS_OBS[b]) for b in 1:4) / sum(nb)
 ss_placebo = [max(ss_base[b] - lump, 1.0) for b in 1:4]
 @printf("\n  Placebo lump-sum income cut = \$%.0f/yr (aggregate-equal to the 22%% SS cut)\n", lump)
 
-_p = (gamma=GAMMA, beta=BETA, r=R_RATE, n_quad=N_QUAD, c_floor=C_FLOOR, hazard_mult=Float64.(HAZARD_MULT),
+_p = (gamma=GAMMA, beta=BETA, r=R_RATE, n_quad=N_QUAD, c_floor=C_FLOOR, hazard_mult=Float64.(HAZARD_MULT), hazard_normalize=HAZARD_NORMALIZE,
       kappa=KAPPA_DFJ, mwr=MWR_LOADED, fixed_cost=FIXED_COST, min_purchase=MIN_PURCHASE, inflation=INFLATION,
       pess=SURVIVAL_PESSIMISM, cd=CONSUMPTION_DECLINE, hu=Float64.(HEALTH_UTILITY), chi=CHI_LTC)
 _g = grids; _bs = base_surv; _loaded = loaded; _pban = pop_band; _gkw = gkw

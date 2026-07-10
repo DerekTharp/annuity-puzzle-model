@@ -17,7 +17,7 @@ include(joinpath(@__DIR__, "..", "scripts", "config.jl"))
 @testset "Grid-clamp audit on production sample" begin
     # Build production grids
     p_base = ModelParams(age_start=AGE_START, age_end=AGE_END)
-    base_surv = build_lockwood_survival(p_base)
+    base_surv = production_base_survival(p_base)
     grid_kw = (n_wealth=N_WEALTH, n_annuity=N_ANNUITY, n_alpha=N_ALPHA,
                W_max=W_MAX, age_start=AGE_START, age_end=AGE_END,
                annuity_grid_power=A_GRID_POW)
@@ -90,7 +90,7 @@ include(joinpath(@__DIR__, "..", "scripts", "config.jl"))
             p_a = ModelParams(; gamma=GAMMA, beta=BETA, r=R_RATE, mwr=1.0,
                               inflation_rate=INFLATION, grid_kw...,
                               age_start=a)
-            surv_a = build_lockwood_survival(p_a)
+            surv_a = production_base_survival(p_a)
             loaded_nom_by_age[a] = MWR_LOADED * compute_payout_rate(p_a, surv_a)
         end
         # Purchases at age a > 65 are stored in age-65 nominal units:

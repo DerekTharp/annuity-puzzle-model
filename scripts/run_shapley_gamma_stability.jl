@@ -80,7 +80,7 @@ end
 @printf("  Population (wealth >= \$%.0f): %d\n", MIN_WEALTH, size(population, 1)); flush(stdout)
 
 p_surv = ModelParams(age_start=AGE_START, age_end=AGE_END)
-base_surv = build_lockwood_survival(p_surv)
+base_surv = production_base_survival(p_surv)
 
 grid_kw = (n_wealth=NW, n_annuity=NA, n_alpha=NALPHA, W_max=W_MAX,
            age_start=AGE_START, age_end=AGE_END, annuity_grid_power=A_GRID_POW)
@@ -98,7 +98,7 @@ _theta_dfj = THETA_DFJ; _kappa_dfj = KAPPA_DFJ; _mwr_loaded = MWR_LOADED
 _fixed_cost = FIXED_COST; _min_purchase = MIN_PURCHASE; _inflation = INFLATION
 _surv_pess = SURVIVAL_PESSIMISM; _ss_q_levels = Float64.(SS_QUARTILE_LEVELS)
 _beta = BETA; _r_rate = R_RATE; _c_floor = C_FLOOR
-_hazard_mult = Float64.(HAZARD_MULT); _n_quad = N_QUAD
+_hazard_mult=Float64.(HAZARD_MULT), hazard_normalize=HAZARD_NORMALIZE; _n_quad = N_QUAD
 _consumption_decline = CONSUMPTION_DECLINE; _health_utility = Float64.(HEALTH_UTILITY)
 _chi_ltc = CHI_LTC
 _base_surv = base_surv; _population = population; _grids = grids

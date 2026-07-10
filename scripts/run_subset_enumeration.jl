@@ -134,7 +134,7 @@ flush(stdout)
 # Build survival probabilities and payout rates
 # ===================================================================
 p_base = ModelParams(age_start=AGE_START, age_end=AGE_END)
-base_surv = build_lockwood_survival(p_base)
+base_surv = production_base_survival(p_base)
 
 grid_kw = (n_wealth=N_WEALTH, n_annuity=N_ANNUITY, n_alpha=N_ALPHA,
            W_max=W_MAX, age_start=AGE_START, age_end=AGE_END,
@@ -177,7 +177,7 @@ _gamma = GAMMA
 _beta = BETA
 _r_rate = R_RATE
 _c_floor = C_FLOOR
-_hazard_mult = Float64.(HAZARD_MULT)
+_hazard_mult=Float64.(HAZARD_MULT), hazard_normalize=HAZARD_NORMALIZE
 _n_wealth = N_WEALTH
 _n_annuity = N_ANNUITY
 _n_alpha = N_ALPHA

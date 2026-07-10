@@ -46,7 +46,7 @@ else
 end
 
 p_base = ModelParams(age_start=AGE_START, age_end=AGE_END)
-base_surv = build_lockwood_survival(p_base)
+base_surv = production_base_survival(p_base)
 
 base_kw = Dict{Symbol,Any}(
     :gamma => GAMMA, :beta => BETA, :r => R_RATE,
@@ -59,6 +59,7 @@ base_kw = Dict{Symbol,Any}(
     :age_start => AGE_START, :age_end => AGE_END,
     :annuity_grid_power => A_GRID_POW,
     :hazard_mult => HAZARD_MULT,
+    :hazard_normalize => HAZARD_NORMALIZE,
     :min_wealth => MIN_WEALTH,
     :ss_levels => Float64.(SS_QUARTILE_LEVELS),
     :verbose => false,

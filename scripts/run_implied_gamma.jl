@@ -79,7 +79,7 @@ end
 
 # Survival probabilities
 p_base = ModelParams(age_start=AGE_START, age_end=AGE_END)
-base_surv = build_lockwood_survival(p_base)
+base_surv = production_base_survival(p_base)
 
 @printf("  Population: %d total, %d eligible (W >= \$%s)\n",
     n_pop, size(pop_filtered, 1), string(round(Int, MIN_WEALTH)))
@@ -124,7 +124,7 @@ _theta = THETA_DFJ
 _kappa = KAPPA_DFJ
 _beta = BETA
 _r = R_RATE
-_c_floor = C_FLOOR
+_c_floor = C_FLOOR; _hn = HAZARD_NORMALIZE
 _fixed_cost = FIXED_COST
 _min_purchase = MIN_PURCHASE
 _consumption_decline = CONSUMPTION_DECLINE
@@ -159,7 +159,7 @@ results = parallel_solve(draws) do d
 
         common_kw = (gamma=gamma, beta=_beta, r=_r,
                      stochastic_health=true, n_health_states=3, n_quad=_nq,
-                     c_floor=_c_floor, hazard_mult=hm)
+                     c_floor=_c_floor, hazard_mult=hm, hazard_normalize=_hn)
 
         p_fair_nom = ModelParams(; gamma=gamma, beta=_beta, r=_r, mwr=1.0,
                                    inflation_rate=d.inflation, grid_kw...)
