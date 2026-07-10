@@ -24,7 +24,11 @@ INSTANCE_TYPE=${INSTANCE_TYPE:-c7a.48xlarge}
 KEY_NAME=${KEY_NAME:-annuity-key}
 KEY_FILE=${KEY_FILE:-$HOME/.ssh/annuity-key.pem}
 SG_NAME=${SG_NAME:-annuity-ssh}
-SPOT=${SPOT:-1}
+if [ "${ON_DEMAND:-0}" = "1" ]; then
+    SPOT=0
+else
+    SPOT=${SPOT:-1}
+fi
 NAME_TAG="annuity-puzzle-$(date +%Y%m%d-%H%M)"
 
 echo "=== AWS Annuity-Puzzle Pipeline Launcher ==="
