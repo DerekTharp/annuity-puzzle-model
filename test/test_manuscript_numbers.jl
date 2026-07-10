@@ -203,6 +203,37 @@ macros = load_macros()
     # their CI variants) are emitted from the HRS sample. The legacy
     # `pctHRSObserved` summary macro is no longer emitted because the
     # manuscript cites the pooled and lifetime measures separately.
+    # Loads-split and blended-mortality macros must match their CSVs.
+    @testset "loads-split + blended-mortality locks" begin
+        sp = joinpath(CSV_DIR, "shapley_loads_split.csv")
+        bp = joinpath(CSV_DIR, "shapley_blended_mortality.csv")
+        if !isfile(sp) || !isfile(bp)
+            @test_skip "batch Shapley CSVs absent (stages 10d/10e not yet run)"
+        else
+            sraw, _ = readdlm(sp, ',', Any; header=true)
+            sv = Dict(String(sraw[r, 1]) => Float64(sraw[r, 2]) for r in 1:size(sraw, 1))
+            @test macros["splitMWRWedge"]    == fmt_num(sv["MWR wedge"];    digits=1)
+            @test macros["splitFixedCost"]   == fmt_num(sv["Fixed cost"];   digits=1)
+            @test macros["splitMinPurchase"] == fmt_num(sv["Min purchase"]; digits=1)
+            @test macros["splitBequests"]    == fmt_num(sv["Bequests"];     digits=1)
+            @test macros["splitFullOwn"]     == fmt_pct(Float64(sraw[1, 4]); digits=1)
+            # Full coalition must reproduce the nine-channel headline level
+            @test occursin(macros["splitFullOwn"], macros["ownNineChannelLTC"]) ||
+                  macros["splitFullOwn"] == macros["ownNineChannelLTC"]
+            # The wedge must remain the largest suppressor among positives
+            pos = [v for (k, v) in sv if v > 0]
+            @test sv["MWR wedge"] == maximum(pos)
+
+            braw, _ = readdlm(bp, ',', Any; header=true)
+            bv = Dict(String(braw[r, 1]) => Float64(braw[r, 2]) for r in 1:size(braw, 1))
+            @test macros["blendedLoads"]    == fmt_num(bv["Loads"];    digits=1)
+            @test macros["blendedBequests"] == fmt_num(bv["Bequests"]; digits=1)
+            @test macros["blendedOwn"]      == fmt_pct(Float64(braw[1, 4]); digits=1)
+            bpos = [v for (k, v) in bv if v > 0]
+            @test bv["Loads"] == maximum(bpos)
+        end
+    end
+
     # Period-certain pricing macros must match period_certain_pricing.csv.
     @testset "period-certain pricing lock" begin
         path = joinpath(CSV_DIR, "period_certain_pricing.csv")

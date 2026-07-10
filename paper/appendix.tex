@@ -541,6 +541,26 @@ The use of piecewise-linear interpolation means derivatives are discontinuous at
 
 \bibliographystyle{aer}
 %% ================================================================
+%%  LOADS-SPLIT SHAPLEY DECOMPOSITION
+%% ================================================================
+\section{Loads-Split Shapley Decomposition}
+\label{app:loads_split}
+
+The nine-channel game bundles the money's worth wedge, the fixed purchase cost, and the minimum-purchase requirement as one pricing-loads player. Table~\ref{tab:shapley_loads_split} reruns the game with the three components as separate players (eleven players, $2^{11} = 2{,}048$ subsets, production grid); the full coalition reproduces the nine-channel full model exactly (\splitFullOwn). The money's worth wedge remains the single largest suppressor (\splitMWRWedge~pp), ahead of survival pessimism and the combined Med+R-S channel. The fixed purchase cost is fourth (\splitFixedCost~pp), itself larger than bequest motives (\splitBequests~pp), and the minimum-purchase floor is negligible (\splitMinPurchase~pp), consistent with the invariance diagnostic in Appendix~\ref{app:robustness}. Unbundling narrows the wedge's margin over the second tier relative to the bundled channel's value; Shapley values are not additive across game partitions, so the three components need not (and do not) sum to the bundled attribution. The finer partition preserves the claim in the title: the proportional pricing wedge alone out-ranks every other structural channel, and each of the two larger loads components individually exceeds the bequest attribution.
+
+\input{../tables/tex/shapley_loads_split.tex}
+
+%% ================================================================
+%%  SEX-BLENDED MORTALITY ROBUSTNESS
+%% ================================================================
+\section{Sex-Blended Mortality Robustness}
+\label{app:blended_mortality}
+
+The headline model prices the annuity and evaluates survival off a single life table matching the male column of the SSA 2003 period table, while the model-eligible sample is \blendedFemaleShare{} female (Section~\ref{M-sec:calibration}). Table~\ref{tab:shapley_blended} recomputes the full nine-channel game with the life table replaced by the survivorship mixture of the SSA 2003 male and female period tables at the sample's female share, used for both survival and pricing, preserving the headline's same-table convention; the replication package documents the construction. The ranking is unchanged: pricing loads contribute \blendedLoads~pp, within rounding of the headline attribution, and bequest motives remain mid-pack (\blendedBequests~pp). The ownership level falls to \blendedOwn{} because the longer-lived blended population faces a lower fair payout at the same premium---one more instance of the level moving while the ranking does not.
+
+\input{../tables/tex/shapley_blended_mortality.tex}
+
+%% ================================================================
 %%  ADDITIONAL TABLES AND FIGURES
 %% ================================================================
 \section{Additional Tables and Figures}
