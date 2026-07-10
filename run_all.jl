@@ -79,6 +79,13 @@ function main()
     timings = Pair{String, Float64}[]
     t_total = time()
 
+    # --- Preflight: lower every driver and check production-flag
+    #     consistency before spending compute ---
+    run_stage(
+        "Preflight (lowering + flag-consistency gate)",
+        joinpath(SCRIPTS_DIR, "preflight.jl"))
+
+
     # --- Stage 0: Tests ---
     if !skip_tests
         t = run_stage("Test Suite", TEST_RUNNER)
@@ -151,6 +158,13 @@ function main()
             end
         end
     end
+
+
+    # --- Stage 0g: Build/verify the sex-blended life table (production
+    #     base survival input consumed by every subsequent stage) ---
+    run_stage(
+        "0g. Build sex-blended life table",
+        joinpath(CALIB_DIR, "build_blended_lifetable.jl"))
 
     # --- Stage 1: Lockwood (2012) replication ---
     # Console-only WTP replication table (no file output). The appendix prose
@@ -286,9 +300,6 @@ function main()
     # (data/processed/blended_lifetable.csv, rebuilt from ssa2003_sex_qx.csv
     # by calibration/build_blended_lifetable.jl); this stage recomputes the
     # game under the prior convention (male table, unnormalized hazards).
-    run_stage(
-        "10e-prep. Build sex-blended life table",
-        joinpath(CALIB_DIR, "build_blended_lifetable.jl"))
     t = run_stage(
         "10e. Male-Table Mortality Shapley (512 subsets, prior convention)",
         joinpath(SCRIPTS_DIR, "run_male_mortality_shapley.jl"); parallel=true)

@@ -177,7 +177,7 @@ _gamma = GAMMA
 _beta = BETA
 _r_rate = R_RATE
 _c_floor = C_FLOOR
-_hazard_mult=Float64.(HAZARD_MULT), hazard_normalize=HAZARD_NORMALIZE
+_hazard_mult=Float64.(HAZARD_MULT); _hazard_normalize=HAZARD_NORMALIZE
 _n_wealth = N_WEALTH
 _n_annuity = N_ANNUITY
 _n_alpha = N_ALPHA
@@ -225,7 +225,7 @@ results = parallel_solve(subset_specs) do spec
 
     common_kw = (gamma=_gamma, beta=_beta, r=_r_rate,
                  stochastic_health=true, n_health_states=3, n_quad=_n_quad,
-                 c_floor=_c_floor, hazard_mult=_hazard_mult)
+                 c_floor=_c_floor, hazard_mult=_hazard_mult, hazard_normalize=_hazard_normalize)
 
     # Determine payout rate based on active channels
     has_loads = cfg.mwr < 1.0

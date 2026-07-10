@@ -156,7 +156,7 @@ extracts (`lockwood_hrs_sample.csv`, `hrs_validation_sample.csv`) are NOT
 shipped (HRS conditions of use) and must be regenerated locally:
 - `data/processed/lockwood_hrs_sample.csv` -- HRS population sample
   (4,258 person-wave observations, single retirees aged 65--69, waves 5--9;
-  person-level, not shipped); `calibration/pashchenko_replication.jl`.
+  person-level, not shipped); `calibration/build_hrs_sample.jl`.
 - `data/processed/hrs_lifetime_ownership.csv` -- HRS lifetime annuity
   contract indicator (q286 fat-file series), pooled across waves 5--9;
   `calibration/compute_lifetime_ownership_rate.jl`.

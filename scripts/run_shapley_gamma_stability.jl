@@ -98,7 +98,7 @@ _theta_dfj = THETA_DFJ; _kappa_dfj = KAPPA_DFJ; _mwr_loaded = MWR_LOADED
 _fixed_cost = FIXED_COST; _min_purchase = MIN_PURCHASE; _inflation = INFLATION
 _surv_pess = SURVIVAL_PESSIMISM; _ss_q_levels = Float64.(SS_QUARTILE_LEVELS)
 _beta = BETA; _r_rate = R_RATE; _c_floor = C_FLOOR
-_hazard_mult=Float64.(HAZARD_MULT), hazard_normalize=HAZARD_NORMALIZE; _n_quad = N_QUAD
+_hazard_mult=Float64.(HAZARD_MULT); _hazard_normalize=HAZARD_NORMALIZE; _n_quad = N_QUAD
 _consumption_decline = CONSUMPTION_DECLINE; _health_utility = Float64.(HEALTH_UTILITY)
 _chi_ltc = CHI_LTC
 _base_surv = base_surv; _population = population; _grids = grids
@@ -127,7 +127,7 @@ function shapley_at_gamma(gamma::Float64)
 
         ckw = (gamma=gamma, beta=_beta, r=_r_rate,
                stochastic_health=true, n_health_states=3, n_quad=_n_quad,
-               c_floor=_c_floor, hazard_mult=_hazard_mult)
+               c_floor=_c_floor, hazard_mult=_hazard_mult, hazard_normalize=_hazard_normalize)
 
         has_loads = cfg.mwr < 1.0
         has_infl = cfg.inflation_rate > 0

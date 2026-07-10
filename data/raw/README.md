@@ -27,9 +27,12 @@ licensed; none are checked into the public repository.
 
 ## Reproducibility notes
 
-- Both raw datasets require institutional / DUA access. The processed
-  CSVs in `data/processed/` are checked into the repository so that the
-  full structural pipeline can run without raw access.
+- Both raw datasets require institutional / DUA access. Aggregate processed
+  CSVs in `data/processed/` are checked into the repository; the two
+  person-level extracts (`lockwood_hrs_sample.csv`,
+  `hrs_validation_sample.csv`) are NOT shipped under HRS conditions of use,
+  so the compute stages require regenerating them from a free RAND HRS
+  download (see the top-level README's Data availability section).
 - `run_all.jl` skips Stage 0c whose processed CSV already exists.
   Set `ANNUITY_FORCE_HRS_REBUILD=1` to force regeneration.
 - If the raw data is unavailable at runtime, the run_all.jl wrapper logs

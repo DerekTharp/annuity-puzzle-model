@@ -129,6 +129,7 @@ function load_params(config_path::String)
         "health" => [:stochastic_health, :n_health_states,
                      :health_mortality_corr, :hazard_mult,
                      :hazard_mult_by_age, :hazard_mult_age_midpoints,
+                     :hazard_normalize, :initial_health_shares,
                      :survival_pessimism, :n_quad],
         "grids" => [:n_wealth, :n_annuity, :W_max, :W_min, :wealth_grid_power,
                     :annuity_grid_power, :n_alpha],

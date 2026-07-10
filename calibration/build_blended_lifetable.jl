@@ -28,7 +28,12 @@
 using Printf, DelimitedFiles
 
 const DATA_DIR = joinpath(@__DIR__, "..", "data", "processed")
-const FEMALE_SHARE_DEFAULT = 0.692  # model-eligible person-waves, waves 5-9
+# Exact model-eligible female share: 1,578 of 2,279 person-waves (single
+# retirees 65-69, wealth >= $5,000, waves 5-9). This committed constant is
+# the authoritative production input; the private validation extract, when
+# present, only VERIFIES it (deterministic replication must not depend on
+# restricted files).
+const FEMALE_SHARE = 1578 / 2279
 const MIN_WEALTH_ELIGIBLE = 5_000.0
 
 qx_path = joinpath(DATA_DIR, "ssa2003_sex_qx.csv")
@@ -39,8 +44,9 @@ qx_m = Float64.(raw[:, 2])
 qx_f = Float64.(raw[:, 3])
 @assert ages[1] == 65 && ages[end] == 110 "expected ages 65-110"
 
-# Female share: recompute from the person-level extract when available.
-w_f = FEMALE_SHARE_DEFAULT
+# Female share: the committed constant is authoritative. The private
+# validation extract, when present, verifies it and errors on divergence.
+w_f = FEMALE_SHARE
 val_path = joinpath(DATA_DIR, "hrs_validation_sample.csv")
 if isfile(val_path)
     vraw, vhdr = readdlm(val_path, ',', Any; header=true)
@@ -48,11 +54,13 @@ if isfile(val_path)
     wealth = Float64.(vraw[:, col("wealth")])
     female = Float64.(vraw[:, col("female")])
     el = wealth .>= MIN_WEALTH_ELIGIBLE
-    w_f = sum(female[el]) / count(el)
-    @printf("  Female share recomputed from validation extract: %.3f (n=%d)\n",
+    w_check = sum(female[el]) / count(el)
+    abs(w_check - w_f) < 1e-9 ||
+        error("female share in validation extract ($w_check) diverges from the committed constant ($w_f); update FEMALE_SHARE with provenance")
+    @printf("  Female share verified against validation extract: %.6f (n=%d)\n",
             w_f, count(el))
 else
-    @printf("  Validation extract absent; using committed female share %.3f\n", w_f)
+    @printf("  Validation extract absent; committed female share %.6f\n", w_f)
 end
 w_m = 1.0 - w_f
 

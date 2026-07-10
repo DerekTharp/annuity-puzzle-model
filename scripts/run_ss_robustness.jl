@@ -101,7 +101,7 @@ _beta = BETA
 _r_rate = R_RATE
 _n_quad = N_QUAD
 _c_floor = C_FLOOR
-_hazard_mult=Float64.(HAZARD_MULT), hazard_normalize=HAZARD_NORMALIZE
+_hazard_mult=Float64.(HAZARD_MULT); _hazard_normalize=HAZARD_NORMALIZE
 _theta_dfj = THETA_DFJ
 _kappa_dfj = KAPPA_DFJ
 _mwr_loaded = MWR_LOADED
@@ -133,7 +133,7 @@ cut_results = parallel_solve(cut_fractions) do cut_frac
 
     ckw = (gamma=_gamma, beta=_beta, r=_r_rate,
            stochastic_health=true, n_health_states=3, n_quad=_n_quad,
-           c_floor=_c_floor, hazard_mult=_hazard_mult)
+           c_floor=_c_floor, hazard_mult=_hazard_mult, hazard_normalize=_hazard_normalize)
 
     # Structural channels on (incl. chi_ltc public-care aversion). The two
     # behavioral channels (lambda_w SDU, psi_purchase PED) stay at their off

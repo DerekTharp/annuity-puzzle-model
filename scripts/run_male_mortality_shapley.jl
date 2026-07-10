@@ -1,17 +1,13 @@
-# Nine-channel exact Shapley under the sex-blended life table, to show the
-# channel ranking is not an artifact of pricing and survival off a male
-# mortality table when the model-eligible sample is ~69% female.
+# Nine-channel exact Shapley under the PRIOR mortality convention: the male
+# SSA 2003 table from Lockwood's replication files, with unnormalized health
+# hazards, for both agent survival and annuity pricing (the same-table
+# convention). The production headline instead uses the sex-blended,
+# aggregate-anchored table; this game isolates the entire mortality
+# treatment as a robustness comparison. Everything else matches the
+# headline nine-channel game at the production grid.
 #
-# The blended table (data/processed/blended_lifetable.csv, built by
-# calibration/build_blended_lifetable.jl) is the survivorship mixture of the
-# SSA 2003 male and female period tables at the sample's female share. It
-# replaces the Lockwood/SSA-male table for BOTH agent survival and annuity
-# pricing, preserving the headline's same-table convention (no artificial
-# wedge between beliefs and prices). Everything else matches the headline
-# nine-channel game at the production grid.
-#
-# Output: tables/csv/shapley_blended_mortality.csv,
-#         tables/tex/shapley_blended_mortality.tex
+# Output: tables/csv/shapley_male_mortality.csv,
+#         tables/tex/shapley_male_mortality.tex
 # Usage:  julia --project=. -p 90 scripts/run_blended_mortality_shapley.jl
 
 using Printf, DelimitedFiles, Distributed
@@ -72,7 +68,8 @@ results = parallel_solve([(m=m,) for m in 0:511]) do spec
     has_loads = cfg.mwr < 1.0; has_infl = cfg.inflation_rate > 0
     pr = has_loads && has_infl ? cfg.mwr * _fairn : has_loads ? cfg.mwr * _fair : has_infl ? _fairn : _fair
     common = (gamma=_gamma, beta=_beta, r=_r, stochastic_health=true, n_health_states=3,
-              n_quad=_nq, c_floor=_cf, hazard_mult=_hm)
+              n_quad=_nq, c_floor=_cf, hazard_mult=_hm,
+              hazard_normalize=false)  # prior convention by design
     grids = build_grids(ModelParams(; common..., mwr=1.0, _gkw...), max(_fair, _fairn))
     p = ModelParams(; common..., theta=cfg.theta, kappa=cfg.kappa, mwr=cfg.mwr,
         fixed_cost=cfg.fixed_cost, min_purchase=cfg.min_purchase, inflation_rate=cfg.inflation_rate,

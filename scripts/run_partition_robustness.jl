@@ -72,7 +72,7 @@ fair_pr_nom = INFLATION > 0 ?
 
 # --- Config values captured for worker closures ---
 _gamma=GAMMA; _beta=BETA; _r=R_RATE; _n_quad=N_QUAD; _c_floor=C_FLOOR
-_hazard_mult=Float64.(HAZARD_MULT), hazard_normalize=HAZARD_NORMALIZE; _theta=THETA_DFJ; _kappa=KAPPA_DFJ
+_hazard_mult=Float64.(HAZARD_MULT); _hazard_normalize=HAZARD_NORMALIZE; _theta=THETA_DFJ; _kappa=KAPPA_DFJ
 _mwr_loaded=MWR_LOADED; _fixed_cost=FIXED_COST; _min_purchase=MIN_PURCHASE
 _inflation=INFLATION; _surv_pess=SURVIVAL_PESSIMISM
 _consumption_decline=CONSUMPTION_DECLINE; _health_utility=Float64.(HEALTH_UTILITY)
@@ -150,7 +150,7 @@ results = parallel_solve(specs) do spec
            age_start=_age_start, age_end=_age_end, annuity_grid_power=_agp)
     common = (gamma=_gamma, beta=_beta, r=_r, stochastic_health=true,
               n_health_states=3, n_quad=_n_quad, c_floor=_c_floor,
-              hazard_mult=_hazard_mult)
+              hazard_mult=_hazard_mult, hazard_normalize=_hazard_normalize)
 
     grids = build_grids(ModelParams(; common..., mwr=1.0, gkw...),
                         max(_fair_pr, _fair_pr_nom))

@@ -218,8 +218,9 @@ macros = load_macros()
             @test macros["splitBequests"]    == fmt_num(sv["Bequests"];     digits=1)
             @test macros["splitFullOwn"]     == fmt_pct(Float64(sraw[1, 4]); digits=1)
             # Full coalition must reproduce the nine-channel headline level
-            @test occursin(macros["splitFullOwn"], macros["ownNineChannelLTC"]) ||
-                  macros["splitFullOwn"] == macros["ownNineChannelLTC"]
+            # exactly at common rounding (strict equality; substring matches
+            # can accept coincidences like 7.9% inside 17.9%).
+            @test macros["splitFullOwn"] == macros["ownNineChannelLTC"]
             # The wedge must remain the largest suppressor among positives
             pos = [v for (k, v) in sv if v > 0]
             @test sv["MWR wedge"] == maximum(pos)

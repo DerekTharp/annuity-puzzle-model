@@ -77,6 +77,14 @@ if [ "${ANNUITY_ALLOW_DIRTY:-0}" != "1" ]; then
     fi
 fi
 
+# Local preflight: lower every pipeline driver before paying for a box.
+echo "Running local preflight gate..."
+julia --project=. scripts/preflight.jl || { echo "ERROR: preflight failed" >&2; exit 1; }
+
+# Never resync a running or relaunched box by hand: the provenance manifest
+# is regenerated only here, so out-of-band rsyncs make it stale. Relaunch
+# through this script instead.
+
 # Write provenance manifest into the project root so the rsynced tree
 # carries the launch metadata. The remote pipeline picks this up alongside
 # results-latest.tar.gz on completion.
