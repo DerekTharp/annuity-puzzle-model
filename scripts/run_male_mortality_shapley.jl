@@ -8,7 +8,7 @@
 #
 # Output: tables/csv/shapley_male_mortality.csv,
 #         tables/tex/shapley_male_mortality.tex
-# Usage:  julia --project=. -p 90 scripts/run_blended_mortality_shapley.jl
+# Usage:  julia --project=. -p 90 scripts/run_male_mortality_shapley.jl
 
 using Printf, DelimitedFiles, Distributed
 

@@ -141,7 +141,8 @@ results = parallel_solve(tasks) do task
     ss_val = s === :base ? _ss_base[b] : s === :cut ? _ss_cut[b] : _ss_placebo[b]
     theta_k = _theta_cells[k]
     p = ModelParams(; gamma=_p.gamma, beta=_p.beta, r=_p.r, stochastic_health=true,
-        n_health_states=3, n_quad=_p.n_quad, c_floor=_p.c_floor, hazard_mult=_p.hazard_mult,
+        n_health_states=3, n_quad=_p.n_quad, c_floor=_p.c_floor,
+        hazard_mult=_p.hazard_mult, hazard_normalize=_p.hazard_normalize,
         theta=theta_k, kappa=_p.kappa, mwr=_p.mwr, fixed_cost=_p.fixed_cost,
         min_purchase=_p.min_purchase, inflation_rate=_p.inflation, medical_enabled=true,
         health_mortality_corr=true, survival_pessimism=_p.pess, consumption_decline=_p.cd,

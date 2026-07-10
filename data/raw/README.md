@@ -27,7 +27,9 @@ licensed; none are checked into the public repository.
 
 ## Reproducibility notes
 
-- Both raw datasets require institutional / DUA access. Aggregate processed
+- Both raw datasets (the RAND HRS Longitudinal File and the HRS public
+  fat files) are available at no cost to registered HRS users; neither
+  requires a restricted-data use agreement. Aggregate processed
   CSVs in `data/processed/` are checked into the repository; the two
   person-level extracts (`lockwood_hrs_sample.csv`,
   `hrs_validation_sample.csv`) are NOT shipped under HRS conditions of use,

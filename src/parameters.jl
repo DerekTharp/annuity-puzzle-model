@@ -54,10 +54,10 @@ using TOML
     # initial_health_shares via the health transition matrices). Pessimism
     # applies after normalization. Default false: legacy behavior.
     hazard_normalize::Bool = false
-    # Health distribution at model entry for the normalization weights.
-    # Model-eligible HRS sample (single retirees 65-69, wealth >= 5k,
-    # waves 5-9, n = 2,279): Good/Fair/Poor.
-    initial_health_shares::Vector{Float64} = [0.4199, 0.3339, 0.2462]
+    # Health distribution at model entry for the normalization weights,
+    # derived from exact model-eligible HRS counts (single retirees 65-69,
+    # wealth >= $5k, waves 5-9): 957 Good, 761 Fair, 561 Poor of 2,279.
+    initial_health_shares::Vector{Float64} = [957, 761, 561] ./ 2279
     deferral_start_period::Int = 1 # period when annuity payments begin (1=SPIA)
     dia_mwr::Float64 = 0.50       # DIA money's worth ratio (Wettstein et al. 2021)
 

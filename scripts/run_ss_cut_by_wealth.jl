@@ -85,7 +85,7 @@ _theta = THETA_DFJ; _kappa = KAPPA_DFJ; _mwr = MWR_LOADED; _fc = FIXED_COST
 _minp = MIN_PURCHASE; _infl = INFLATION; _pess = SURVIVAL_PESSIMISM
 _cd = CONSUMPTION_DECLINE; _hu = Float64.(HEALTH_UTILITY); _chi = CHI_LTC
 _gamma = GAMMA; _beta = BETA; _r = R_RATE; _nquad = N_QUAD; _cfloor = C_FLOOR
-_hazard = Float64.(HAZARD_MULT)
+_hazard = Float64.(HAZARD_MULT); _hazard_normalize = HAZARD_NORMALIZE
 _nw = NW; _na = NA; _nalpha = NALPHA; _wmax = W_MAX
 _astart = AGE_START; _aend = AGE_END; _apow = A_GRID_POW
 _ss_obs = Float64.(SS_OBS); _db_obs = Float64.(DB_OBS); _breaks = BREAKS
@@ -110,7 +110,8 @@ results = parallel_solve(specs) do spec
     gkw = (n_wealth=_nw, n_annuity=_na, n_alpha=_nalpha, W_max=_wmax,
            age_start=_astart, age_end=_aend, annuity_grid_power=_apow)
     ckw = (gamma=_gamma, beta=_beta, r=_r, stochastic_health=true,
-           n_health_states=3, n_quad=_nquad, c_floor=_cfloor, hazard_mult=_hazard)
+           n_health_states=3, n_quad=_nquad, c_floor=_cfloor,
+           hazard_mult=_hazard, hazard_normalize=_hazard_normalize)
     p_model = ModelParams(; ckw...,
         theta=_theta, kappa=_kappa, mwr=_mwr, fixed_cost=_fc, min_purchase=_minp,
         inflation_rate=_infl, medical_enabled=true, health_mortality_corr=true,

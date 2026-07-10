@@ -203,6 +203,26 @@ macros = load_macros()
     # their CI variants) are emitted from the HRS sample. The legacy
     # `pctHRSObserved` summary macro is no longer emitted because the
     # manuscript cites the pooled and lifetime measures separately.
+    # Cross-script consistency: the sequential decomposition's final
+    # nine-channel endpoint and subset coalition 511 are the same object
+    # computed by two independent scripts; they must agree at rounding.
+    @testset "sequential endpoint == subset-511 coalition" begin
+        dpath = joinpath(CSV_DIR, "decomposition.csv")
+        spath = joinpath(CSV_DIR, "subset_enumeration.csv")
+        if !isfile(dpath) || !isfile(spath)
+            @test_skip "decomposition/subset CSVs absent"
+        else
+            dlines = readlines(dpath)
+            seq_final = parse(Float64, split(dlines[end], ',')[2])
+            sub511 = nothing
+            for line in readlines(spath)
+                startswith(line, "511,") && (sub511 = parse(Float64, split(line, ',')[3]))
+            end
+            @test sub511 !== nothing
+            @test round(seq_final, digits=1) == round(sub511, digits=1)
+        end
+    end
+
     # Loads-split and blended-mortality macros must match their CSVs.
     @testset "loads-split + blended-mortality locks" begin
         sp = joinpath(CSV_DIR, "shapley_loads_split.csv")

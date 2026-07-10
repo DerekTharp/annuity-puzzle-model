@@ -82,6 +82,7 @@ base_kw = Dict{Symbol,Any}(
     :age_start => AGE_START, :age_end => AGE_END,
     :annuity_grid_power => A_GRID_POW,
     :hazard_mult => HAZARD_MULT,
+    :hazard_normalize => HAZARD_NORMALIZE,
     :survival_pessimism => SURVIVAL_PESSIMISM,
     :min_wealth => MIN_WEALTH,
     :ss_levels => SS_LEVELS,

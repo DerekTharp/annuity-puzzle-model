@@ -20,6 +20,8 @@ include(joinpath(@__DIR__, "..", "scripts", "config.jl"))
     @test HEALTH_UTILITY == [1.0, 0.92, 0.82]
     @test MWR_LOADED == 0.87
     @test GAMMA == 2.5
+    @test HAZARD_NORMALIZE == true
+    @test HAZARD_MULT == [0.50, 1.0, 3.75]
     @test BETA == 0.97
     @test R_RATE == 0.02
     @test SURVIVAL_PESSIMISM == 0.96

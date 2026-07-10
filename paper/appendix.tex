@@ -94,13 +94,13 @@ The lognormal specification produces a right-skewed distribution consistent with
 \subsection{Survival calibration}
 \label{app:survival}
 
-Baseline survival probabilities use the SSA administrative period life table employed by \citet{lockwood2012}. The cumulative death probabilities at each age from 65 to 110 are taken directly from Lockwood's replication code (BAP\_wtp.m); the table is annual, so no interpolation across ages is required.
+Baseline survival probabilities $s_{\text{base}}(t)$ use a sex-blended SSA 2003 period life table: the survivorship mixture of the male and female SSA 2003 tables at the model-eligible sample's female share (\pctFemaleShare), $S_{\text{base}}(a) = w_f S_f(a) + (1-w_f) S_m(a)$, with one-year conditional survivals derived from the mixed survivorship. The prior convention---the male table from the \citet{lockwood2012} replication code (BAP\_wtp.m)---is retained as the mortality-convention robustness of Appendix~\ref{app:male_mortality}.
 
-Health-adjusted survival follows
+Health-conditional survival is anchored to this aggregate table. The raw proportional-hazard form is $s_{\text{base}}(t)^{\mu(H)}$, but the multipliers are relative hazards rather than table-anchored levels, so their population-weighted average departs from $s_{\text{base}}(t)$. We rescale every multiplier by a common age-specific factor $a_t$ chosen so the health mixture reproduces the table exactly:
 \[
-s(t, H) = s_{\text{base}}(t)^{\mu(H)},
+s(t, H) = s_{\text{base}}(t)^{a_t\,\mu(H)}, \qquad a_t \text{ solves } \sum_H \pi_H(t)\, s_{\text{base}}(t)^{a_t\,\mu(H)} = s_{\text{base}}(t),
 \]
-where $\mu(H)$ is the health-specific hazard multiplier. The baseline uses constant multipliers $[\pHazardGood, \pHazardFair, \pHazardPoor]$ for Good, Fair, and Poor health. These are informed by age-band estimates from the RAND HRS longitudinal file:
+where $\pi_H(t)$ is the health distribution among survivors at age $t$, initialized from the sample's age-65 shares (957 Good, 761 Fair, 561 Poor of 2{,}279) and evolved forward under the health transition matrices weighted by the normalized survivals. The factor $a_t$ is unique (the left side is strictly decreasing in $a_t$) and solved by bisection. Hazard ratios across health states are preserved; only the level is anchored. The multipliers $[\pHazardGood, \pHazardFair, \pHazardPoor]$ for Good, Fair, and Poor health are informed by age-band estimates from the RAND HRS longitudinal file:
 
 \begin{center}
 \begin{tabular}{lccc}
