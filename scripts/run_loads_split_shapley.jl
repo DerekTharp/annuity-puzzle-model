@@ -158,6 +158,7 @@ else
     println("  construction; Shapley values are not additive across game partitions).")
 
     csv = joinpath(@__DIR__, "..", "tables", "csv", "shapley_loads_split.csv")
+mkpath(dirname(csv))
     open(csv, "w") do io
         println(io, "channel,shapley_value_pp,abs_rank,full_own_pct,empty_own_pct")
         rk = zeros(Int, N_CH); for (k, i) in enumerate(order); rk[i] = k; end
@@ -170,6 +171,7 @@ else
 
     vord = sortperm(shap; rev=true)
     texp = joinpath(@__DIR__, "..", "tables", "tex", "shapley_loads_split.tex")
+mkpath(dirname(texp))
     open(texp, "w") do io
         println(io, raw"\begin{table}[htbp]")
         println(io, raw"\centering")

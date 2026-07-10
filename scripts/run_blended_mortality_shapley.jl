@@ -112,6 +112,7 @@ for i in order
 end
 
 csv = joinpath(@__DIR__, "..", "tables", "csv", "shapley_blended_mortality.csv")
+mkpath(dirname(csv))
 open(csv, "w") do io
     println(io, "channel,shapley_value_pp,abs_rank,full_own_pct,empty_own_pct,female_share")
     rk = zeros(Int, N_CH); for (k, i) in enumerate(order); rk[i] = k; end
@@ -124,6 +125,7 @@ println("  CSV: $csv"); flush(stdout)
 
 vord = sortperm(shap; rev=true)
 texp = joinpath(@__DIR__, "..", "tables", "tex", "shapley_blended_mortality.tex")
+mkpath(dirname(texp))
 open(texp, "w") do io
     println(io, raw"\begin{table}[htbp]")
     println(io, raw"\centering")
