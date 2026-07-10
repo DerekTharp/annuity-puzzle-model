@@ -265,13 +265,11 @@ macros = load_macros()
         if !isfile(life_csv) || !isfile(band_csv)
             @test_skip "HRS ownership CSVs absent"
         else
-            n_persons = 0
             n_life_persons = 0
             for (i, line) in enumerate(eachline(band_csv))
                 i == 1 && continue
                 isempty(strip(line)) && continue
                 f = split(line, ',')
-                n_persons += parse(Int, f[9])
                 n_life_persons += parse(Int, f[10])
             end
             pooled = ""
@@ -282,6 +280,8 @@ macros = load_macros()
             n_elig = parse(Int, toks[1])
             n_iann = parse(Int, toks[2])
             n_lifetime = parse(Int, toks[4])
+            n_persons = parse(Int, toks[8])
+            kish_neff = parse(Float64, toks[9])
 
             function wilson(phat, n; z=1.96)
                 denom = 1 + z^2 / n
@@ -289,8 +289,8 @@ macros = load_macros()
                 hw = z * sqrt(phat * (1 - phat) / n + z^2 / (4 * n^2)) / denom
                 return (center - hw, center + hw)
             end
-            lo_l, hi_l = wilson(n_lifetime / n_elig, n_persons)
-            lo_i, hi_i = wilson(n_iann / n_elig, n_persons)
+            lo_l, hi_l = wilson(n_lifetime / n_elig, kish_neff)
+            lo_i, hi_i = wilson(n_iann / n_elig, kish_neff)
             @test macros["pctHRSLifetime"] == fmt_pct(100 * n_lifetime / n_elig; digits=2)
             @test macros["pctHRSIannPooled"] == fmt_pct(100 * n_iann / n_elig; digits=2)
             @test macros["pctHRSLifetimeCILow"]  == fmt_pct(100 * lo_l; digits=2)

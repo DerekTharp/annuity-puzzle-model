@@ -58,6 +58,7 @@ end
 results_per_wave = []
 all_persons_with_lifetime = Set{Float64}()
 all_eligible_persons = Set{Float64}()
+person_wave_counts = Dict{Float64, Int}()   # m_i, for the Kish effective n
 
 for (w, ff, life_vars) in WAVES
     println("--- Wave $w ($ff) ---")
@@ -132,6 +133,7 @@ for (w, ff, life_vars) in WAVES
 
         n_eligible += 1
         push!(all_eligible_persons, h)
+        person_wave_counts[h] = get(person_wave_counts, h, 0) + 1
 
         # iann-based ownership (the literature convention)
         if iann_col[ri] !== missing && numval_float(iann_col[ri]) > 0
@@ -197,6 +199,13 @@ println("  PANEL: PERSONS WITH \"AT LEAST ONE LIFETIME ANNUITY\" EVER")
 println("=" ^ 70)
 n_persons_eligible = length(all_eligible_persons)
 n_persons_lifetime = length(all_persons_with_lifetime)
+# Kish effective sample size under within-person correlation one:
+# n_eff = (sum m_i)^2 / sum m_i^2, with m_i the person's eligible wave count.
+sum_m  = sum(values(person_wave_counts))
+sum_m2 = sum(m^2 for m in values(person_wave_counts))
+kish_neff = sum_m^2 / sum_m2
+@printf("  Kish effective n (rho = 1):     %.1f  (persons %d, person-waves %d)\n",
+        kish_neff, n_persons_eligible, sum_m)
 @printf("  Unique persons eligible:        %d\n", n_persons_eligible)
 @printf("  Unique persons w/ lifetime ann: %d  (%.2f%%)\n",
         n_persons_lifetime, 100*n_persons_lifetime/max(n_persons_eligible,1))
@@ -205,18 +214,20 @@ println()
 # Save CSV
 out_path = joinpath(PROJ, "data", "processed", "hrs_lifetime_ownership.csv")
 open(out_path, "w") do f
-    println(f, "wave,n_eligible,n_iann_pos,n_any_contract,n_lifetime,iann_pct,any_pct,lifetime_pct")
+    println(f, "wave,n_eligible,n_iann_pos,n_any_contract,n_lifetime,iann_pct,any_pct,lifetime_pct,n_persons,kish_neff")
     for r in results_per_wave
-        @printf(f, "%d,%d,%d,%d,%d,%.4f,%.4f,%.4f\n",
+        @printf(f, "%d,%d,%d,%d,%d,%.4f,%.4f,%.4f,%d,%.1f\n",
                 r.wave, r.n_eligible, r.n_iann_pos, r.n_any_contract, r.n_lifetime,
                 100*r.n_iann_pos/max(r.n_eligible,1),
                 100*r.n_any_contract/max(r.n_eligible,1),
-                100*r.n_lifetime/max(r.n_eligible,1))
+                100*r.n_lifetime/max(r.n_eligible,1),
+                r.n_eligible, Float64(r.n_eligible))
     end
-    @printf(f, "POOLED,%d,%d,%d,%d,%.4f,%.4f,%.4f\n",
+    @printf(f, "POOLED,%d,%d,%d,%d,%.4f,%.4f,%.4f,%d,%.1f\n",
             total_elig, total_iann, total_anyc, total_life,
             100*total_iann/max(total_elig,1),
             100*total_anyc/max(total_elig,1),
-            100*total_life/max(total_elig,1))
+            100*total_life/max(total_elig,1),
+            n_persons_eligible, kish_neff)
 end
 println("  Saved: $out_path")
