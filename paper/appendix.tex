@@ -376,6 +376,61 @@ For reference, the exact lognormal moment $E[\exp(\sigma \varepsilon)] = \exp(\s
 
 
 %% ================================================================
+%%  PAIRWISE CHANNEL INTERACTIONS
+%% ================================================================
+\section{Pairwise Channel Interactions}
+\label{app:pairwise}
+
+Table~\ref{tab:pairwise} reports the pairwise interaction strength for the eight rational and preference channels. For each pair (A, B), the interaction is defined as the difference between the ownership drop when both are active simultaneously and the sum of their individual drops. A negative interaction indicates super-additivity: the channels reinforce each other. The order-independent contributions of the nine structural channels are reported in the Shapley decomposition (Section~\ref{M-sec:shapley}); the exploratory eleven-channel extension is in Appendix~\ref{app:behavioral_sensitivity}.
+
+\input{../tables/tex/pairwise_interactions.tex}
+
+The strongest interaction is between Social Security and pricing loads ($\pairwiseSSLoads$ pp). SS raises demand by providing an income floor, and loads destroy demand by eliminating the surplus; when combined, the effect of loads is amplified by the elevated demand that SS creates. The combined Med+R-S health-mortality channel and pricing loads interact at $\pairwiseMedRSLoads$ pp, reflecting the economic complementarity between valuation risk and pricing frictions. Bequest interactions are near zero across the board, consistent with the modest isolated effect of the DFJ luxury-good specification.
+
+
+%% ================================================================
+%%  SUFFICIENT-STATISTIC FACTORIZATION (HEURISTIC)
+%% ================================================================
+\section{Sufficient-Statistic Factorization (Heuristic)}
+\label{app:phi_factorization}
+
+Each demand-suppressing channel introduces a factor $\Phi_i < 1$ that reduces the annuity value ratio $R$ of Section~\ref{M-sec:sufficient_stats} below the Yaari benchmark. As an approximate sufficient-statistic representation (exact only under restrictions stronger than the finite-horizon stochastic problem solved here), the annuity value ratio can be written as a product of channel-specific factors,
+\begin{equation}
+\label{eq:multiplicative_R}
+R \approx \Phi_{\text{MWR}} \times \Phi_{\text{bequest}} \times \Phi_{\text{health}} \times \Phi_{\text{inflation}} \times \Phi_{\text{SS}} \times \Phi_{\text{pessimism}} \times \Phi_{\text{age}} \times \Phi_{\text{state}},
+\end{equation}
+where:
+\begin{itemize}
+\item $\Phi_{\text{MWR}} = \text{MWR}$. The pricing load directly scales the numerator. At MWR $= \pMwrBaseline$, each dollar of premium buys \pMwrBaseline{} of expected value, a load of \pMwrLoad{} relative to the actuarially fair benchmark.
+
+\item $\Phi_{\text{bequest}} = \big[1 + (1 - s) \, v'(b) / u'(c)\big]^{-1}$, where $s$ is the survival probability and $v'(b)/u'(c)$ is the ratio of marginal bequest to marginal consumption utility. Under the DFJ luxury-good specification ($\kappa = \pKappaDFJ \gg$ median wealth $\approx \$40{,}000$), $v'(b) \approx \theta(\kappa)^{-\gamma}$ is nearly constant and small, so $\Phi_{\text{bequest}} \approx 1.00$.
+
+\item $\Phi_{\text{health}}$ reflects the covariance between survival and the marginal utility of liquid wealth. When health deterioration simultaneously reduces survival and raises medical costs, the ratio $V_A / V_W$ falls. This is the Reichling--Smetters mechanism.
+
+\item $\Phi_{\text{inflation}}$ equals the ratio of the present value of the nominal payment stream (in real terms) to the real payment stream, weighted by marginal utilities. At 2\% inflation, payments in year 25 retain only 61\% of their initial purchasing power.
+
+\item $\Phi_{\text{SS}}$ captures the diminishing marginal insurance value of additional annuitization when Social Security already provides a longevity-insured income floor.
+
+\item $\Phi_{\text{pessimism}} < 1$ because the agent uses $\psi \cdot s(t,H)$ in the Bellman equation. The subjective present value of future annuity income is lower than its objective present value.
+
+\item $\Phi_{\text{age}} < 1$ because declining consumption needs $w(t)$ reduce the marginal utility of late-life income, which is precisely the income the annuity provides.
+
+\item $\Phi_{\text{state}} \leq 1$ because poor-health states generate lower marginal utility of consumption, and the annuity pays into those states.
+\end{itemize}
+This factorization is a heuristic guide to how the channels interact, not a proven identity; the exact, model-consistent attribution is the numerical Shapley decomposition of Section~\ref{M-sec:shapley}.
+
+The decomposition in equation~(\ref{eq:multiplicative_R}) characterizes the nine-channel structural baseline. SDU enters the value function as a separate multiplicative factor on portfolio-financed consumption (equation~\ref{M-eq:sdu}), and the at-purchase penalty (equation~\ref{M-eq:ped}) enters as a one-time additive shifter on the annuitization decision; together they contribute to the eleven-channel Shapley enumeration in Section~\ref{M-sec:shapley}.
+
+\paragraph{Super-additivity of participation effects (heuristic).} In the same approximate representation, the fraction of agents annuitizing is $\Pr(\alpha^* > 0) = \Pr(R_i > 1)$, where $R_i$ varies across agents due to heterogeneity in wealth, health, and pre-existing annuitized income. In log space,
+\begin{equation}
+\ln R_i \approx \sum_j \ln \Phi_j + \varepsilon_i,
+\end{equation}
+where $\varepsilon_i$ captures agent-level heterogeneity. Each additional channel shifts the distribution of $\ln R_i$ leftward by $|\ln \Phi_j|$. Agents near the participation threshold ($R_i \approx 1$, i.e., $\ln R_i \approx 0$) are disproportionately eliminated, so the ownership drop from adding a channel is larger when other channels have already thinned the right tail of the $R_i$ distribution. This super-additive structure motivates the exact Shapley decomposition in Section~\ref{M-sec:shapley}, which attributes the total demand reduction to individual channels without dependence on the order in which channels are added.
+
+The dominant term is $\Phi_{\text{MWR}} = \pMwrBaseline$, which alone reduces the annuity value ratio by \pMwrLoad. The near-unity $\Phi_{\text{bequest}}$ under the DFJ specification explains why bequests contribute only \shapNineBequests{} pp in the Shapley decomposition: the luxury-good curvature parameter makes bequest utility irrelevant for median-wealth retirees.
+
+
+%% ================================================================
 %%  H. PERIOD-CERTAIN ANNUITY
 %% ================================================================
 \section{Period-Certain Annuity}
@@ -395,6 +450,13 @@ Only the pricing side of this product is implemented in the replication package 
 %% ================================================================
 %%  I. IMPLIED RISK AVERSION
 %% ================================================================
+\section{Joint Parameter Uncertainty: Draw Design}
+\label{app:mc_design}
+
+The joint stress test in Section~\ref{M-sec:joint_uncertainty} draws \nMCDraws{} parameter vectors from independent uniform distributions: the Poor-health hazard multiplier $\mu_P \sim U(2.5, 5.0)$, inflation $\pi \sim U(0.015, 0.025)$, MWR $\sim U(0.83, 0.91)$, survival beliefs $\psi \sim U(0.92, 1.00)$ (deliberately wider than the reported $[\pPessimism, 1.0]$ calibration range, extending the stress test mildly beyond the strong-pessimism end), and the consumption-needs slope $\delta_c \sim U(0.01, 0.03)$. Risk aversion is held fixed at the baseline. Each range is symmetric around its production value (e.g., $\psi$ around $\pPessimism$; $\mu_P$ around $\pHazardPoor$), so the central calibration is the central tendency of the draw. For each draw the model is solved on a convergence-verified $60 \times 20 \times 51$ grid, coarser than production for tractability across \nMCDraws{} draws.
+
+The implied-$\gamma$ exercise of Section~\ref{app:monte_carlo} uses different ranges by design: it draws the Poor-health multiplier over the narrower empirical anchor range $U(2.0, 3.5)$ (HRS self-reported to R-S functional) and MWR over the wider $U(0.75, 0.89)$, whose lower reach spans the classic population-table estimates.
+
 \section{Implied Risk Aversion from Parameter Uncertainty}
 \label{app:monte_carlo}
 
