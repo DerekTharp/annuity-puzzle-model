@@ -287,8 +287,9 @@ uses objective survival from base_surv directly).
 
 Calibration: O'Dea and Sturrock (2023) find subjective P(75|65) is ~15pp below
 actuarial (~71% vs 86%); the per-year factor matching that 10-year gap is
-psi = (0.71/0.86)^(1/10) = 0.981. The production calibration uses a somewhat
-stronger psi = 0.96 (Heimer-Myrseth-Schoenle 2019; Payne et al. 2013).
+psi = (0.71/0.86)^(1/10) = 0.981, the production baseline. The reported range
+runs to the strong-pessimism endpoint psi = 0.96 (Heimer-Myrseth-Schoenle 2019;
+Payne et al. 2013).
 """
 function build_health_survival(base_surv::Vector{Float64}, p::ModelParams;
                                 psi_override::Union{Nothing,Float64}=nothing)

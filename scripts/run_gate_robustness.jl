@@ -223,7 +223,7 @@ open(tex_path, "w") do io
     println(io, raw"\begin{table}[htbp]")
     println(io, raw"\centering")
     println(io, raw"\small")
-    println(io, raw"\caption{Social Security Cut Response: Invariance to the Extensive-Margin Treatment}")
+    println(io, raw"\caption{Social Security Cut Response: Robustness to the Extensive-Margin Treatment}")
     println(io, raw"\label{tab:gate_robustness}")
     println(io, raw"\begin{threeparttable}")
     println(io, raw"\begin{tabular}{lcccccc}")

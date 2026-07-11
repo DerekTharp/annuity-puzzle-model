@@ -20,8 +20,8 @@ three layers:
   wealth into "spendable income"; a narrow-framing purchase-event disutility
   (Hu-Scott 2007; Brown 2008; Chalmers-Reuter 2012) suppresses it through loss
   aversion over the unrecouped premium until breakeven. Behavioral parameters
-  (lambda_W = 0.625, psi = 0.05) are treated as exploratory literature-magnitude
-  best guesses, not moment-matched estimates.
+  (lambda_W = 0.625, psi_purchase = 0.05) are treated as exploratory
+  literature-magnitude best guesses, not moment-matched estimates.
 
 ## Headline result
 
@@ -30,21 +30,21 @@ point prediction of the ownership level. An exact Shapley decomposition over all
 512 subsets of the nine structural channels (seven rational + two preference,
 with public-care aversion entering as a structural-LTC channel) attributes the
 demand gap without dependence on the order in which channels are introduced.
-Pricing loads are the dominant suppressor (~81% of the structural drop), with
-survival pessimism and the combined medical-expenditure/health-mortality channel
-as the co-leading second tier, and bequest motives -- the most-cited explanation
-in the literature -- mid-pack.
+Pricing loads are the dominant suppressor, survival pessimism is the sole
+second tier, bequest motives -- the most-cited explanation in the literature --
+are mid-pack, and the anchored Med+R-S (combined medical-expenditure and
+health-mortality) attribution is near zero.
 
-The ranking is stable where the predicted **level** is not: predicted ownership
-is knife-edged in risk aversion (it spans 0% to roughly 22% across
-gamma in [2.0, 3.0]) because the extensive margin sits on a fixed-cost
-threshold interacting with the pricing load, while the channel ranking holds
-across that risk-aversion range, across wealth bands, and at alternative
-baseline money's worth ratios (boundary cases disclosed in the text). The
-nine-channel structural baseline predicts roughly 8% ownership under the
-baseline calibration (gamma = 2.5, MWR = 0.87, Wettstein-2021 modern pricing);
-predicted ownership rises with wealth and concentrates in the top band, with
-near-zero predicted demand below it, because the pricing load makes immediate
+The ranking is stable where the predicted **level** is not: the baseline
+predicts ownership well above the observed 3.64%/6.06% HRS measures, and the
+level is quoted as a fragile range rather than a point (see the manuscript;
+current values live in `paper/numbers.tex`). Predicted ownership is knife-edged
+in risk aversion because the extensive margin sits on a fixed-cost threshold
+interacting with the pricing load, while the channel ranking holds across the
+gamma in [2.0, 3.0] range, across wealth bands, and at alternative baseline
+money's worth ratios (boundary cases disclosed in the text). Predicted
+ownership rises with wealth and concentrates in the top band, with near-zero
+predicted demand below it, because the pricing load makes immediate
 annuitization value-destroying for all but the wealthiest. The observed HRS
 gradient also rises with wealth but is interior in the middle of the
 distribution, where the single-product model predicts none. An exploratory
@@ -56,9 +56,9 @@ nine-channel game.
 Two HRS measures of US lifetime annuity ownership (computed on the same
 wealth-restricted analysis sample as the model predictions) are reported in
 parallel as out-of-sample checks, neither entering the calibration: 3.64%
-(95% CI [2.95%, 4.49%], the cleaner fat-file q286 lifetime annuity contract
-indicator) and 6.06% (95% CI [5.15%, 7.11%], the conventional any-annuity
-income proxy used in prior literature).
+(the cleaner fat-file q286 lifetime annuity contract indicator) and 6.06%
+(the conventional any-annuity income proxy used in prior literature); the
+Wilson confidence intervals are in `paper/numbers.tex`.
 
 **All headline numbers in the manuscript are auto-generated from analysis CSV
 outputs by `scripts/export_manuscript_numbers.jl` and locked by
@@ -118,7 +118,8 @@ syncs the project, runs the full pipeline, and auto-terminates on completion).
 Baseline parameters are defined in `scripts/config.jl`. Key values: gamma=2.5,
 beta=0.97, **MWR=0.87** (a deliberately conservative modern-market choice above the Mitchell-et-al./Wettstein anchors), inflation=2%, DFJ
 bequests (theta=56.96, kappa=$272,628), hazard multipliers [0.50, 1.0, 3.75],
-survival pessimism psi=0.96 (Heimer-Myrseth-Schoenle 2019; Payne et al. 2013),
+survival pessimism psi=0.981 (the O'Dea-Sturrock 2023 ages-65-69 ten-year
+survival translation; psi=0.96 is the strong-pessimism robustness endpoint),
 age-varying needs delta_c=0.02, health-utility weights [1.0, 0.92, 0.82]
 (FLN 2013 central midpoint), **lambda_W=0.625** (source-dependent utility,
 Blanchett-Finke 2024/2025 spending differential point estimate; exploratory),
@@ -234,7 +235,7 @@ manuscript macro is defined and matches its source CSV.
 | Band value-destruction diagnostic | `scripts/run_band3_diagnostic.jl` + `scripts/emit_band_value_destruction_table.jl` |
 | Model-vs-data wealth-band table | `scripts/emit_model_vs_data_band_table.jl` |
 | Channel-partition robustness | `scripts/run_partition_robustness.jl` |
-| psi=0.981 focal-value ranking | `scripts/run_psi981_shapley.jl` |
+| psi=0.96 endpoint ranking | `scripts/run_psi_endpoint_shapley.jl` (output `shapley_psi_endpoint.csv`) |
 | Grid-robustness of the ranking | `scripts/run_grid_robustness_shapley.jl` |
 | Seven-channel sub-game | `scripts/compute_subgame_shapley.jl` |
 | Alternative-baseline Shapley + by-band policy MWRs | `scripts/run_referee_proofing.jl` |
@@ -247,15 +248,15 @@ with 9-node quadrature. For fast iteration, coarsen the grid in `config.jl`
 predicted ownership *level* is not, and levels should be quoted only from a
 production run.
 
-**On the ownership level.** Predicted ownership near 6--8% is a step function of
-the threshold wealth band whose marginal household flips in or out of
-participation, so intermediate specifications can differ by a few tenths of a
-percentage point across solution paths (for example, the eight-channel
-decomposition step and the chi_LTC robustness cell bracket the same region
-without coinciding). These intermediate levels are not interchangeable and
-should not be quoted against one another. The headline nine-channel level (7.9%)
-is stable across grid and quadrature refinement; the paper's claims rest on the
-channel *ranking*, which is order-independent and stable across risk aversion.
+**On the ownership level.** The predicted level is a step function of the
+threshold wealth band whose marginal household flips in or out of
+participation, so intermediate specifications can differ across solution paths
+(for example, the eight-channel decomposition step and the chi_LTC robustness
+cell bracket the same region without coinciding). These intermediate levels are
+not interchangeable and should not be quoted against one another. The headline
+nine-channel level should be quoted only from `paper/numbers.tex`, and as a
+fragile range; the paper's claims rest on the channel *ranking*, which is
+order-independent and stable across risk aversion.
 
 ## Code Organization
 
