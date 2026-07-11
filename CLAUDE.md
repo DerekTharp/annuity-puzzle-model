@@ -6,7 +6,7 @@
 
 ## 1. PROJECT OVERVIEW
 
-**Companion survey paper:** The full JES manuscript is at `docs/dissolving_annuity_puzzle_survey.md`. Consult it for the detailed nine-assumption argument, empirical evidence, cross-cultural data, specific ownership rates and calibration targets cited in the literature, and the precise claims about what a unified model must demonstrate. That paper is the intellectual foundation; this model must deliver on its promises.
+**Companion survey paper:** The current survey is "The Annuity Puzzle Reconsidered: A Conditional Framework for Household Heterogeneity and Institutional Variation" (Tharp, under review as a Perspectives article at the *Review of Economics of the Household*), staged at `docs/annuity_puzzle_reconsidered_REH.{pdf,md}`. It was reframed from the JES-rejected "Dissolving the Annuity Puzzle: A Critical Survey" (superseded draft retained at `docs/dissolving_annuity_puzzle_survey.md`) away from a "dissolve" thesis toward a conditional reading: the accumulated channels well explain low demand for many household types but leave the welfare question contested for high-wealth, single, childless retirees in good health. Consult the REH version for the current framing, empirical evidence, and calibration targets; cite it as `tharp2026survey`. The modeling paper supplies the unified structural model whose absence the survey identifies as the gap in resolving that contested cell.
 
 ### 1.1 What This Project Is
 
@@ -26,7 +26,7 @@ This project resolves their disagreement by building the model neither wrote —
 
 ### 1.3 The Intellectual Architecture
 
-A companion survey paper (Tharp, forthcoming at Journal of Economic Surveys, "Dissolving the Annuity Puzzle: A Critical Survey") argues qualitatively that the accumulated evidence dissolves the puzzle. The present modeling paper provides the quantitative proof. The survey identifies the channels; this paper demonstrates that they compound multiplicatively within a unified framework to generate predicted demand consistent with observed US data.
+A companion survey paper (Tharp, under review at the Review of Economics of the Household, "The Annuity Puzzle Reconsidered: A Conditional Framework for Household Heterogeneity and Institutional Variation") argues that the accumulated evidence supports a conditional reading of low annuity demand: well-explained for many household types, contested for high-wealth, single, childless retirees in good health. The present modeling paper supplies the unified structural model the survey identifies as missing, and targets that contested cell through its channel ranking and heterogeneous welfare map.
 
 ### 1.4 Target Contribution
 
@@ -823,10 +823,10 @@ When reviewing model output, check that these economic intuitions hold. If they 
 
 ### 9.1 The Two-Paper Strategy
 
-| | Survey Paper (JES) | Modeling Paper (AER/JPE Target) |
+| | Survey Paper (REH, under review) | Modeling Paper (RED submission) |
 |---|---|---|
-| **Title** | "Dissolving the Annuity Puzzle: A Critical Survey" | "Dissolving the Annuity Puzzle: A Unified Lifecycle Model" (working title) |
-| **Contribution** | Qualitative argument that accumulated evidence dissolves the puzzle | Quantitative proof within a single framework |
+| **Title** | "The Annuity Puzzle Reconsidered: A Conditional Framework for Household Heterogeneity and Institutional Variation" | "Loads, Not Bequests: An Order-Independent Decomposition of the Annuity Puzzle" |
+| **Contribution** | Qualitative conditional reading: low demand well-explained for many household types, contested for high-wealth single childless healthy retirees | Order-independent channel ranking + heterogeneous welfare map within a single framework |
 | **Method** | Literature synthesis across modeling frameworks | Calibrated structural lifecycle model |
 | **Key result** | Multiple channels jointly rationalize low observed demand | Sequential decomposition showing multiplicative interaction |
 | **Novel element** | Cross-framework synthesis, evolutionary psychology, cross-cultural evidence | First model nesting all major channels simultaneously |
