@@ -118,7 +118,7 @@ open(texp, "w") do io
     println(io, raw"\end{tabular}")
     println(io, raw"\begin{tablenotes}")
     println(io, raw"\small")
-    println(io, raw"\item Exact Shapley values over all $2^{9}=512$ subsets of the nine-channel game at the focal survival-belief value $\psi = 0.981$ (the direct \citet{odeasturrock2023} 65--69 translation), computed on the coarse grid because the channel ranking is grid-robust (the level is not the object). Pricing loads remain the dominant suppressor and bequest motives mid-pack; survival pessimism's contribution is smaller than at the strong-pessimism end $\psi = 0.96$, as expected when beliefs are less pessimistic, with the combined medical-and-Reichling--Smetters channel taking the second tier. Positive values are demand-suppressing; pre-existing income is demand-raising.")
+    println(io, raw"\item Exact Shapley values over all $2^{9}=512$ subsets of the nine-channel game at the focal survival-belief value $\psi = 0.981$ (the direct \citet{odeasturrock2023} 65--69 translation), computed on the coarse grid because the channel ranking is grid-robust (the level is not the object). Pricing loads remain the dominant suppressor and bequest motives mid-pack; survival pessimism's contribution is smaller than at the strong-pessimism end $\psi = 0.96$, as expected when beliefs are less pessimistic, with survival pessimism remaining the second-largest suppressor and the combined medical-and-Reichling--Smetters channel in the tier below. Positive values are demand-suppressing; pre-existing income is demand-raising.")
     println(io, raw"\end{tablenotes}")
     println(io, raw"\end{threeparttable}")
     println(io, raw"\end{table}")
