@@ -209,7 +209,8 @@ function population_cev(bequest_spec::AbstractString)
     for r in eachrow(rows)
         if String(r[1]) == bequest_spec
             return (mean_cev=Float64(r[2]), median_cev=Float64(r[3]),
-                    frac_positive=Float64(r[4]), frac_above_1pct=Float64(r[5]))
+                    frac_positive=Float64(r[4]), frac_above_1pct=Float64(r[5]),
+                    n_total=Float64(r[6]), n_included=Float64(r[8]))
         end
     end
     error("bequest_spec $(repr(bequest_spec)) not in population_cev.csv")
@@ -845,6 +846,9 @@ function build_macros!()
     def!("popFracPosDFJ",       fmt_pct(pop_dfj.frac_positive * 100; digits=1))
     def!("popFracAboveOneNoBq", fmt_pct(pop_no.frac_above_1pct * 100; digits=1))
     def!("popFracAboveOneDFJ",  fmt_pct(pop_dfj.frac_above_1pct * 100; digits=1))
+    # Positive-CEV share diluted to the full sample (excluded households enter at zero).
+    def!("popFracPosNoBqDiluted", fmt_pct(pop_no.frac_positive * pop_no.n_included / pop_no.n_total * 100; digits=1))
+    def!("popFracPosDFJDiluted",  fmt_pct(pop_dfj.frac_positive * pop_dfj.n_included / pop_dfj.n_total * 100; digits=1))
 
     # ======================================================================
     # Section H — Policy counterfactuals (welfare_counterfactuals.csv)
@@ -998,7 +1002,8 @@ function build_macros!()
         def!("quadEleven",   fmt_pct(cq(11); digits=1))
         def!("quadThirteen", fmt_pct(cq(13); digits=1))
         def!("quadFifteen",  fmt_pct(cq(15); digits=1))
-        def!("quadBand",     fmt_num(cq(15) - cq(9); digits=1))
+        def!("quadBand",     fmt_num(maximum(cq(n) for n in (9, 11, 13, 15)) -
+                                      minimum(cq(n) for n in (9, 11, 13, 15)); digits=1))
         def!("gridConvCoarse", fmt_pct(cg("40x15"); digits=1))
         def!("quadLowDeviation",
              fmt_num(maximum(abs(cq(n) - cq(9)) for n in (3, 5, 7)); digits=1))
