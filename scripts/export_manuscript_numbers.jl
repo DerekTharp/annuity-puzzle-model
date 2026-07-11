@@ -717,7 +717,7 @@ function build_macros!()
          fmt_num(subset_ownership(B_SS) - subset_ownership(B_SS | B_BEQUESTS); digits=1))
 
     # Focal-psi Shapley: pessimism's tier margin over the next channel.
-    let path = joinpath(CSV_DIR, "shapley_psi981.csv")
+    let path = joinpath(CSV_DIR, "shapley_psi_endpoint.csv")
         if isfile(path)
             raw, _ = readdlm(path, ',', Any; header=true)
             vals = Dict(String(raw[r, 1]) => (Float64(raw[r, 2]), Int(raw[r, 3]))
@@ -727,9 +727,9 @@ function build_macros!()
             for (ch, (v, rk)) in vals
                 rk == pess_rk + 1 && (next_v = v)
             end
-            isnan(next_v) && error("shapley_psi981.csv: no channel ranked below Pessimism")
-            def!("psiFocalPessimismAbs", fmt_num(abs(pess_v); digits=1))
-            def!("psiFocalNextAbs",      fmt_num(abs(next_v); digits=1))
+            isnan(next_v) && error("shapley_psi_endpoint.csv: no channel ranked below Pessimism")
+            def!("psiEndpointPessimismAbs", fmt_num(abs(pess_v); digits=1))
+            def!("psiEndpointNextAbs",      fmt_num(abs(next_v); digits=1))
         end
     end
 
@@ -1229,7 +1229,8 @@ function build_macros!()
                         k === nothing ? NaN : ov[k])
         def!("ssCutWealthQfourBase",  fmt_pct(cell(4, 0.0);  digits=1))
         def!("ssCutWealthQfourTrust", fmt_pct(cell(4, 22.0); digits=1))
-        def!("ssCutWealthBottomResp", fmt_pct(cell(1, 22.0); digits=1))
+        # Response = change from baseline, not the post-cut level.
+        def!("ssCutWealthBottomResp", fmt_pct(cell(1, 22.0) - cell(1, 0.0); digits=1))
     end
 
     # Empirical-gradient validation: predicted-sign concordance (Class 1 test).

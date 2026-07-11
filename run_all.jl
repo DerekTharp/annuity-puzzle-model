@@ -254,10 +254,10 @@ function main()
     push!(timings, "Shapley gamma-stability" => t)
 
     # --- Stage 10c: Nine-channel Shapley at the focal psi=0.981 ---
-    # Produces: shapley_psi981.csv/.tex (ranking robustness to survival beliefs)
+    # Produces: shapley_psi_endpoint.csv/.tex (ranking robustness to survival beliefs)
     t = run_stage(
         "10c. Nine-Channel Shapley at Focal psi=0.981",
-        joinpath(SCRIPTS_DIR, "run_psi981_shapley.jl"); parallel=true)
+        joinpath(SCRIPTS_DIR, "run_psi_endpoint_shapley.jl"); parallel=true)
     push!(timings, "Shapley psi=0.981" => t)
 
     # --- Stage 10f: Seven-channel sub-game (post-processing of Stage 10) ---
@@ -413,16 +413,6 @@ function main()
         joinpath(SCRIPTS_DIR, "run_monte_carlo_uncertainty.jl"); parallel=true)
     push!(timings, "Monte Carlo uncertainty" => t)
 
-    # --- Stage 14: Figure generation (reads CSVs) ---
-    # Produces: figures/pdf/fig1-fig5.pdf, figures/png/fig1-fig5.png (5 figures).
-    # If a fig6 (Monte Carlo distribution) is needed in a future revision,
-    # extend generate_figures.jl to read tables/csv/monte_carlo_ownership.csv
-    # and emit fig6 alongside the others.
-    t = run_stage(
-        "14. Figure Generation",
-        joinpath(SCRIPTS_DIR, "generate_figures.jl"))
-    push!(timings, "Figures" => t)
-
     # --- Stage 14b: State-dependent utility sensitivity ---
     # Produces: state_utility_sensitivity.csv. Two full rational-stack solves
     # (behavioral parameters at neutral values) under the FLN and
@@ -466,6 +456,15 @@ function main()
         "14e. Render Diagnostic Tables (grid convergence, Euler)",
         joinpath(SCRIPTS_DIR, "emit_diagnostic_tables.jl"))
     push!(timings, "Diagnostic tables" => t)
+
+    # --- Stage 14f: Figure generation (reads CSVs) ---
+    # Runs AFTER every CSV-producing stage so the figure-freshness gate can
+    # require figures to postdate all their potential source CSVs.
+    # Produces: figures/pdf/fig1-fig6.pdf, figures/png/fig1-fig6.png.
+    t = run_stage(
+        "14f. Figure Generation",
+        joinpath(SCRIPTS_DIR, "generate_figures.jl"))
+    push!(timings, "Figures" => t)
 
     # --- Stage 15: Export manuscript numbers (must run AFTER all CSVs exist) ---
     # Produces: paper/numbers.tex — single source of truth for every numeric
@@ -562,7 +561,7 @@ function main()
         "robustness_gamma_inflation.tex",
         "shapley_exact.tex",
         "shapley_nine.tex",
-        "shapley_psi981.tex",        # Stage 10c output; app:psi_ranking \input
+        "shapley_psi_endpoint.tex",        # Stage 10c output; app:psi_ranking \input
         "shapley_loads_split.tex",   # Stage 10d output; loads-split appendix \input
         "shapley_male_mortality.tex",  # Stage 10e output; prior-convention mortality appendix \input
         "ss_cut_robustness.tex",

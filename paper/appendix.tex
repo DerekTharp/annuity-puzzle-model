@@ -130,9 +130,9 @@ Annuity pricing uses objective population survival (the population life table, n
 \subsection{Channel ranking at the focal survival-belief value}
 \label{app:psi_ranking}
 
-Because the participation level is sensitive to $\psi$, a natural question is whether the channel ranking is too. It is not. Recomputing the full nine-channel Shapley game at the focal value $\psi = 0.981$ (Table~\ref{tab:shapley_psi981}) leaves pricing loads the dominant demand suppressor and bequest motives mid-pack---the two ranking claims the paper relies on. Survival pessimism's own Shapley contribution shrinks at the focal value, as expected when beliefs are made less pessimistic, but it remains the second-largest suppressor (\psiFocalPessimismAbs{} versus \psiFocalNextAbs~pp over age-varying needs, the next channel); the combined Med+R-S channel sits below both. The decomposition is computed on the $60 \times 20 \times 101$ grid, which the convergence table places within about two percentage points of production (Appendix~\ref{app:grid_convergence}); the level is not the object here.
+Because the participation level is sensitive to $\psi$, a natural question is whether the channel ranking is too. It is not. Recomputing the full nine-channel Shapley game at the focal value $\psi = 0.981$ (Table~\ref{tab:shapley_psi_endpoint}) leaves pricing loads the dominant demand suppressor and bequest motives mid-pack---the two ranking claims the paper relies on. Survival pessimism's own Shapley contribution shrinks at the focal value, as expected when beliefs are made less pessimistic, but it remains the second-largest suppressor (\psiEndpointPessimismAbs{} versus \psiEndpointNextAbs~pp over age-varying needs, the next channel); the combined Med+R-S channel sits below both. The decomposition is computed on the $60 \times 20 \times 101$ grid, which the convergence table places within about two percentage points of production (Appendix~\ref{app:grid_convergence}); the level is not the object here.
 
-\input{../tables/tex/shapley_psi981.tex}
+\input{../tables/tex/shapley_psi_endpoint.tex}
 
 \subsection{Age-varying consumption needs}
 \label{app:age_needs}

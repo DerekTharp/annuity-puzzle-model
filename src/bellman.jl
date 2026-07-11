@@ -103,9 +103,13 @@ function terminal_value(
     cash = W + A + ss
     inc  = A + ss  # income (non-portfolio) component for SDU accounting
 
-    # Safety net at terminal period
+    # Safety net at terminal period. The government top-up is income-like
+    # for SDU accounting, mirroring the Medicaid convention elsewhere
+    # (inc = c_floor - W): wealth is fully drawn, the rest of floor
+    # consumption is income plus the transfer.
     if cash < p.c_floor
         cash = p.c_floor
+        inc  = p.c_floor - W
     end
 
     if p.theta == 0.0

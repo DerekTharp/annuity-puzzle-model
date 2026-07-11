@@ -206,8 +206,9 @@ for nq in [5, 7, 11]
 end
 
 # § 9. Survival pessimism. The sweep includes the production value
-# (SURVIVAL_PESSIMISM = 0.96) so the manuscript baseline row is the actual
-# baseline; 0.981 is the O'Dea-Sturrock implied scalar kept as a sweep point.
+# (SURVIVAL_PESSIMISM = 0.981, the O'Dea-Sturrock focal translation) so the
+# manuscript baseline row is the actual baseline; 0.96 is the strong-pessimism
+# robustness endpoint kept as a sweep point.
 psi_vals = [0.960, 0.970, 0.981, 0.990, 1.000]
 for psi in psi_vals
     push!(master_specs, (section=:pessimism,

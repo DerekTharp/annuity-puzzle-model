@@ -427,11 +427,13 @@ macros = load_macros()
         else
             # Two-tier bracket: a tight range and a permissive range.
             #
-            # Tight range [3%, 15%]: panel-projected post-recalibration
-            #   target. Emits a @warn if violated so the AWS post-run pass can
-            #   surface drift loudly without aborting the run.
-            # Permissive range [0%, 35%]: pure-garbage gate. Fires as a hard
-            #   @test failure only if the headline exceeds 35% (clearly past
+            # Tight range [20%, 36%]: expected neighborhood of the
+            #   psi=0.981 blended-normalized baseline (~28% at the production
+            #   grid per the robustness sweep). Emits a @warn if violated so
+            #   the AWS post-run pass can surface drift loudly without
+            #   aborting the run.
+            # Permissive range [0%, 45%]: pure-garbage gate. Fires as a hard
+            #   @test failure only if the headline exceeds 45% (clearly past
             #   any plausible structural prediction). The lower bound is 0%
             #   because the model legitimately produces corner-solution
             #   predictions: when the behavioral parameters push ALL agents
@@ -443,8 +445,8 @@ macros = load_macros()
             #
             # When a rerun completes and numbers.tex is regenerated, tighten
             # the @test bracket to match the new headline range.
-            TIGHT_LOW,    TIGHT_HIGH    = 3.0, 15.0
-            PERMISSIVE_LOW, PERMISSIVE_HIGH = 0.0, 35.0
+            TIGHT_LOW,    TIGHT_HIGH    = 20.0, 36.0
+            PERMISSIVE_LOW, PERMISSIVE_HIGH = 0.0, 45.0
             if !(TIGHT_LOW <= headline_pct <= TIGHT_HIGH)
                 @warn "Headline ownership ($(which_key) = $(headline_pct)%) is outside " *
                       "the panel-projected tight bracket [$(TIGHT_LOW)%, $(TIGHT_HIGH)%]. " *

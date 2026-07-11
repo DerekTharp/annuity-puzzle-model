@@ -27,6 +27,7 @@ const TEST_FILES = [
     "test_shapley_axioms.jl",
     "test_frac_at_kink.jl",
     "test_ss_cut_identity.jl",
+    "test_round11_fixes.jl",
     # test_manuscript_numbers.jl is a POST-pipeline validator that reads
     # paper/numbers.tex and asserts agreement against tables/csv/*.csv.
     # When run as Stage 0 (pre-pipeline) on a fresh AWS instance, the

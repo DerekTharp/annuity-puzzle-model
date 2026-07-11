@@ -24,7 +24,7 @@ include(joinpath(@__DIR__, "..", "scripts", "config.jl"))
     @test HAZARD_MULT == [0.50, 1.0, 3.75]
     @test BETA == 0.97
     @test R_RATE == 0.02
-    @test SURVIVAL_PESSIMISM == 0.96
+    @test SURVIVAL_PESSIMISM == 0.981
     @test CONSUMPTION_DECLINE == 0.02
     @test LAMBDA_W == 0.625
     @test PSI_PURCHASE == 0.05

@@ -35,17 +35,17 @@ const A_GRID_POW = 3.0
 const N_QUAD     = 9
 const THETA_DFJ  = 56.96
 const KAPPA_DFJ  = 272_628.0
-const SURVIVAL_PESSIMISM = 0.96   # Strong-pessimism END of the reported range
-                                   # [0.96, 1.0]. The focal value is the direct
-                                   # O'Dea-Sturrock (2023) 65-69 ten-year ratio,
-                                   # (0.71/0.86)^(1/10) ~ 0.981; 1.0 = objective
-                                   # beliefs. Heimer et al. (2019) document a
-                                   # survival-belief crossover near 65-70 (the old
-                                   # OVERestimate survival), motivating the psi->1
-                                   # upper end for this cohort. The paper relies on
-                                   # the channel RANKING (pessimism second-tier),
-                                   # which holds across the range; 0.96 is the
-                                   # computational anchor.
+const SURVIVAL_PESSIMISM = 0.981  # Focal value: the direct O'Dea-Sturrock (2023)
+                                   # 65-69 ten-year ratio, (0.71/0.86)^(1/10).
+                                   # Reported range [0.96, 1.0]: 0.96 is the
+                                   # strong-pessimism robustness endpoint; 1.0 =
+                                   # objective beliefs. Heimer et al. (2019)
+                                   # document a survival-belief crossover near
+                                   # 65-70 (the old OVERestimate survival),
+                                   # motivating the psi->1 upper end for this
+                                   # cohort. The paper relies on the channel
+                                   # RANKING (pessimism second-tier), which holds
+                                   # across the range.
 const MIN_WEALTH = 5_000.0
 
 # Hazard multipliers. The headline/production specification is the constant

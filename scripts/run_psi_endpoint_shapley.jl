@@ -1,12 +1,12 @@
-# Nine-channel exact Shapley at psi=0.981 (the O'Dea-Sturrock direct-translation
-# focal value), to SHOW that survival pessimism keeps its second-tier rank when
-# the pessimism channel uses the less-severe focal psi rather than the strong-
-# pessimism end (0.96) of the reported range. The level sweep in run_robustness.jl
-# varies psi for the LEVEL only; this recomputes the full 512-subset game.
+# Nine-channel exact Shapley at psi=0.96 (the strong-pessimism endpoint of the
+# reported range), to SHOW that the channel ranking survives when the pessimism
+# channel uses the more-severe endpoint rather than the focal O'Dea-Sturrock
+# baseline (0.981). The level sweep in run_robustness.jl varies psi for the
+# LEVEL only; this recomputes the full 512-subset game.
 #
 # Coarse grid (the channel RANKING is grid-robust; the level is not the object).
-# Output: tables/csv/shapley_psi981.csv
-# Usage:  julia --project=. -p 8 scripts/run_psi981_shapley.jl
+# Output: tables/csv/shapley_psi_endpoint.csv
+# Usage:  julia --project=. -p 8 scripts/run_psi_endpoint_shapley.jl
 
 using Printf, DelimitedFiles, Distributed
 
@@ -19,14 +19,14 @@ else
 end
 include(joinpath(@__DIR__, "config.jl"))
 
-const PSI_FOCAL = 0.981
+const PSI_ENDPOINT = 0.96
 const NW = 60; const NA = 20; const NAL = 101  # within ~1pp of production per the convergence table
 const N_CH = 9
 const NAMES = ["SS", "Bequests", "Medical+R-S", "Pessimism", "Age needs",
                "State utility", "Loads", "Inflation", "Public-care (LTC)"]
 
 println("=" ^ 70)
-@printf("  9-CHANNEL EXACT SHAPLEY AT psi=%.3f (ranking-robustness check)\n", PSI_FOCAL)
+@printf("  9-CHANNEL EXACT SHAPLEY AT psi=%.3f (ranking-robustness check)\n", PSI_ENDPOINT)
 println("=" ^ 70); flush(stdout)
 
 hrs_raw = readdlm(HRS_PATH, ',', Any; skipstart=1)
@@ -49,9 +49,9 @@ _infl=INFLATION; _ssq=Float64.(SS_QUARTILE_LEVELS); _gamma=GAMMA; _beta=BETA; _r
 _cf=C_FLOOR; _hm=Float64.(HAZARD_MULT); _hn=HAZARD_NORMALIZE; _nq=N_QUAD; _cd=CONSUMPTION_DECLINE
 _hu=Float64.(HEALTH_UTILITY); _chi=CHI_LTC; _lw=LAMBDA_W; _pp=PSI_PURCHASE; _ppc=PSI_PURCHASE_C_REF
 _bs=base_surv; _pop=population; _fair=fair; _fairn=fair_nom; _minw=MIN_WEALTH; _gkw=gkw
-_psi=PSI_FOCAL
+_psi=PSI_ENDPOINT
 
-println("Solving 512 nine-channel subsets at psi=$PSI_FOCAL..."); flush(stdout)
+println("Solving 512 nine-channel subsets at psi=$PSI_ENDPOINT..."); flush(stdout)
 t0 = time()
 results = parallel_solve([(m=m,) for m in 0:511]) do spec
     mask = spec.m
@@ -79,7 +79,7 @@ end
 lookup = Dict{Int,Float64}(r.mask => r.ownership for r in results)
 shap = exact_shapley(N_CH, lookup)
 order = sortperm(abs.(shap); rev=true)
-@printf("\n  Nine-channel Shapley at psi=%.3f (full own=%.1f%%):\n", PSI_FOCAL, lookup[511] * 100)
+@printf("\n  Nine-channel Shapley at psi=%.3f (full own=%.1f%%):\n", PSI_ENDPOINT, lookup[511] * 100)
 @printf("  %-20s %12s\n", "Channel", "Shapley (pp)")
 for i in order
     @printf("  %-20s %+11.2f\n", NAMES[i], shap[i] * 100)
@@ -87,7 +87,7 @@ end
 pess_rank = findfirst(==(4), order)
 @printf("\n  Survival pessimism is rank %d by |Shapley| (loads should be #1).\n", pess_rank)
 
-csv = joinpath(@__DIR__, "..", "tables", "csv", "shapley_psi981.csv")
+csv = joinpath(@__DIR__, "..", "tables", "csv", "shapley_psi_endpoint.csv")
 open(csv, "w") do io
     println(io, "channel,shapley_value_pp,abs_rank")
     rk = zeros(Int, N_CH); for (k, i) in enumerate(order); rk[i] = k; end
@@ -100,12 +100,12 @@ println("  CSV: $csv"); flush(stdout)
 # LaTeX table (Appendix: channel ranking at the focal psi). Sorted by value
 # descending so suppressors lead.
 vord = sortperm(shap; rev=true)
-texp = joinpath(@__DIR__, "..", "tables", "tex", "shapley_psi981.tex")
+texp = joinpath(@__DIR__, "..", "tables", "tex", "shapley_psi_endpoint.tex")
 open(texp, "w") do io
     println(io, raw"\begin{table}[htbp]")
     println(io, raw"\centering")
-    println(io, raw"\caption{Nine-Channel Shapley Decomposition at the Focal Survival-Belief Value ($\psi = 0.981$)}")
-    println(io, raw"\label{tab:shapley_psi981}")
+    println(io, raw"\caption{Nine-Channel Shapley Decomposition at the Strong-Pessimism Endpoint ($\psi = 0.96$)}")
+    println(io, raw"\label{tab:shapley_psi_endpoint}")
     println(io, raw"\begin{threeparttable}")
     println(io, raw"\begin{tabular}{lc}")
     println(io, raw"\toprule")
@@ -118,7 +118,7 @@ open(texp, "w") do io
     println(io, raw"\end{tabular}")
     println(io, raw"\begin{tablenotes}")
     println(io, raw"\small")
-    println(io, raw"\item Exact Shapley values over all $2^{9}=512$ subsets of the nine-channel game at the focal survival-belief value $\psi = 0.981$ (the direct \citet{odeasturrock2023} 65--69 translation), computed on the coarse grid because the channel ranking is grid-robust (the level is not the object). Pricing loads remain the dominant suppressor and bequest motives mid-pack; survival pessimism's contribution is smaller than at the strong-pessimism end $\psi = 0.96$, as expected when beliefs are less pessimistic, with survival pessimism remaining the second-largest suppressor and the combined medical-and-Reichling--Smetters channel in the tier below. Positive values are demand-suppressing; pre-existing income is demand-raising.")
+    println(io, raw"\item Exact Shapley values over all $2^{9}=512$ subsets of the nine-channel game at the strong-pessimism endpoint $\psi = 0.96$ of the reported range, computed on the coarse grid because the channel ranking is grid-robust (the level is not the object). Pricing loads remain the dominant suppressor and bequest motives mid-pack; survival pessimism's contribution is larger than at the focal baseline $\psi = 0.981$ (the direct \citet{odeasturrock2023} 65--69 translation), as expected when beliefs are more pessimistic, remaining the second-largest suppressor. Positive values are demand-suppressing; pre-existing income is demand-raising.")
     println(io, raw"\end{tablenotes}")
     println(io, raw"\end{threeparttable}")
     println(io, raw"\end{table}")

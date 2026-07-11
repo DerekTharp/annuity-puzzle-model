@@ -1118,6 +1118,8 @@ function run_pairwise_interactions(
                 merged[:mwr] = v
             elseif k == :fixed_cost && v > 0
                 merged[:fixed_cost] = v
+            elseif k == :min_purchase && v > 0
+                merged[:min_purchase] = v
             elseif k == :inflation_rate && v > 0
                 merged[:inflation_rate] = v
             elseif k == :medical_enabled && v == true
