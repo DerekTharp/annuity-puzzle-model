@@ -63,7 +63,7 @@ const EXPECTED_TEX_FILES = Set([
     "robustness_gamma_inflation.tex",
     "shapley_exact.tex",
     "shapley_nine.tex",
-    "shapley_psi981.tex",
+    "shapley_psi_endpoint.tex",
     "shapley_loads_split.tex",
     "shapley_male_mortality.tex",
     "ss_cut_robustness.tex",
