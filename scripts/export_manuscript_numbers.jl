@@ -1065,11 +1065,12 @@ function build_macros!()
         def!("ownInflation" * key, fmt_pct(robustness_ownership("Gamma×Inflation", spec); digits=1))
     end
 
-    # Survival pessimism sweep. Baseline = the production SURVIVAL_PESSIMISM
-    # (0.96); 0.981 is the O'Dea-Sturrock implied scalar, a sweep point only.
+    # Survival pessimism sweep. Production baseline is psi=0.981 (the
+    # O'Dea-Sturrock focal translation, key NinetyEightOne); 0.96 is the
+    # strong-pessimism robustness endpoint (key Endpoint).
     for (key, spec) in [
         ("Objective",     "psi=1.000"),
-        ("Baseline",      "psi=0.960"),
+        ("Endpoint",      "psi=0.960"),
         ("NinetySeven",   "psi=0.970"),
         ("NinetyEightOne","psi=0.981"),
         ("NinetyNine",    "psi=0.990"),
@@ -1213,8 +1214,10 @@ function build_macros!()
         bm = Int.(se[:, colof(sh, "bitmask")])
         r511 = findfirst(==(511), bm)
         if r511 !== nothing
-            def!("ownFullQone",  fmt_pct(Float64(se[r511, colof(sh, "own_q1")]); digits=1))
-            def!("ownFullQfour", fmt_pct(Float64(se[r511, colof(sh, "own_q4")]); digits=1))
+            def!("ownFullQone",   fmt_pct(Float64(se[r511, colof(sh, "own_q1")]); digits=1))
+            def!("ownFullQtwo",   fmt_pct(Float64(se[r511, colof(sh, "own_q2")]); digits=1))
+            def!("ownFullQthree", fmt_pct(Float64(se[r511, colof(sh, "own_q3")]); digits=1))
+            def!("ownFullQfour",  fmt_pct(Float64(se[r511, colof(sh, "own_q4")]); digits=1))
         end
     end
 
@@ -1231,6 +1234,38 @@ function build_macros!()
         def!("ssCutWealthQfourTrust", fmt_pct(cell(4, 22.0); digits=1))
         # Response = change from baseline, not the post-cut level.
         def!("ssCutWealthBottomResp", fmt_pct(cell(1, 22.0) - cell(1, 0.0); digits=1))
+        # Per-band responses to the 22% cut. Under the psi=0.981 baseline the
+        # incidence concentrates in the third (upper-middle) band, not the top.
+        def!("ssCutWealthQtwoResp",   fmt_num(cell(2, 22.0) - cell(2, 0.0); digits=1) * " pp")
+        def!("ssCutWealthQthreeResp", fmt_num(cell(3, 22.0) - cell(3, 0.0); digits=1) * " pp")
+        def!("ssCutWealthQfourResp",  fmt_num(cell(4, 22.0) - cell(4, 0.0); digits=1) * " pp")
+    end
+
+    # SS-cut top-band response share (Class 4): the top band's fraction of the
+    # aggregate response, from the killer-table diagnostic.
+    kt_path = joinpath(CSV_DIR, "gate_robustness_killer.csv")
+    if isfile(kt_path)
+        kt, kth = read_csv("gate_robustness_killer.csv")
+        hard_i = findfirst(==("hard"), strip.(string.(kt[:, colof(kth, "regime")])))
+        if hard_i !== nothing
+            def!("ssCutTopBandShare",
+                 fmt_pct(Float64(kt[hard_i, colof(kth, "top_band_resp_share_pct")]); digits=1))
+        end
+    end
+
+    # Band value-destruction diagnostic (Class 3): zero-cost would-buy share in
+    # the third band under the full stack and with the bequest motive removed.
+    bvd_path = joinpath(CSV_DIR, "band_value_destruction_diagnostic.csv")
+    if isfile(bvd_path)
+        bvd, bvdh = read_csv("band_value_destruction_diagnostic.csv")
+        cfg = strip.(string.(bvd[:, colof(bvdh, "config")]))
+        bnd = Int.(bvd[:, colof(bvdh, "band")])
+        cf  = Float64.(bvd[:, colof(bvdh, "own_if_costfree_pct")])
+        bcell(c, b) = (k = findfirst(i -> cfg[i] == c && bnd[i] == b, eachindex(cfg));
+                       k === nothing ? NaN : cf[k])
+        def!("bvdBandThreeFull",       fmt_pct(bcell("Full structural", 3); digits=1))
+        def!("bvdBandThreeNoBequest",  fmt_pct(bcell("- Bequest", 3); digits=1))
+        def!("bvdBandThreeNoPessimism",fmt_pct(bcell("- Survival pessimism", 3); digits=1))
     end
 
     # Empirical-gradient validation: predicted-sign concordance (Class 1 test).

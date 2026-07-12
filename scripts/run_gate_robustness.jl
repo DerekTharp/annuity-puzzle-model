@@ -245,7 +245,7 @@ open(tex_path, "w") do io
     println(io, raw"production model; ``feasibility-only'' drops the fixed cost (minimum purchase and consumption floor")
     println(io, raw"remain); ``cost-smoothed'' applies heterogeneous fixed costs (fixed dispersion, not fitted);")
     println(io, raw"``theta-dispersed'' applies the observed within-band bequest-intention distribution (HRS beq100),")
-    println(io, raw"frozen before the cut. The induced response is concentrated in the top band in every")
+    println(io, raw"frozen before the cut. The induced response concentrates in the third (upper-middle) band in every")
     println(io, raw"treatment, with a smaller positive third-band response under the fixed-cost treatments and")
     println(io, raw"zero or negative responses in the bottom two bands throughout.")
     println(io, raw"\end{tablenotes}")
