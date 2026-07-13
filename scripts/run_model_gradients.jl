@@ -79,7 +79,7 @@ cfg = build_subset_config(Set(1:9);
     consumption_decline=CONSUMPTION_DECLINE,
     health_utility=Float64.(HEALTH_UTILITY),
     chi_ltc_val=CHI_LTC, lambda_w_val=1.0, psi_purchase_val=0.0,
-    psi_purchase_c_ref_val=18_000.0)
+    psi_purchase_c_ref_val=18_000.0, fair_pr=fair_pr)
 
 p_model = ModelParams(; ckw...,
     theta=cfg.theta, kappa=cfg.kappa, mwr=cfg.mwr, fixed_cost=cfg.fixed_cost,
@@ -95,7 +95,8 @@ p_model = ModelParams(; ckw...,
 println("\nSolving the full structural model...")
 flush(stdout)
 res = solve_and_evaluate(p_model, grids, base_surv, cfg.ss_levels,
-    population, loaded_pr_nom; step_name="full structural", verbose=true)
+    population, loaded_pr_nom; step_name="full structural", verbose=true,
+    wealth_topup=cfg.w_commuted)
 
 # By-health: re-solve per quartile is unnecessary — evaluate health subgroups
 # against per-quartile solutions is not exposed, so evaluate by health WITHIN
@@ -124,7 +125,8 @@ for h in 1:3
         continue
     end
     res_h = solve_and_evaluate(p_model, grids, base_surv, cfg.ss_levels,
-        pop_h, loaded_pr_nom; step_name="health=$(labels_h[h])", verbose=true)
+        pop_h, loaded_pr_nom; step_name="health=$(labels_h[h])", verbose=true,
+        wealth_topup=cfg.w_commuted)
     push!(rows, ("health", labels_h[h], res_h.ownership * 100, res_h.mean_alpha))
 end
 

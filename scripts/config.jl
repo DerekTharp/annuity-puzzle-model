@@ -32,7 +32,11 @@ const N_WEALTH   = 80
 const N_ANNUITY  = 30
 const N_ALPHA    = 101
 const A_GRID_POW = 3.0
-const N_QUAD     = 9
+const N_QUAD     = 15  # Gauss-Hermite nodes for the lognormal medical-expense
+                       # expectation. 15 sits in the converged 11/13/15 cluster
+                       # (~ownership plateau); 9 nodes was a ~4pp outlier below
+                       # it because the heavy medical tail crosses the Medicaid
+                       # floor kink, where low-order GH is inexact.
 const THETA_DFJ  = 56.96
 const KAPPA_DFJ  = 272_628.0
 const SURVIVAL_PESSIMISM = 0.981  # Focal value: the direct O'Dea-Sturrock (2023)

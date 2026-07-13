@@ -109,13 +109,19 @@ results = parallel_solve(specs) do spec
     bit(i) = (mask >> i) & 1 == 1
 
     ss_levels = [0.0, 0.0, 0.0, 0.0]
+    # Commuted-PV endowment mirroring build_subset_config: pre-annuitized income
+    # that is toggled OFF is returned to the household as its equal-PV liquid
+    # wealth (level / fair REAL payout rate), isolating the annuitized-vs-liquid
+    # form of fixed lifetime resources rather than an income effect. Zero for
+    # every income component left ON.
+    w_commuted = zeros(4)
     theta = 0.0; kappa = 0.0
     medical = false; corr = false
     psi = 1.0; cd = 0.0; hu = [1.0, 1.0, 1.0]
     mwr = 1.0; fc = 0.0; minp = 0.0; infl = 0.0; chi = 1.0
 
     if part == :medrs
-        bit(0) && (ss_levels = copy(_ss_comb))
+        bit(0) ? (ss_levels = copy(_ss_comb)) : (w_commuted = _ss_comb ./ _fair_pr)
         bit(1) && (theta = _theta; kappa = _kappa)
         bit(2) && (medical = true)
         bit(3) && (corr = true)
@@ -127,8 +133,8 @@ results = parallel_solve(specs) do spec
         bit(9) && (chi = _chi_ltc)
     else  # :ssdb
         s = zeros(4)
-        bit(0) && (s .+= _ss_obs)
-        bit(1) && (s .+= _db_obs)
+        bit(0) ? (s .+= _ss_obs) : (w_commuted .+= _ss_obs ./ _fair_pr)
+        bit(1) ? (s .+= _db_obs) : (w_commuted .+= _db_obs ./ _fair_pr)
         ss_levels = s
         bit(2) && (theta = _theta; kappa = _kappa)
         bit(3) && (medical = true; corr = true)
@@ -166,7 +172,7 @@ results = parallel_solve(specs) do spec
     end
 
     res = solve_and_evaluate(p, grids, _base_surv, ss_levels, pop, pr;
-                             step_name="", verbose=false)
+                             step_name="", verbose=false, wealth_topup=w_commuted)
     (partition=part, mask=mask, ownership=res.ownership)
 end
 

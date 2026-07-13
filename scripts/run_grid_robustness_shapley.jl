@@ -64,7 +64,8 @@ results = parallel_solve(specs) do spec
         theta_dfj=_theta, kappa_dfj=_kappa, mwr_loaded=_mwr, fixed_cost=_fc,
         min_purchase=_minp, inflation_val=_infl, survival_pessimism=_psi,
         ss_quartile_levels=_ssq, consumption_decline=_cd, health_utility=_hu,
-        chi_ltc_val=_chi, lambda_w_val=_lw, psi_purchase_val=_pp, psi_purchase_c_ref_val=_ppc)
+        chi_ltc_val=_chi, lambda_w_val=_lw, psi_purchase_val=_pp, psi_purchase_c_ref_val=_ppc,
+        fair_pr=fair)
     has_loads = cfg.mwr < 1.0; has_infl = cfg.inflation_rate > 0
     pr = has_loads && has_infl ? cfg.mwr * fair_nom : has_loads ? cfg.mwr * fair : has_infl ? fair_nom : fair
     common = (gamma=_gamma, beta=_beta, r=_r, stochastic_health=true, n_health_states=3,
@@ -76,7 +77,8 @@ results = parallel_solve(specs) do spec
         survival_pessimism=cfg.survival_pessimism, consumption_decline=cfg.consumption_decline,
         health_utility=cfg.health_utility, chi_ltc=cfg.chi_ltc, gkw...)
     pop = _minw > 0 ? _pop[_pop[:, 1] .>= _minw, :] : _pop
-    res = solve_and_evaluate(p, grids, _bs, cfg.ss_levels, pop, pr; verbose=false)
+    res = solve_and_evaluate(p, grids, _bs, cfg.ss_levels, pop, pr; verbose=false,
+        wealth_topup=cfg.w_commuted)
     if mask % 64 == 0
         @printf("    [heartbeat] grid %d subset %d\n", spec.g, mask); flush(stdout)
     end

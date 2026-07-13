@@ -123,7 +123,7 @@ function shapley_at_gamma(gamma::Float64)
             survival_pessimism=_surv_pess, ss_quartile_levels=_ss_q_levels,
             consumption_decline=_consumption_decline, health_utility=_health_utility,
             chi_ltc_val=_chi_ltc, lambda_w_val=1.0, psi_purchase_val=0.0,
-            psi_purchase_c_ref_val=18_000.0)
+            psi_purchase_c_ref_val=18_000.0, fair_pr=_fair_pr)
 
         ckw = (gamma=gamma, beta=_beta, r=_r_rate,
                stochastic_health=true, n_health_states=3, n_quad=_n_quad,
@@ -149,7 +149,7 @@ function shapley_at_gamma(gamma::Float64)
             _gkw...)
 
         res = solve_and_evaluate(p_model, _grids, _base_surv, cfg.ss_levels,
-            _population, pr; step_name="", verbose=false)
+            _population, pr; step_name="", verbose=false, wealth_topup=cfg.w_commuted)
         # Liveness heartbeat (~16 lines per gamma; see run_subset_enumeration).
         if mask % 32 == 0
             @printf("    [heartbeat] gamma=%.2f subset %3d/%d done (%.0fs elapsed)\n",

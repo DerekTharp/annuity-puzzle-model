@@ -61,7 +61,7 @@ grids = build_grids(ModelParams(; gamma=GAMMA, beta=BETA, r=R_RATE,
         consumption_decline=CONSUMPTION_DECLINE,
         health_utility=Float64.(HEALTH_UTILITY), chi_ltc_val=CHI_LTC,
         lambda_w_val=LAMBDA_W, psi_purchase_val=PSI_PURCHASE,
-        psi_purchase_c_ref_val=PSI_PURCHASE_C_REF)
+        psi_purchase_c_ref_val=PSI_PURCHASE_C_REF, fair_pr=fair_pr)
     has_loads = cfg.mwr < 1.0; has_infl = cfg.inflation_rate > 0
     pr = has_loads && has_infl ? cfg.mwr * fair_pr_nom :
          has_loads              ? cfg.mwr * fair_pr :
@@ -78,7 +78,7 @@ grids = build_grids(ModelParams(; gamma=GAMMA, beta=BETA, r=R_RATE,
         lambda_w=cfg.lambda_w, psi_purchase=cfg.psi_purchase,
         psi_purchase_c_ref=cfg.psi_purchase_c_ref, gkw...)
     return mask => solve_and_evaluate(p, grids, base_surv, cfg.ss_levels, pop65, pr;
-        verbose=false).ownership
+        verbose=false, wealth_topup=cfg.w_commuted).ownership
 end
 
 println("Enumerating 512 nine-channel subsets at forced age 65 (coarse grid)...")

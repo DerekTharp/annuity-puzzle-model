@@ -217,7 +217,8 @@ results = parallel_solve(subset_specs) do spec
         chi_ltc_val=_chi_ltc_val,
         lambda_w_val=_lambda_w_val,
         psi_purchase_val=_psi_purchase_val,
-        psi_purchase_c_ref_val=_psi_purchase_c_ref_val)
+        psi_purchase_c_ref_val=_psi_purchase_c_ref_val,
+        fair_pr=_fair_pr)
 
     gkw = (n_wealth=_n_wealth, n_annuity=_n_annuity, n_alpha=_n_alpha,
            W_max=_w_max, age_start=_age_start, age_end=_age_end,
@@ -272,7 +273,7 @@ results = parallel_solve(subset_specs) do spec
 
     t0 = time()
     res = solve_and_evaluate(p_model, grids, _base_surv, cfg.ss_levels,
-        pop, pr; step_name="", verbose=false)
+        pop, pr; step_name="", verbose=false, wealth_topup=cfg.w_commuted)
     st = time() - t0
 
     # Liveness heartbeat: worker stdout is forwarded to the master log, so

@@ -23,11 +23,15 @@ end
           fixed_cost=2_500.0, min_purchase=10_000.0, inflation_val=0.02,
           survival_pessimism=0.96, ss_quartile_levels=[12_917.0, 15_747.0, 19_298.0, 19_335.0],
           consumption_decline=0.02, health_utility=[1.0, 0.92, 0.82], chi_ltc_val=0.49,
-          lambda_w_val=0.625, psi_purchase_val=0.05, psi_purchase_c_ref_val=18_000.0)
+          lambda_w_val=0.625, psi_purchase_val=0.05, psi_purchase_c_ref_val=18_000.0,
+          fair_pr=0.065)
 
     # Empty coalition: every channel off / neutral.
     off = build_subset_config(Set{Int}(); kw...)
     @test off.ss_levels == [0.0, 0.0, 0.0, 0.0]
+    # SS off: its actuarial PV is commuted to an equal-PV liquid endowment
+    # (ss_quartile_levels / fair_pr), so the SS player is a share-shift.
+    @test off.w_commuted ≈ [12_917.0, 15_747.0, 19_298.0, 19_335.0] ./ 0.065
     @test off.theta == 0.0 && off.kappa == 0.0
     @test off.medical_enabled == false && off.health_mortality_corr == false
     @test off.survival_pessimism == 1.0
@@ -36,10 +40,20 @@ end
     @test off.chi_ltc == 1.0 && off.lambda_w == 1.0 && off.psi_purchase == 0.0
     @test off.consumption_decline == 0.0 && off.health_utility == [1.0, 1.0, 1.0]
 
-    # SS only (channel 1).
+    # SS only (channel 1). SS on => annuitized income present, no wealth
+    # commutation.
     ss = build_subset_config(Set([1]); kw...)
     @test ss.ss_levels == [12_917.0, 15_747.0, 19_298.0, 19_335.0]
+    @test ss.w_commuted == [0.0, 0.0, 0.0, 0.0]
     @test ss.theta == 0.0
+
+    # fair_pr is required for the commuted-PV counterfactual.
+    @test_throws UndefKeywordError build_subset_config(Set{Int}();
+        theta_dfj=56.96, kappa_dfj=272_628.0, mwr_loaded=0.87, fixed_cost=2_500.0,
+        min_purchase=10_000.0, inflation_val=0.02, survival_pessimism=0.96,
+        ss_quartile_levels=[12_917.0, 15_747.0, 19_298.0, 19_335.0],
+        consumption_decline=0.02, health_utility=[1.0, 0.92, 0.82], chi_ltc_val=0.49,
+        lambda_w_val=0.625, psi_purchase_val=0.05, psi_purchase_c_ref_val=18_000.0)
 
     # Bequests only (channel 2).
     beq = build_subset_config(Set([2]); kw...)

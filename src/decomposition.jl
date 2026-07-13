@@ -109,42 +109,70 @@ function solve_and_evaluate(
     payout_rate::Float64;
     step_name::String="",
     verbose::Bool=true,
+    wealth_topup::Vector{Float64}=zeros(4),
 )
     t0 = time()
 
     own_q = zeros(4)
     alpha_q = zeros(4)
     n_q = zeros(4)
+    topup_active = any(wealth_topup .> 0.0)
 
     if all(x -> x == ss_levels[1], ss_levels)
-        # All quartiles identical: solve once
+        # All quartiles identical: solve once. When SS is toggled OFF in the
+        # cooperative game, its actuarial PV is returned to the household as an
+        # equal-PV liquid endowment (wealth_topup, per band) so the SS player
+        # is a clean pre-annuitization share-shift rather than an income effect.
+        # The value function is unchanged (SS=0 uniform); only the evaluated
+        # population's wealth shifts, so a single solve suffices. Band
+        # membership stays pinned to ORIGINAL non-annuitized wealth.
         ss_val = ss_levels[1]
         ss_func_uniform = (age, p) -> ss_val
         sol = solve_lifecycle_health(p, grids, base_surv, ss_func_uniform)
-        result = compute_ownership_rate_health(
-            sol, population, payout_rate; base_surv=base_surv,
-        )
-        ownership = result.ownership_rate
-        mean_alpha = result.mean_alpha
-        frac_at_kink_contract = result.frac_at_kink_contract
-        frac_at_grid_floor = result.frac_at_grid_floor
-        # Per-wealth-bin evaluation on the same solution (evaluation only;
-        # the solve is shared). Feeds the by-wealth Shapley.
+        nq_eval = zeros(4)
+        contract_q = zeros(4)
+        floor_q = zeros(4)
         for q in 1:4
             pop_q = _filter_quartile(population, q, SS_QUARTILE_BREAKS)
             n_q[q] = size(pop_q, 1)
             if n_q[q] > 0
+                if wealth_topup[q] > 0.0
+                    pop_q = copy(pop_q)
+                    pop_q[:, 1] .+= wealth_topup[q]
+                end
                 rq = compute_ownership_rate_health(
                     sol, pop_q, payout_rate; base_surv=base_surv,
                 )
                 own_q[q] = rq.ownership_rate
                 alpha_q[q] = rq.mean_alpha
+                nq_eval[q] = Float64(rq.n_evaluated)
+                contract_q[q] = rq.frac_at_kink_contract
+                floor_q[q] = rq.frac_at_grid_floor
             end
+        end
+        if topup_active
+            # Aggregate from bands: a single full-population evaluation is
+            # invalid once each band carries a different top-up.
+            tot_n = sum(nq_eval)
+            tot_own = sum(own_q .* nq_eval)
+            ownership = tot_n > 0 ? tot_own / tot_n : 0.0
+            mean_alpha = tot_n > 0 ? sum(alpha_q .* nq_eval) / tot_n : 0.0
+            frac_at_kink_contract = tot_own > 0 ? sum(contract_q .* own_q .* nq_eval) / tot_own : 0.0
+            frac_at_grid_floor = tot_own > 0 ? sum(floor_q .* own_q .* nq_eval) / tot_own : 0.0
+        else
+            result = compute_ownership_rate_health(
+                sol, population, payout_rate; base_surv=base_surv,
+            )
+            ownership = result.ownership_rate
+            mean_alpha = result.mean_alpha
+            frac_at_kink_contract = result.frac_at_kink_contract
+            frac_at_grid_floor = result.frac_at_grid_floor
         end
     else
         # Solve per quartile and aggregate (parallel when workers available)
         quartile_tasks = collect(1:4)
         _p = p; _grids = grids; _bs = base_surv; _pop = population; _pr = payout_rate
+        _topup = wealth_topup
 
         quartile_results = parallel_solve(quartile_tasks) do q
             ss_val_q = ss_levels[q]
@@ -156,6 +184,15 @@ function solve_and_evaluate(
             if nq == 0
                 return (ownership=0.0, mean_alpha=0.0,
                         frac_at_kink_contract=0.0, frac_at_grid_floor=0.0, n=0.0)
+            end
+
+            # Per-band commuted-PV endowment. Only fires when a partial
+            # pre-annuitization coalition leaves per-band SS levels non-uniform
+            # (SS/DB split game); band membership already pinned to original
+            # wealth by _filter_quartile above.
+            if _topup[q] > 0.0
+                pop_q = copy(pop_q)
+                pop_q[:, 1] .+= _topup[q]
             end
 
             result_q = compute_ownership_rate_health(
