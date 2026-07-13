@@ -340,6 +340,15 @@ function run_decomposition(
                               inflation_rate=inflation_val, grid_kw...)
     fair_pr_nom = inflation_val > 0 ? compute_payout_rate(p_fair_nom, base_surv) : fair_pr
 
+    # Commuted-PV SS counterfactual. When SS is toggled OFF (Step 0 and any
+    # step before SS enters), its actuarial PV is returned to the household as
+    # an equal-PV liquid endowment, commuted at the fair REAL price
+    # (1/fair_pr per dollar of annual income). The empty coalition is then a
+    # true Yaari benchmark rather than a zero-income state, matching the
+    # exact-Shapley engine (build_subset_config.w_commuted). Zero when SS is not
+    # toggled (non-ss_enabled mode: population carries SS via the A grid).
+    w_commuted = ss_enabled ? (ss_levels ./ fair_pr) : zeros(4)
+
     # Build grids using the LARGER payout rate to cover full A range
     grids = build_grids(p_fair, max(fair_pr, fair_pr_nom))
 
@@ -379,8 +388,10 @@ function run_decomposition(
         medical_enabled=false, health_mortality_corr=false,
         grid_kw...)
     if ss_enabled
+        # SS off here: commuted-PV endowment restores the Yaari benchmark.
         res0 = solve_and_evaluate(p0, grids, base_surv, ss_levels_zero,
-            pop, fair_pr; step_name="$step_num. Frictionless population baseline (no SS)", verbose=verbose)
+            pop, fair_pr; step_name="$step_num. Frictionless population baseline (no SS)", verbose=verbose,
+            wealth_topup=w_commuted)
     else
         res0 = solve_and_evaluate(p0, grids, base_surv, ss_zero,
             pop, fair_pr; step_name="$step_num. Frictionless population baseline (SS on)", verbose=verbose)
@@ -978,6 +989,12 @@ function run_pairwise_interactions(
 
     grids = build_grids(p_fair, max(fair_pr, fair_pr_nom))
 
+    # Commuted-PV SS counterfactual (mirrors build_subset_config.w_commuted and
+    # the exact-Shapley engine): any coalition WITHOUT SS receives SS's
+    # actuarial PV back as an equal-PV liquid endowment, commuted at the fair
+    # REAL price. Zero when SS is on, or when SS is not toggled at all.
+    w_commuted = ss_enabled ? (ss_levels ./ fair_pr) : zeros(4)
+
     pop = copy(population_full)
     if min_wealth > 0.0
         mask = pop[:, 1] .>= min_wealth
@@ -1085,8 +1102,9 @@ function run_pairwise_interactions(
     function _pw_eval(p_ch, pr, use_ss; label="")
         if ss_enabled
             ss_arg = use_ss ? ss_levels : ss_levels_zero
+            topup = use_ss ? zeros(4) : w_commuted
             return solve_and_evaluate(p_ch, grids, base_surv, ss_arg,
-                pop, pr; step_name=label, verbose=false)
+                pop, pr; step_name=label, verbose=false, wealth_topup=topup)
         else
             return solve_and_evaluate(p_ch, grids, base_surv, ss_zero,
                 pop, pr; step_name=label, verbose=false)
@@ -1133,6 +1151,7 @@ function run_pairwise_interactions(
     _pop_pw = pop
     _ssl = ss_enabled ? ss_levels : Float64[]
     _sslz = ss_levels_zero
+    _wc = w_commuted
     _mw = min_wealth
 
     pair_results = parallel_solve(pair_indices) do (i, j)
@@ -1192,8 +1211,11 @@ function run_pairwise_interactions(
 
         p_pair = ModelParams(; _ckw..., merged..., _gkw...)
 
-        # Inline evaluation (same logic as _pw_eval)
+        # Inline evaluation (same logic as _pw_eval). A coalition WITHOUT SS
+        # carries the commuted-PV endowment per band; a coalition WITH SS gets
+        # real per-band SS and no top-up. Mirrors the exact-Shapley engine.
         ss_arg = pair_ss_on ? _ssl : _sslz
+        topup = pair_ss_on ? zeros(4) : _wc
         local_pop = copy(_pop_pw)
         if _mw > 0.0
             mask = local_pop[:, 1] .>= _mw
@@ -1204,7 +1226,7 @@ function run_pairwise_interactions(
         end
 
         if !isempty(ss_arg) && !all(x -> x == ss_arg[1], ss_arg)
-            # Per-quartile SS
+            # Per-quartile SS (SS on; real levels differ by band, no top-up).
             tot_own = 0.0; tot_n = 0.0
             for q in 1:4
                 sv = ss_arg[q]
@@ -1222,8 +1244,28 @@ function run_pairwise_interactions(
             sv = isempty(ss_arg) ? 0.0 : ss_arg[1]
             sf = (age, p) -> sv
             sol = solve_lifecycle_health(p_pair, build_grids(ModelParams(; _ckw..., _gkw..., mwr=1.0), max(_fpr, _fprn)), _bs_pw, sf)
-            r = compute_ownership_rate_health(sol, local_pop, pr_pair; base_surv=_bs_pw)
-            own = r.ownership_rate
+            if any(topup .> 0.0)
+                # SS off: return its actuarial PV as an equal-PV liquid
+                # endowment. Per-band aggregation (each band's top-up differs);
+                # the single SS=0 solve above suffices (value fn unchanged).
+                tot_own = 0.0; tot_n = 0.0
+                for q in 1:4
+                    pq = _filter_quartile(local_pop, q, SS_QUARTILE_BREAKS)
+                    nq = size(pq, 1)
+                    nq == 0 && continue
+                    if topup[q] > 0.0
+                        pq = copy(pq)
+                        pq[:, 1] .+= topup[q]
+                    end
+                    rq = compute_ownership_rate_health(sol, pq, pr_pair; base_surv=_bs_pw)
+                    tot_own += rq.ownership_rate * rq.n_evaluated
+                    tot_n += rq.n_evaluated
+                end
+                own = tot_n > 0 ? tot_own / tot_n : 0.0
+            else
+                r = compute_ownership_rate_health(sol, local_pop, pr_pair; base_surv=_bs_pw)
+                own = r.ownership_rate
+            end
         end
 
         (i=i, j=j, ownership=own)
