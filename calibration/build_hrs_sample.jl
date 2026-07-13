@@ -7,6 +7,11 @@
 #
 # Output: data/processed/lockwood_hrs_sample.csv
 # Columns: wealth, perm_income, age, health, own_life_ann, weight
+#   wealth = NONHOUSING NET WORTH (RAND h{w}atotb total net worth minus
+#   h{w}ahous primary-residence net value; equals RAND's h{w}atotn). This is
+#   NOT liquid financial wealth: it still includes secondary residence, other
+#   real estate, vehicles, business equity, and IRAs. See build_hrs_sample.jl
+#   header and the wealth block below for the exact RAND composition.
 #
 # The model treats the pooled person-wave sample as an unweighted empirical
 # population (downstream consumers read only wealth/age/health). The
@@ -24,8 +29,9 @@
 #   r{w}shlt       self-reported health level (1=Exc...5=Poor)
 #   r{w}wtresp     person-level respondent weight
 #   r{w}iwstat     interview status (1=resp alive)
-#   h{w}atotb      total household wealth excl 2nd home (interview-year $)
-#   h{w}ahous      value of primary residence (interview-year $)
+#   h{w}atotb      Total of all Assets: household net worth, ALL assets net of
+#                  debt INCLUDING primary and secondary residence (interview-yr $)
+#   h{w}ahous      Assets:Primary Residence — net value of primary home (interview-yr $)
 #   r{w}isret      SS retirement/spouse/widow benefits, last calendar year;
 #                  excludes disability-based SS by RAND construction
 #   r{w}ipen       employer pension income, last calendar year (excludes
@@ -94,7 +100,7 @@ function main()
         shltc_col  = try collect(getproperty(tbl, Symbol("r$(w)shlt")))   catch; nothing end
         iwstat_col = try collect(getproperty(tbl, Symbol("r$(w)iwstat"))) catch; nothing end
         wtresp_col = try collect(getproperty(tbl, Symbol("r$(w)wtresp"))) catch; nothing end
-        hatota_col = try collect(getproperty(tbl, Symbol("h$(w)atotb")))  catch; nothing end
+        atotb_col  = try collect(getproperty(tbl, Symbol("h$(w)atotb")))  catch; nothing end
         hahous_col = try collect(getproperty(tbl, Symbol("h$(w)ahous")))  catch; nothing end
         isret_col  = try collect(getproperty(tbl, Symbol("r$(w)isret")))  catch; nothing end
         ipen_col   = try collect(getproperty(tbl, Symbol("r$(w)ipen")))   catch; nothing end
@@ -159,13 +165,20 @@ function main()
             # Map 5-point health to 3 states
             health_3 = shlt_raw <= 2 ? 1.0 : (shlt_raw == 3 ? 2.0 : 3.0)
 
-            # Wealth: total household assets minus primary residence,
-            # deflated to 2014 dollars (interview-year CPI). No MIN_WEALTH
-            # floor is applied here; the floor is enforced downstream at solve
-            # time, so this CSV retains sub-floor observations.
+            # Wealth = NONHOUSING NET WORTH. RAND h{w}atotb is total household
+            # net worth (all assets net of debt, including primary AND secondary
+            # residence); subtracting h{w}ahous (primary-residence net value)
+            # yields net worth excluding the primary home, which equals RAND's
+            # h{w}atotn ("Total Non-Housing Assets"). This measure still contains
+            # secondary residence, other real estate, vehicles, business equity,
+            # IRAs, and financial assets (stocks/bonds/CDs/checking-savings/other)
+            # net of non-housing debt — it is NOT liquid financial wealth (that is
+            # h{w}atotf). Deflated to 2014 dollars (interview-year CPI). No
+            # MIN_WEALTH floor is applied here; the floor is enforced downstream at
+            # solve time, so this CSV retains sub-floor observations.
             wealth = 0.0
-            if hatota_col !== nothing && !ismissing(hatota_col[i])
-                wealth = numval_float(hatota_col[i])
+            if atotb_col !== nothing && !ismissing(atotb_col[i])
+                wealth = numval_float(atotb_col[i])
             end
             if hahous_col !== nothing && !ismissing(hahous_col[i])
                 wealth -= numval_float(hahous_col[i])
@@ -215,14 +228,14 @@ function main()
     # ------------------------------------------------------------------
     # Summary statistics
     # ------------------------------------------------------------------
-    println("\n  SUMMARY STATISTICS (2014 dollars)")
+    println("\n  SUMMARY STATISTICS (2014 dollars; wealth = nonhousing net worth)")
     println("  " * "-" ^ 50)
 
     med_idx = max(div(n_total, 2), 1)
     sorted_w = sort(out_wealth)
     sorted_inc = sort(out_perm_inc)
-    @printf("  Median wealth:           \$%s\n", string(round(Int, sorted_w[med_idx])))
-    @printf("  Mean wealth:             \$%s\n", string(round(Int, sum(out_wealth) / n_total)))
+    @printf("  Median nonhousing net worth: \$%s\n", string(round(Int, sorted_w[med_idx])))
+    @printf("  Mean nonhousing net worth:   \$%s\n", string(round(Int, sum(out_wealth) / n_total)))
     @printf("  Median perm income:      \$%s\n", string(round(Int, sorted_inc[med_idx])))
     @printf("  Mean perm income:        \$%s\n", string(round(Int, sum(out_perm_inc) / n_total)))
 

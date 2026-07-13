@@ -214,6 +214,146 @@ function compute_cev(
 end
 
 """
+Per-individual CEV shared by the single-solution population routine
+(compute_cev_population) and the band-dispatched routine
+(compute_cev_population_banded). Given a solved model and one household's state,
+returns its CEVResult. `interp_cache` / `B_cache` are keyed by (health, time) and
+shared across calls that reuse the same solution. The CEV algebra is identical to
+compute_cev; it adds age dispatch (age-specific payout rate and time index) and
+flags out-of-grid / out-of-age households as excluded.
+"""
+function _population_cev_individual(
+    sol::HealthSolution,
+    W_0::Float64, y_0::Float64, age::Int, ih::Int,
+    payout_rate_age65::Float64,
+    base_surv::Union{Vector{Float64}, Nothing},
+    interp_cache, B_cache, has_B::Bool,
+)
+    p = sol.params
+    g = sol.grids
+
+    # Flag agents with wealth outside grid bounds — CEV is not well-defined
+    # because boundary extrapolation produces unreliable values.
+    if W_0 < 1.0 || W_0 > g.W[end]
+        return CEVResult(0.0, 0.0, 0.0, 0.0, true)
+    end
+
+    t = age - p.age_start + 1
+    if t < 1 || t > p.T
+        return CEVResult(0.0, 0.0, 0.0, 0.0, true)
+    end
+
+    # Age-specific payout rate
+    if base_surv !== nothing && age > p.age_start
+        remaining_T = p.T - t + 1
+        r_discount = p.inflation_rate > 0 ? (1 + p.r) * (1 + p.inflation_rate) - 1 : p.r
+        pv = 1.0
+        for s in 1:(remaining_T - 1)
+            cum_s = 1.0
+            for k in t:(t + s - 1)
+                k > length(base_surv) && break
+                cum_s *= base_surv[k]
+            end
+            pv += cum_s / (1.0 + r_discount)^s
+        end
+        payout_rate = p.mwr / pv
+    else
+        payout_rate = payout_rate_age65
+    end
+
+    # Use cached interpolation for this (health, time) pair
+    V_interp = get!(interp_cache, (ih, t)) do
+        linear_interpolation(
+            (g.W, g.A), sol.V[:, :, ih, t],
+            extrapolation_bc=Interpolations.Flat(),
+        )
+    end
+
+    W_c = clamp(W_0, g.W[1], g.W[end])
+    y_c = clamp(y_0, g.A[1], g.A[end])
+
+    V_no_ann = V_interp(W_c, y_c)
+
+    # Bequest component of the no-access value (exact CV); 0 when absent.
+    B_no = 0.0
+    if has_B
+        B_interp = get!(B_cache, (ih, t)) do
+            linear_interpolation(
+                (g.W, g.A), sol.B[:, :, ih, t],
+                extrapolation_bc=Interpolations.Flat(),
+            )
+        end
+        B_no = B_interp(W_c, y_c)
+    end
+
+    # Optimal annuity search
+    best_V = V_no_ann
+    best_alpha = 0.0
+    for alpha in g.alpha
+        alpha <= 0.0 && continue
+        is_feasible_purchase(alpha, W_0, p) || continue
+        pi = alpha * W_0
+        W_rem = W_0 - pi
+        if p.fixed_cost > 0.0
+            W_rem -= p.fixed_cost
+        end
+        W_rem < 0.0 && continue
+
+        inflation_factor = (1.0 + p.inflation_rate)^(t - 1)
+        nominal_premium = pi * inflation_factor
+        A_new = nominal_premium * payout_rate
+        A_total = y_0 + A_new
+        W_rc = clamp(W_rem, g.W[1], g.W[end])
+        A_tc = clamp(A_total, g.A[1], g.A[end])
+        V_val = V_interp(W_rc, A_tc)
+
+        # Mirror solver: subtract narrow-framing at-purchase penalty NPV.
+        if p.psi_purchase > 0.0
+            surv_for_penalty = base_surv === nothing ? sol.base_surv : base_surv
+            V_val -= purchase_penalty(
+                pi, payout_rate, p.gamma, p.psi_purchase,
+                p.psi_purchase_c_ref, p.beta, surv_for_penalty;
+                purchase_period=t,
+            )
+        end
+
+        if V_val > best_V
+            best_V = V_val
+            best_alpha = alpha
+        end
+    end
+
+    # CEV calculation
+    gamma = p.gamma
+    if !isfinite(V_no_ann) || !isfinite(best_V) || best_V <= V_no_ann + 1e-12
+        return CEVResult(0.0, 0.0, V_no_ann, V_no_ann)
+    end
+
+    if gamma == 1.0
+        # See note in compute_cev: log-utility CEV requires the discounted
+        # survival horizon as divisor; the bequest component cancels.
+        D = discounted_survival_horizon(p.beta, base_surv === nothing ? sol.base_surv : base_surv)
+        cev = exp((best_V - V_no_ann) / D) - 1.0
+    else
+        # Exact CV with the bequest component separated (B_no = 0 recovers
+        # the value-ratio form); see exact_cev_lambda and compute_cev.
+        lam = exact_cev_lambda(best_V, V_no_ann, B_no, gamma)
+        if lam === nothing
+            ratio = best_V / V_no_ann
+            if ratio <= 0.0
+                return CEVResult(0.0, best_alpha, V_no_ann, best_V)
+            end
+            cev = ratio^(1.0 / (1.0 - gamma)) - 1.0
+        else
+            cev = lam
+        end
+    end
+    cev = clamp(cev, -1.0, 2.0)
+
+    return CEVResult(cev, best_alpha, V_no_ann, best_V)
+end
+
+"""
 Compute CEV for each individual in a population sample.
 
 Population columns: [wealth, income, age, health_state].
@@ -253,140 +393,9 @@ function compute_cev_population(
         y_0 = population[i, 2]
         age = has_age ? Int(population[i, 3]) : p.age_start
         ih = has_health ? Int(population[i, 4]) : 2
-
-        # Flag agents with wealth outside grid bounds — CEV is not well-defined
-        # because boundary extrapolation produces unreliable values.
-        if W_0 < 1.0 || W_0 > g.W[end]
-            push!(results, CEVResult(0.0, 0.0, 0.0, 0.0, true))
-            continue
-        end
-
-        t = age - p.age_start + 1
-        if t < 1 || t > p.T
-            push!(results, CEVResult(0.0, 0.0, 0.0, 0.0, true))
-            continue
-        end
-
-        # Age-specific payout rate
-        if base_surv !== nothing && age > p.age_start
-            remaining_T = p.T - t + 1
-            r_discount = p.inflation_rate > 0 ? (1 + p.r) * (1 + p.inflation_rate) - 1 : p.r
-            pv = 1.0
-            for s in 1:(remaining_T - 1)
-                cum_s = 1.0
-                for k in t:(t + s - 1)
-                    k > length(base_surv) && break
-                    cum_s *= base_surv[k]
-                end
-                pv += cum_s / (1.0 + r_discount)^s
-            end
-            payout_rate = p.mwr / pv
-        else
-            payout_rate = payout_rate_age65
-        end
-
-        # Use cached interpolation for this (health, time) pair
-        V_interp = get!(interp_cache, (ih, t)) do
-            linear_interpolation(
-                (g.W, g.A), sol.V[:, :, ih, t],
-                extrapolation_bc=Interpolations.Flat(),
-            )
-        end
-
-        W_c = clamp(W_0, g.W[1], g.W[end])
-        y_c = clamp(y_0, g.A[1], g.A[end])
-
-        V_no_ann = V_interp(W_c, y_c)
-
-        # Bequest component of the no-access value (exact CV); 0 when absent.
-        B_no = 0.0
-        if has_B
-            B_interp = get!(B_cache, (ih, t)) do
-                linear_interpolation(
-                    (g.W, g.A), sol.B[:, :, ih, t],
-                    extrapolation_bc=Interpolations.Flat(),
-                )
-            end
-            B_no = B_interp(W_c, y_c)
-        end
-
-        # Optimal annuity search
-        best_V = V_no_ann
-        best_alpha = 0.0
-        for alpha in g.alpha
-            alpha <= 0.0 && continue
-            is_feasible_purchase(alpha, W_0, p) || continue
-            pi = alpha * W_0
-            W_rem = W_0 - pi
-            if p.fixed_cost > 0.0
-                W_rem -= p.fixed_cost
-            end
-            W_rem < 0.0 && continue
-
-            # Premium pi is in real (age-65 nominal) dollars. Convert to the
-            # age-of-purchase nominal premium, then to A_state: for an age-t
-            # purchase, the insurer pays pi*(1+pi_inf)^(t-1)*payout_rate per
-            # year in age-t nominal dollars; the model's A_state stores the
-            # constant nominal payment in age-65 dollars (deflated by the
-            # Bellman via A_real(s) = A_state * (1+pi_inf)^-(s-1)), so
-            # A_state = pi * payout_rate * (1+pi_inf)^(t-1). For t=1 this
-            # reduces to A_state = pi * payout_rate.
-            inflation_factor = (1.0 + p.inflation_rate)^(t - 1)
-            nominal_premium = pi * inflation_factor
-            A_new = nominal_premium * payout_rate
-            A_total = y_0 + A_new
-            W_rc = clamp(W_rem, g.W[1], g.W[end])
-            A_tc = clamp(A_total, g.A[1], g.A[end])
-            V_val = V_interp(W_rc, A_tc)
-
-            # Mirror solver: subtract narrow-framing at-purchase penalty NPV.
-            # The penalty's c_ref is in real dollars, so pass the real
-            # premium pi (not the nominal-grossed-up amount).
-            if p.psi_purchase > 0.0
-                surv_for_penalty = base_surv === nothing ? sol.base_surv : base_surv
-                V_val -= purchase_penalty(
-                    pi, payout_rate, p.gamma, p.psi_purchase,
-                    p.psi_purchase_c_ref, p.beta, surv_for_penalty;
-                    purchase_period=t,
-                )
-            end
-
-            if V_val > best_V
-                best_V = V_val
-                best_alpha = alpha
-            end
-        end
-
-        # CEV calculation
-        gamma = p.gamma
-        if !isfinite(V_no_ann) || !isfinite(best_V) || best_V <= V_no_ann + 1e-12
-            push!(results, CEVResult(0.0, 0.0, V_no_ann, V_no_ann))
-            continue
-        end
-
-        if gamma == 1.0
-            # See note in compute_cev: log-utility CEV requires the discounted
-            # survival horizon as divisor; the bequest component cancels.
-            D = discounted_survival_horizon(p.beta, base_surv === nothing ? sol.base_surv : base_surv)
-            cev = exp((best_V - V_no_ann) / D) - 1.0
-        else
-            # Exact CV with the bequest component separated (B_no = 0 recovers
-            # the value-ratio form); see exact_cev_lambda and compute_cev.
-            lam = exact_cev_lambda(best_V, V_no_ann, B_no, gamma)
-            if lam === nothing
-                ratio = best_V / V_no_ann
-                if ratio <= 0.0
-                    push!(results, CEVResult(0.0, best_alpha, V_no_ann, best_V))
-                    continue
-                end
-                cev = ratio^(1.0 / (1.0 - gamma)) - 1.0
-            else
-                cev = lam
-            end
-        end
-        cev = clamp(cev, -1.0, 2.0)
-
-        push!(results, CEVResult(cev, best_alpha, V_no_ann, best_V))
+        push!(results, _population_cev_individual(
+            sol, W_0, y_0, age, ih, payout_rate_age65, base_surv,
+            interp_cache, B_cache, has_B))
     end
 
     # Summary statistics — exclude out-of-grid agents from aggregates so they
@@ -409,6 +418,105 @@ function compute_cev_population(
         n_total=n_individuals,
         n_excluded=n_excluded,
         n_included=n_individuals - n_excluded,
+    )
+end
+
+# Wealth-band assignment mirroring decomposition._filter_quartile:
+#   band 1 = W < breaks[1], 2 = [breaks[1],breaks[2]),
+#   3 = [breaks[2],breaks[3]), 4 = W >= breaks[3].
+# Assignment is by ORIGINAL non-annuitized wealth.
+function _wealth_band(W::Float64, breaks::Vector{Float64})
+    W < breaks[1] && return 1
+    W < breaks[2] && return 2
+    W < breaks[3] && return 3
+    return 4
+end
+
+"""
+Band-dispatched population CEV.
+
+`sols` holds one solved model per wealth band (each band's SS+DB floor baked into
+that solve's ss_func), `breaks` the band cutoffs. Each household is assigned to a
+band by its ORIGINAL non-annuitized wealth (population[:,1]) and its CEV is
+evaluated against that band's value function — mirroring the production ownership
+model's per-band dispatch (decomposition.solve_and_evaluate, the ss_levels
+method). Results are returned in population order (results[i] <-> population[i]).
+
+Reports two aggregations:
+  - conditional: over households with positive in-grid wealth (excludes W<1 and
+    out-of-grid / out-of-age agents) — the current denominator;
+  - unconditional: over the whole population, with excluded agents entering at
+    CEV = 0.
+"""
+function compute_cev_population_banded(
+    sols::Vector{HealthSolution},
+    population::Matrix{Float64},
+    payout_rate_age65::Float64,
+    breaks::Vector{Float64};
+    base_surv::Union{Vector{Float64}, Nothing}=nothing,
+)
+    length(sols) == length(breaks) + 1 ||
+        error("compute_cev_population_banded: need length(sols) == length(breaks)+1")
+    n = size(population, 1)
+    has_age = size(population, 2) >= 3
+    has_health = size(population, 2) >= 4
+
+    # Per-band interpolation caches keyed by (health, time), plus the
+    # bequest-decomposition availability flag per band.
+    _mkcache(sol) = Dict{Tuple{Int,Int}, typeof(linear_interpolation(
+        (sol.grids.W, sol.grids.A), sol.V[:, :, 1, 1],
+        extrapolation_bc=Interpolations.Flat(),
+    ))}()
+    interp_caches = [_mkcache(s) for s in sols]
+    B_caches = [_mkcache(s) for s in sols]
+    has_B = [!isempty(s.B) for s in sols]
+
+    results = Vector{CEVResult}(undef, n)
+    band_of = Vector{Int}(undef, n)
+    for i in 1:n
+        W_0 = population[i, 1]
+        y_0 = population[i, 2]
+        age = has_age ? Int(population[i, 3]) : sols[1].params.age_start
+        ih = has_health ? Int(population[i, 4]) : 2
+        b = _wealth_band(W_0, breaks)
+        band_of[i] = b
+        results[i] = _population_cev_individual(
+            sols[b], W_0, y_0, age, ih, payout_rate_age65, base_surv,
+            interp_caches[b], B_caches[b], has_B[b])
+    end
+
+    # Conditional aggregation (exclude out-of-grid / out-of-age agents).
+    included = [r.cev for r in results if !r.excluded]
+    n_excluded = count(r -> r.excluded, results)
+    n_included = n - n_excluded
+    mean_cond = length(included) > 0 ? sum(included) / length(included) : 0.0
+    sorted_c = sort(included)
+    median_cond = length(sorted_c) > 0 ? sorted_c[div(length(sorted_c) + 1, 2)] : 0.0
+    frac_pos_cond = count(c -> c > 0.0, included) / max(length(included), 1)
+    frac_1pct_cond = count(c -> c > 0.01, included) / max(length(included), 1)
+
+    # Unconditional aggregation (excluded agents enter at CEV = 0).
+    all_cev = [r.excluded ? 0.0 : r.cev for r in results]
+    mean_uncond = n > 0 ? sum(all_cev) / n : 0.0
+    sorted_u = sort(all_cev)
+    median_uncond = n > 0 ? sorted_u[div(n + 1, 2)] : 0.0
+    frac_pos_uncond = n > 0 ? count(c -> c > 0.0, all_cev) / n : 0.0
+    frac_1pct_uncond = n > 0 ? count(c -> c > 0.01, all_cev) / n : 0.0
+
+    return (
+        results=results,
+        band_of=band_of,
+        mean_cev=mean_cond,
+        median_cev=median_cond,
+        frac_positive=frac_pos_cond,
+        frac_above_1pct=frac_1pct_cond,
+        n_total=n,
+        n_excluded=n_excluded,
+        n_included=n_included,
+        mean_cev_uncond=mean_uncond,
+        median_cev_uncond=median_uncond,
+        frac_positive_uncond=frac_pos_uncond,
+        frac_above_1pct_uncond=frac_1pct_uncond,
     )
 end
 
@@ -467,14 +575,17 @@ function compute_cev_grid(
         ]
     end
 
-    # SS function for the welfare model. The production decomposition solves
-    # per quartile and aggregates; here we solve once with a representative
-    # level (midpoint of the two middle wealth-bin floors). This aligns the
-    # welfare CEV's baseline with the production solve rather than treating
-    # retirees as having zero SS, which would inflate the marginal value of
-    # annuitization. A per-quartile dispatch is left as a future tightening.
-    ss_rep = (SS_QUARTILE_LEVELS[2] + SS_QUARTILE_LEVELS[3]) / 2
-    ss_func_welfare(age, p) = ss_rep
+    # Band-dispatched SS. The production ownership model assigns each household a
+    # wealth-band SS+DB floor (SS_QUARTILE_LEVELS over SS_QUARTILE_BREAKS) and
+    # solves one value function per band (decomposition.solve_and_evaluate). The
+    # welfare CEV mirrors that: for each bequest spec we solve four band value
+    # functions, one per SS level, and evaluate every household against the band
+    # its ORIGINAL non-annuitized wealth falls in. This replaces the prior single
+    # representative-SS solve, which applied one midpoint floor to all households
+    # and mispriced the marginal value of annuitization at the low and high ends
+    # of the wealth distribution.
+    ss_breaks = SS_QUARTILE_BREAKS
+    ss_band_levels = SS_QUARTILE_LEVELS
 
     grid_kw = (n_wealth=n_wealth, n_annuity=n_annuity, n_alpha=n_alpha,
                W_max=W_max, age_start=age_start, age_end=age_end,
@@ -524,38 +635,47 @@ function compute_cev_grid(
                 bspec.name, bspec.theta, string(round(Int, bspec.kappa)))
         end
 
-        p_model = ModelParams(; common_kw...,
-            theta=bspec.theta, kappa=bspec.kappa,
-            mwr=mwr_loaded, fixed_cost=fixed_cost_val, min_purchase=min_purchase_val,
-            chi_ltc=chi_ltc,
-            lambda_w=lambda_w,
-            psi_purchase=psi_purchase,
-            psi_purchase_c_ref=psi_purchase_c_ref,
-            inflation_rate=inflation_val,
-            medical_enabled=true, health_mortality_corr=true,
-            grid_kw...)
-
-        t0 = time()
-        sol = solve_lifecycle_health(p_model, grids, base_surv, ss_func_welfare;
-                                     compute_bequest_decomp=true)
-        solve_time = time() - t0
-
-        if verbose
-            @printf("    Solved in %.1fs\n", solve_time)
+        # One value function per wealth band, each carrying that band's SS+DB
+        # floor. The solves differ only in the (constant) ss_func level.
+        n_bands = length(ss_band_levels)
+        band_sols = Vector{HealthSolution}(undef, n_bands)
+        for b in 1:n_bands
+            ss_b = ss_band_levels[b]
+            ss_func_b = (age, p) -> ss_b
+            p_model = ModelParams(; common_kw...,
+                theta=bspec.theta, kappa=bspec.kappa,
+                mwr=mwr_loaded, fixed_cost=fixed_cost_val, min_purchase=min_purchase_val,
+                chi_ltc=chi_ltc,
+                lambda_w=lambda_w,
+                psi_purchase=psi_purchase,
+                psi_purchase_c_ref=psi_purchase_c_ref,
+                inflation_rate=inflation_val,
+                medical_enabled=true, health_mortality_corr=true,
+                grid_kw...)
+            t0 = time()
+            band_sols[b] = solve_lifecycle_health(p_model, grids, base_surv, ss_func_b;
+                                                  compute_bequest_decomp=true)
+            if verbose
+                @printf("    band %d (SS=\$%s) solved in %.1fs\n",
+                    b, string(round(Int, ss_b)), time() - t0)
+            end
         end
 
-        # CEV at each grid point
+        # CEV grid cell: dispatch each wealth point to its band's solution.
         for ih in 1:n_h
             for iw in 1:n_w
+                b = _wealth_band(wealth_points[iw], ss_breaks)
                 cev_grid[iw, ib, ih] = compute_cev(
-                    sol, wealth_points[iw], y_existing, ih, loaded_pr,
+                    band_sols[b], wealth_points[iw], y_existing, ih, loaded_pr,
                 )
             end
         end
 
-        # Population-level CEV
-        pop_result = compute_cev_population(
-            sol, pop, loaded_pr; base_surv=base_surv,
+        # Population-level CEV, band-dispatched by ORIGINAL wealth. Reports both
+        # the conditional (positive in-grid wealth) and unconditional (whole
+        # population, excluded at CEV=0) aggregations.
+        pop_result = compute_cev_population_banded(
+            band_sols, pop, loaded_pr, ss_breaks; base_surv=base_surv,
         )
         push!(population_cev, (
             name=bspec.name,
@@ -566,6 +686,10 @@ function compute_cev_grid(
             n_total=pop_result.n_total,
             n_excluded=pop_result.n_excluded,
             n_included=pop_result.n_included,
+            mean_cev_uncond=pop_result.mean_cev_uncond,
+            median_cev_uncond=pop_result.median_cev_uncond,
+            frac_positive_uncond=pop_result.frac_positive_uncond,
+            frac_above_1pct_uncond=pop_result.frac_above_1pct_uncond,
             results=pop_result.results,
         ))
     end

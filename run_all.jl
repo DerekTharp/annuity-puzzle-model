@@ -224,6 +224,14 @@ function main()
         joinpath(SCRIPTS_DIR, "run_welfare_analysis.jl"))
     push!(timings, "Welfare CEV" => t)
 
+    # --- Stage 6b: CEV closed-form floor-scaling validation ---
+    # Produces: cev_floor_scaling_diagnostic.csv (bounds the closed-form CEV
+    # error against a numerically-solved CEV across floor-binding cells).
+    t = run_stage(
+        "6b. CEV Floor-Scaling Validation",
+        joinpath(SCRIPTS_DIR, "validate_cev_floor_scaling.jl"))
+    push!(timings, "CEV floor validation" => t)
+
     # --- Stage 7: Welfare counterfactuals ---
     # Produces: welfare_counterfactuals.tex/.csv, cev_counterfactuals.tex/.csv
     t = run_stage(
@@ -345,6 +353,15 @@ function main()
         "11d. Empirical Gradient Validation (HRS)",
         joinpath(SCRIPTS_DIR, "run_empirical_validation.jl"))
     push!(timings, "Empirical gradients" => t)
+
+    # --- Stage 11d2: HRS weighting + wealth-definition robustness ---
+    # Produces: hrs_weighting_robustness.csv (unweighted/survey-weighted/person-
+    # balanced ownership by band) and hrs_wealth_definition_bands.csv (nonhousing
+    # net worth vs liquid financial wealth band membership). Evaluation-only.
+    t = run_stage(
+        "11d2. HRS Weighting + Wealth-Definition Robustness",
+        joinpath(SCRIPTS_DIR, "run_hrs_weighting_robustness.jl"))
+    push!(timings, "HRS weighting robustness" => t)
 
     # --- Stage 11e: Partition robustness (Med/R-S unbundled; SS/DB split) ---
     # Produces: shapley_partition_{medrs,ssdb}.csv, partition_robustness.tex

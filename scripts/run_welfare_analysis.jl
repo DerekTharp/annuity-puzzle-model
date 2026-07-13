@@ -66,15 +66,17 @@ bequest_specs = [
     (name="Strong bequest",  theta=200.0, kappa=KAPPA_DFJ),
 ]
 
-# SS is wired through the welfare model's ss_func at the representative level
-# computed in compute_cev_grid (midpoint of the two middle quartile floors).
-# y_existing is reserved for non-SS pre-existing annuity income, which is
-# essentially zero in the HRS sample. Setting y_existing = 0 avoids
-# double-counting SS once it's already in the Bellman income flow.
-ss_rep_doc = (SS_QUARTILE_LEVELS[2] + SS_QUARTILE_LEVELS[3]) / 2
+# SS is wired through the welfare model's ss_func, band-dispatched: compute_cev_grid
+# solves one value function per wealth band at that band's SS+DB floor
+# (SS_QUARTILE_LEVELS over SS_QUARTILE_BREAKS) and evaluates each household against
+# the band its original wealth falls in. y_existing is reserved for non-SS
+# pre-existing annuity income, which is essentially zero in the HRS sample.
+# Setting y_existing = 0 avoids double-counting SS once it's already in the
+# Bellman income flow.
+ss_band_doc = join([string("\$", round(Int, x)) for x in SS_QUARTILE_LEVELS], "/")
 y_existing_for_grid = 0.0
-@printf("  y_existing = \$%s (SS is wired via ss_func at \$%s/year)\n",
-    string(round(Int, y_existing_for_grid)), string(round(Int, ss_rep_doc)))
+@printf("  y_existing = \$%s (SS wired via ss_func, band floors %s/year)\n",
+    string(round(Int, y_existing_for_grid)), ss_band_doc)
 
 wealth_eval = [10_000.0, 25_000.0, 50_000.0, 100_000.0,
                200_000.0, 500_000.0, 1_000_000.0]
@@ -132,8 +134,8 @@ for iw in 1:length(wealth_eval)
     end
 end
 println("  " * "-" ^ 78)
-@printf("  Note: y_existing = \$%s (SS via ss_func at \$%s/year). alpha* under DFJ bequests.\n",
-    string(round(Int, y_existing_for_grid)), string(round(Int, ss_rep_doc)))
+@printf("  Note: y_existing = \$%s (SS via ss_func, band floors %s/year). alpha* under DFJ bequests.\n",
+    string(round(Int, y_existing_for_grid)), ss_band_doc)
 
 # ===================================================================
 # Section 2: Population CEV Statistics
@@ -142,30 +144,48 @@ println("\n" * "=" ^ 70)
 println("  SECTION 2: POPULATION-LEVEL CEV STATISTICS")
 println("=" ^ 70)
 
-@printf("\n  %-20s %10s %10s %10s %10s\n",
-    "Bequest Spec", "Mean CEV", "Med CEV", "CEV>0", "CEV>1%")
-println("  " * "-" ^ 62)
+# Two denominators are reported per spec: the conditional statistics are over
+# households with positive in-grid wealth (the current denominator, n_included);
+# the unconditional statistics spread the same welfare over the whole eligible
+# population, with out-of-grid / out-of-age agents entering at CEV = 0 (n_total).
+println("\n  Conditional (positive in-grid wealth) vs unconditional (full population):")
+@printf("\n  %-16s | %8s %8s %7s %7s | %8s %8s %7s %7s\n",
+    "Bequest Spec",
+    "Mean_c", "Med_c", "Pos_c", ">1%_c",
+    "Mean_u", "Med_u", "Pos_u", ">1%_u")
+println("  " * "-" ^ 86)
 
 pop_cev_rows = []
 for pcev in cev_output.population_cev
-    @printf("  %-20s %9.2f%% %9.2f%% %9.1f%% %9.1f%%  (n_excl=%d/%d)\n",
+    @printf("  %-16s | %7.2f%% %7.2f%% %6.1f%% %6.1f%% | %7.2f%% %7.2f%% %6.1f%% %6.1f%%\n",
         pcev.name,
-        pcev.mean_cev * 100,
-        pcev.median_cev * 100,
-        pcev.frac_positive * 100,
-        pcev.frac_above_1pct * 100,
-        pcev.n_excluded, pcev.n_total)
+        pcev.mean_cev * 100, pcev.median_cev * 100,
+        pcev.frac_positive * 100, pcev.frac_above_1pct * 100,
+        pcev.mean_cev_uncond * 100, pcev.median_cev_uncond * 100,
+        pcev.frac_positive_uncond * 100, pcev.frac_above_1pct_uncond * 100)
     push!(pop_cev_rows, [pcev.name, pcev.mean_cev, pcev.median_cev,
                           pcev.frac_positive, pcev.frac_above_1pct,
-                          pcev.n_total, pcev.n_excluded, pcev.n_included])
+                          pcev.n_total, pcev.n_excluded, pcev.n_included,
+                          pcev.mean_cev_uncond, pcev.median_cev_uncond,
+                          pcev.frac_positive_uncond, pcev.frac_above_1pct_uncond,
+                          pcev.n_total])
+end
+for pcev in cev_output.population_cev
+    @printf("    %-16s  n_conditional=%d  n_unconditional=%d  (n_excl=%d)\n",
+        pcev.name, pcev.n_included, pcev.n_total, pcev.n_excluded)
 end
 
-# Save population CEV to CSV
+# Save population CEV to CSV. Columns 1-8 (spec + conditional stats + counts)
+# are the historical schema read positionally by export_manuscript_numbers.jl;
+# columns 9-13 append the unconditional statistics and the unconditional N.
 pop_csv_path = joinpath(@__DIR__, "..", "tables", "csv", "population_cev.csv")
 open(pop_csv_path, "w") do io
-    println(io, "bequest_spec,mean_cev,median_cev,frac_positive,frac_above_1pct,n_total,n_excluded,n_included")
+    println(io, "bequest_spec,mean_cev,median_cev,frac_positive,frac_above_1pct," *
+                "n_total,n_excluded,n_included," *
+                "mean_cev_uncond,median_cev_uncond,frac_positive_uncond," *
+                "frac_above_1pct_uncond,n_unconditional")
     for row in pop_cev_rows
-        @printf(io, "%s,%.6f,%.6f,%.4f,%.4f,%d,%d,%d\n", row...)
+        @printf(io, "%s,%.6f,%.6f,%.4f,%.4f,%d,%d,%d,%.6f,%.6f,%.4f,%.4f,%d\n", row...)
     end
 end
 @printf("  Saved: %s\n", pop_csv_path)
@@ -320,8 +340,10 @@ open(tex_path, "w") do io
         "Full model with medical costs, health-mortality correlation, ",
         "MWR = $MWR_LOADED, inflation = $(Int(INFLATION*100))\\%, ",
         "\$\\gamma = $GAMMA\$.")
-    @printf(io, "\\item Welfare model uses representative SS income (\\\$%s/yr, midpoint of the middle wealth-bin floors) for all wealth cells.\n",
-        replace(@sprintf("%d", round(Int, ss_rep_doc)), r"(\d)(?=(\d{3})+$)" => s"\1{,}"))
+    ss_band_tex = join([replace(@sprintf("\\\$%d", round(Int, x)),
+                                 r"(\d)(?=(\d{3})+$)" => s"\1{,}") for x in SS_QUARTILE_LEVELS], "/")
+    @printf(io, "\\item Welfare model band-dispatches SS income: one value function per wealth band at that band's SS+DB floor (%s/yr over breaks \\\$30k/\\\$120k/\\\$350k); each household is evaluated against the band its original wealth falls in.\n",
+        ss_band_tex)
     println(io, "\\end{tablenotes}")
     println(io, "\\end{table}")
 end
