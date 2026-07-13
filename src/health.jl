@@ -89,8 +89,9 @@ const GH_WEIGHTS_11 = [1.439560393714e-6, 3.468194663233e-4, 0.0119113954449115,
                        0.4293597523561230, 0.6547592869145944, 0.4293597523561230, 0.1172278751677091,
                        0.0119113954449115, 3.468194663233e-4, 1.439560393714e-6]
 
-# 13-node and 15-node tables, used only for convergence diagnostics beyond
-# the 11-node production rule. Computed via FastGaussQuadrature.gausshermite.
+# 13-node and 15-node Gauss-Hermite tables. 15-node is the production rule
+# (N_QUAD=15); 13-node is retained for the convergence diagnostics. Computed
+# via FastGaussQuadrature.gausshermite.
 const GH_NODES_13 = [-4.1013375961786, -3.2466089783724, -2.5197356856782, -1.8531076516015,
                       -1.2200550365908, -0.6057638791711, 0.0, 0.6057638791711,
                       1.2200550365908, 1.8531076516015, 2.5197356856782, 3.2466089783724,

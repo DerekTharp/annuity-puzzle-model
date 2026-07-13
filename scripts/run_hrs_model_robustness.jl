@@ -6,15 +6,19 @@
 # evaluation-only: the full nine-channel model (mask 511, production config, SS
 # on so no commuted-PV top-up) is solved ONCE -- four band solutions differing
 # only in the pre-existing-annuitization level -- and predicted ownership is then
-# read off that solution three ways:
+# read off that solution several ways:
 #   (a) unweighted       — equal weight per person-wave (baseline);
 #   (b) weighted         — RAND person analysis weight r{w}wtresp (processed col);
 #   (c) person-balanced  — one observation per person (first eligible wave).
 # Methods (a)-(b) use the processed sample. Method (c) needs the person id, which
 # lives only in the raw RAND file, so it is gated behind isfile like Stage 11d2.
-# An annuitizable-financial-wealth (liquid) band definition is likewise raw-gated
-# (the processed sample carries only nonhousing net worth): households are
-# regrouped and SS-assigned by RAND h{w}atotf, model wealth unchanged.
+# Two annuitizable-financial-wealth (liquid) definitions are likewise raw-gated
+# (the processed sample carries only nonhousing net worth):
+#   (d) liquid-band         — regroup + SS-assign by RAND h{w}atotf, but model
+#                             wealth stays net worth (a mild re-banding check);
+#   (e) liquid-wealth-model — model wealth ITSELF is h{w}atotf, so eligibility,
+#                             premium capacity, and fixed-cost exposure all run
+#                             on liquid wealth (the genuine liquid robustness).
 #
 # Coarse-grid smoke: ANNUITY_SMOKE=1 shrinks the grid; production uses the config
 # grid. The evaluation is cheap (four solves); only the raw read is heavy.
@@ -217,9 +221,20 @@ else
     end
     report("person-balanced", eval_by_band(popR[pbidx, :], band_of.(rnhnw[pbidx])))
 
-    # Liquid-wealth band definition: regroup + SS-assign by h{w}atotf, model
-    # wealth unchanged (net worth). Person-wave level, unweighted.
+    # (d) Liquid-band: regroup + SS-assign by h{w}atotf, but MODEL wealth stays
+    # net worth (popR col 1 = rnhnw). Milder sensitivity — eligibility, premium
+    # capacity, and fixed-cost exposure still run on net worth; only band
+    # membership and the pre-existing-annuitization level move to liquid wealth.
+    # Person-wave level, unweighted.
     report("liquid-band", eval_by_band(popR, band_of.(rliq)))
+
+    # (e) Liquid-wealth model: MODEL wealth column IS liquid financial wealth
+    # (h{w}atotf), so eligibility (is_feasible_purchase), premium capacity
+    # (pi = alpha*W), and fixed-cost exposure all run on liquid wealth, with band
+    # membership and SS assigned by liquid wealth too. Reuses the four band
+    # solutions (no re-solve); the liquid-band row only re-bands a net-worth model.
+    popLiq = hcat(rliq, zeros(length(rliq)), rage, rh)
+    report("liquid-wealth-model", eval_by_band(popLiq, band_of.(rliq)))
 end
 
 # ===================================================================
