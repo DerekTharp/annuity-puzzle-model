@@ -166,6 +166,20 @@ function main()
         "0g. Build sex-blended life table",
         joinpath(CALIB_DIR, "build_blended_lifetable.jl"))
 
+    # --- Stage 0h: Age-needs calibration (derives CONSUMPTION_DECLINE) ---
+    # Regenerates age_needs_calibration.csv and warns if the derived delta_c
+    # diverges from the config constant. Skippable: the derivation is a fixed
+    # one-time calibration (~20 min of solves at production quadrature); the
+    # committed CSV documents it. Set ANNUITY_FORCE_AGE_NEEDS_RECAL=1 to force.
+    age_needs_csv = joinpath(PROJECT_DIR, "tables", "csv", "age_needs_calibration.csv")
+    if isfile(age_needs_csv) && get(ENV, "ANNUITY_FORCE_AGE_NEEDS_RECAL", "0") != "1"
+        @printf("\n  Skipping Stage 0h: %s exists (set ANNUITY_FORCE_AGE_NEEDS_RECAL=1 to force).\n", age_needs_csv)
+    else
+        run_stage(
+            "0h. Age-needs calibration",
+            joinpath(SCRIPTS_DIR, "recalibrate_age_needs.jl"))
+    end
+
     # --- Stage 1: Lockwood (2012) replication ---
     # Console-only WTP replication table (no file output). The appendix prose
     # is hand-maintained; the numbers are gated by test/test_lockwood.jl.

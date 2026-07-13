@@ -68,7 +68,17 @@ const HAZARD_MULT_AGE_BANDS = [0.49 1.00 3.29;          # ages 65-74
                                0.74 1.00 1.82]          # ages 85+
 const HAZARD_MULT_AGE_MIDPOINTS = [69.5, 79.5, 90.0]    # band midpoints
 
-const CONSUMPTION_DECLINE = 0.02  # age-varying consumption needs (Aguiar-Hurst 2013)
+const CONSUMPTION_DECLINE = 0.0081  # age-varying-needs felicity-weight decline.
+                                     # Calibrated (scripts/recalibrate_age_needs.jl)
+                                     # so the model's simulated no-annuity
+                                     # consumption path declines at the
+                                     # Aguiar-Hurst (2013) ~2%/yr retirement rate.
+                                     # A 2% weight decline is NOT a 2% consumption
+                                     # decline: the map runs through the Euler
+                                     # equation and the mortality/medical/floor
+                                     # environment, which alone already yields
+                                     # 1.81%/yr, so the needs weight adds only the
+                                     # residual (delta_c=0.02 over-attributed).
 const HEALTH_UTILITY = [1.0, 0.92, 0.82]  # state-dep utility — FLN (2013) central
                                            # within their 95% CI. Reichling-Smetters
                                            # (2015) used softer [1, 0.95, 0.85]; FLN
