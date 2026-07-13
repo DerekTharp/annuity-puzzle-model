@@ -85,7 +85,7 @@ _hm=Float64.(HAZARD_MULT); _hn=HAZARD_NORMALIZE; _nq=NQ; _cd=CONSUMPTION_DECLINE
 _hu=Float64.(HEALTH_UTILITY); _chi=CHI_LTC; _lw=LAMBDA_W; _pp=PSI_PURCHASE; _ppc=PSI_PURCHASE_C_REF
 _pess=SURVIVAL_PESSIMISM
 _bs=base_surv; _pop=population; _fair=fair; _fairn=fair_nom; _minw=MIN_WEALTH; _gkw=gkw
-_topup_vec=topup_vec
+_topup_vec=topup_vec; _db=Float64.(DB_OBS)
 
 specs = [(m=m, cf=cf, tag=tag) for (tag, cf) in FLOOR_SETTINGS for m in 0:(2^N_CH - 1)]
 println("\nSolving $(length(specs)) subsets ($(length(FLOOR_SETTINGS)) floor settings x 512)..."); flush(stdout)
@@ -96,7 +96,8 @@ results = parallel_solve(specs) do spec
         theta_dfj=_theta, kappa_dfj=_kappa, mwr_loaded=_mwr, fixed_cost=_fc,
         min_purchase=_minp, inflation_val=_infl, survival_pessimism=_pess,
         ss_quartile_levels=_ssq, consumption_decline=_cd, health_utility=_hu,
-        chi_ltc_val=_chi, lambda_w_val=_lw, psi_purchase_val=_pp, psi_purchase_c_ref_val=_ppc)
+        chi_ltc_val=_chi, lambda_w_val=_lw, psi_purchase_val=_pp, psi_purchase_c_ref_val=_ppc,
+        db_levels=_db)
     has_loads = cfg.mwr < 1.0; has_infl = cfg.inflation_rate > 0
     pr = has_loads && has_infl ? cfg.mwr * _fairn : has_loads ? cfg.mwr * _fair : has_infl ? _fairn : _fair
     common = (gamma=_gamma, beta=_beta, r=_r, stochastic_health=true, n_health_states=3,
@@ -109,7 +110,7 @@ results = parallel_solve(specs) do spec
         health_utility=cfg.health_utility, chi_ltc=cfg.chi_ltc, _gkw...)
     pop = _minw > 0 ? _pop[_pop[:, 1] .>= _minw, :] : _pop
     res = solve_and_evaluate(p, grids, _bs, cfg.ss_levels, pop, pr; verbose=false,
-        wealth_topup_hh = cfg.commute_ss ? _topup_vec : nothing)
+        wealth_topup_hh = cfg.commute_ss ? _topup_vec : nothing, db_levels=cfg.db_levels)
     (tag=spec.tag, mask=mask, ownership=res.ownership)
 end
 @printf("  done in %.0fs\n", time() - t0); flush(stdout)
@@ -181,7 +182,7 @@ open(texp, "w") do io
     println(io, raw"\begin{tablenotes}")
     println(io, raw"\small")
     @printf(io, "\\item Exact Shapley values over all \$2^{9}=512\$ subsets of the nine-channel game, computed with the Medicaid consumption floor at its production value (\\\$%.0f) and at a near-zero value (\\\$1). ", C_FLOOR)
-    println(io, "The floor is fixed in every coalition, outside the game. Positive values are demand-suppressing; pre-existing annuitization is demand-raising. Rank~1 is the strongest suppressor. Pricing loads and pre-existing annuitization (SS+DB) remain the top-two suppressors under both settings, so the ranking does not depend on the floor.")
+    println(io, "The Medicaid consumption floor is fixed in every coalition, outside the nine-channel game; this exhibit recomputes the exact Shapley attribution with the floor at its production level and near zero, to show how much the ranking is conditional on the safety net. Rank~1 is the strongest suppressor. Positive values are demand-suppressing. The two floor settings are reported side by side; the manuscript reads the actual reordering from the values below.")
     println(io, raw"\end{tablenotes}")
     println(io, raw"\end{threeparttable}")
     println(io, raw"\end{table}")

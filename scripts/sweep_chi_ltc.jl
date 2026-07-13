@@ -95,6 +95,7 @@ grids = build_grids(p_grid, max(fair_pr, fair_pr_nom))
 loaded_pr_nom = MWR_LOADED * fair_pr_nom
 
 ss_levels = Float64.(SS_QUARTILE_LEVELS)
+db_levels = Float64.(DB_OBS)   # nominal DB component; erodes in the ON state
 
 # ===================================================================
 # Sweep
@@ -122,7 +123,7 @@ for chi in CHI_LTC_GRID
         grid_kw...)
 
     res = solve_and_evaluate(p_model, grids, base_surv, ss_levels,
-        population, loaded_pr_nom; step_name="", verbose=false)
+        population, loaded_pr_nom; step_name="", verbose=false, db_levels=db_levels)
 
     push!(results, (chi_ltc=chi, ownership=res.ownership, mean_alpha=res.mean_alpha))
     @printf("  %-10.2f  %11.2f%%  %10.4f\n", chi, res.ownership * 100, res.mean_alpha)

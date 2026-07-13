@@ -31,7 +31,7 @@ export consumption_weight, health_utility_weight, marginal_flow_utility,
        flow_utility_sdu, flow_utility_chi_ltc, flow_utility_sdu_chi_ltc, purchase_penalty
 export build_wealth_grid, build_annuity_grid, build_alpha_grid, build_grids, Grids
 export clamp_audit, reset_clamp_audit!, report_clamp_audit
-export ss_benefit, ss_benefit_by_wealth, ss_benefit_zero
+export ss_benefit, ss_benefit_by_wealth, ss_benefit_zero, build_ss_func, DB_EROSION_RATE
 export survival_prob_deterministic, build_survival_probs, cumulative_survival
 export gauss_hermite_normal
 export build_health_transition, build_all_health_transitions

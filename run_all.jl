@@ -79,6 +79,12 @@ function main()
     timings = Pair{String, Float64}[]
     t_total = time()
 
+    # Fresh AWS boxes exclude tables/ and figures/ from the sync, so create the
+    # output directories before any stage writes to them (Stage 0h onward).
+    for d in ("tables/csv", "tables/tex", "figures/pdf", "figures/png", "results")
+        mkpath(joinpath(PROJECT_DIR, d))
+    end
+
     # --- Preflight: lower every driver and check production-flag
     #     consistency before spending compute ---
     run_stage(

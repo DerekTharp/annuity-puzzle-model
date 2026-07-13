@@ -42,11 +42,13 @@ const CHI_LTC_VAL = 0.49
 
 const NW_C = 40; const NA_C = 15; const NALPHA_C = 51
 
-# floor structures: label => function(cut) -> 4-vector of per-quartile income
+# floor structures: label => (floorfn(cut) -> combined per-quartile income,
+# dbfn(cut) -> the nominal DB portion of that income, which erodes in the ON
+# state). The hardcoded blob has no separable DB (treated as constant real).
 const STRUCTURES = [
-    ("hardcoded_blob",      cut -> (1.0 - cut) .* HARDCODED),
-    ("obs_ss_cut_db_fixed", cut -> (1.0 - cut) .* SS_OBS .+ DB_OBS),
-    ("obs_blob_cut",        cut -> (1.0 - cut) .* (SS_OBS .+ DB_OBS)),
+    ("hardcoded_blob",      cut -> (1.0 - cut) .* HARDCODED,          cut -> zeros(4)),
+    ("obs_ss_cut_db_fixed", cut -> (1.0 - cut) .* SS_OBS .+ DB_OBS,   cut -> copy(DB_OBS)),
+    ("obs_blob_cut",        cut -> (1.0 - cut) .* (SS_OBS .+ DB_OBS), cut -> (1.0 - cut) .* DB_OBS),
 ]
 
 println("=" ^ 70)
@@ -85,8 +87,9 @@ loaded_pr_nom = MWR_LOADED * fair_pr_nom
 
 specs = [(si=si, cut=cut) for si in 1:length(STRUCTURES) for cut in CUTS]
 results = parallel_solve(specs) do spec
-    (label, floorfn) = STRUCTURES[spec.si]
+    (label, floorfn, dbfn) = STRUCTURES[spec.si]
     ss_lvls = floorfn(spec.cut)
+    db_lvls = Float64.(dbfn(spec.cut))
     p_model = ModelParams(; ckw...,
         theta=THETA_DFJ, kappa=KAPPA_DFJ,
         mwr=MWR_LOADED, fixed_cost=FIXED_COST, min_purchase=MIN_PURCHASE,
@@ -99,7 +102,7 @@ results = parallel_solve(specs) do spec
         lambda_w=1.0, psi_purchase=0.0,
         gkw...)
     res = solve_and_evaluate(p_model, grids, base_surv, ss_lvls,
-        population, loaded_pr_nom; step_name="", verbose=false)
+        population, loaded_pr_nom; step_name="", verbose=false, db_levels=db_lvls)
     (label=label, cut=spec.cut, ownership=res.ownership, mean_alpha=res.mean_alpha)
 end
 

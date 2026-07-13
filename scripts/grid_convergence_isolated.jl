@@ -62,6 +62,7 @@ base_kw = Dict{Symbol,Any}(
     :hazard_normalize => HAZARD_NORMALIZE,
     :min_wealth => MIN_WEALTH,
     :ss_levels => Float64.(SS_QUARTILE_LEVELS),
+    :db_levels => Float64.(DB_OBS),
     :verbose => false,
 )
 

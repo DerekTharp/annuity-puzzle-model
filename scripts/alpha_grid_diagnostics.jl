@@ -73,7 +73,7 @@ function solve_alpha(nalpha)
     # its own SS level and aggregated.
     result = solve_and_evaluate(p_full, grids, base_surv,
                                 Float64.(SS_QUARTILE_LEVELS), pop_filt, loaded_pr_nom;
-                                verbose=false)
+                                verbose=false, db_levels=Float64.(DB_OBS))
 
     own, mean_a = result.ownership, result.mean_alpha
     @printf("  n_alpha=%-4d (smallest positive share %.4f)  own=%6.2f%%  mean_α=%.5f  (%5.1fs)\n",

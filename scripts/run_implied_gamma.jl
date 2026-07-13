@@ -146,8 +146,10 @@ _gtol = GAMMA_TOL
 
 results = parallel_solve(draws) do d
     # Headline 4-band SS schedule: solve per quartile, aggregate on the
-    # population, matching the production evaluation convention.
+    # population, matching the production evaluation convention. The DB
+    # component erodes in the ON state (constant real SS, nominal eroding DB).
     _ss_levels = Float64.(SS_QUARTILE_LEVELS)
+    _db_levels = Float64.(DB_OBS)
 
     # Solve ownership at a given gamma
     function _solve_own(gamma)
@@ -182,7 +184,7 @@ results = parallel_solve(draws) do d
             grid_kw...)
 
         res = solve_and_evaluate(p_full, grids, _bs, _ss_levels, _pop,
-                                 loaded_pr_nom; verbose=false)
+                                 loaded_pr_nom; verbose=false, db_levels=_db_levels)
         return res.ownership
     end
 

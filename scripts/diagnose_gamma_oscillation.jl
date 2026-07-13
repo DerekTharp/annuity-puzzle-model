@@ -93,7 +93,7 @@ cfg = build_subset_config(Set(1:9);
     survival_pessimism=SURVIVAL_PESSIMISM, ss_quartile_levels=Float64.(SS_QUARTILE_LEVELS),
     consumption_decline=CONSUMPTION_DECLINE, health_utility=Float64.(HEALTH_UTILITY),
     chi_ltc_val=CHI_LTC, lambda_w_val=1.0, psi_purchase_val=0.0,
-    psi_purchase_c_ref_val=PSI_PURCHASE_C_REF)
+    psi_purchase_c_ref_val=PSI_PURCHASE_C_REF, db_levels=Float64.(DB_OBS))
 
 # ===================================================================
 # Sweep gamma (serial outer loop; quartile solves parallelize inside)
@@ -113,7 +113,7 @@ for gamma in GAMMA_GRID
         psi_purchase=cfg.psi_purchase, psi_purchase_c_ref=cfg.psi_purchase_c_ref, gkw...)
     res = solve_and_evaluate(p_model, grids, base_surv, cfg.ss_levels,
         population, loaded_pr_nom; step_name="", verbose=false,
-        wealth_topup_hh = cfg.commute_ss ? topup_vec : nothing)
+        wealth_topup_hh = cfg.commute_ss ? topup_vec : nothing, db_levels=cfg.db_levels)
     push!(rows, (gamma, res.ownership * 100, res.mean_alpha,
                  res.frac_at_kink_contract, res.frac_at_grid_floor))
     @printf("  gamma=%.2f  ownership=%6.2f%%  mean_alpha=%.4f  kink_contract=%.3f  grid_floor=%.3f  (%.0fs)\n",

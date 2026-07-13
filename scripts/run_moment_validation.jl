@@ -98,9 +98,12 @@ println("Solving lifecycle model (one solve per wealth band)...")
 t0 = time()
 _p = p; _grids = grids; _bs = base_surv
 _ssq = Float64.(SS_QUARTILE_LEVELS)
+_db = Float64.(DB_OBS)   # nominal DB component; erodes in the ON state
 sols = parallel_solve(collect(1:4)) do b
     ss_val = _ssq[b]
-    solve_lifecycle_health(_p, _grids, _bs, (age, pp) -> ss_val)
+    db_val = _db[b]
+    solve_lifecycle_health(_p, _grids, _bs,
+                           build_ss_func(ss_val - db_val, db_val, _p.age_start))
 end
 @printf("  Solved 4 bands in %.1fs\n", time() - t0)
 
@@ -123,8 +126,10 @@ for b in 1:4
         inits[i, 2] = health_all[j]
     end
     ss_val = _ssq[b]
+    db_val = _db[b]
     band_sims[b] = simulate_batch(sols[b], inits, A_nominal, base_surv,
-                                  (age, pp) -> ss_val, p; rng_seed=42 + b)
+                                  build_ss_func(ss_val - db_val, db_val, p.age_start),
+                                  p; rng_seed=42 + b)
 end
 @printf("  Simulated in %.1fs\n", time() - t0)
 

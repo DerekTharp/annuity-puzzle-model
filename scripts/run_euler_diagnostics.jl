@@ -24,8 +24,10 @@ println("Data loaded ($n_pop obs)"); flush(stdout)
 p_base = ModelParams(age_start=AGE_START, age_end=AGE_END)
 base_surv = production_base_survival(p_base)
 
-ss_mean_val = sum(SS_QUARTILE_LEVELS) / length(SS_QUARTILE_LEVELS)
-ss_func(age, p) = ss_mean_val
+# SS mean constant real; nominal DB mean erodes in the ON state.
+ss_mean_real = (sum(SS_QUARTILE_LEVELS) - sum(DB_OBS)) / length(SS_QUARTILE_LEVELS)
+db_mean = sum(DB_OBS) / length(DB_OBS)
+ss_func = build_ss_func(ss_mean_real, db_mean, AGE_START)
 
 results = Tuple{String,Float64,Float64,Float64,Float64,Float64,Int,Int}[]
 

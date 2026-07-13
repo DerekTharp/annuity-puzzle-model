@@ -65,7 +65,7 @@ ss_base = Float64.(SS_QUARTILE_LEVELS)
 ss_cut  = (1 - SS_CUT_TRUSTEES) .* Float64.(SS_OBS) .+ Float64.(DB_OBS)
 
 _bs = base_surv; _grids = grids; _popband = pop_band; _fair_nom = fair_nom
-_ss_base = ss_base; _ss_cut = ss_cut; _products = PRODUCTS
+_ss_base = ss_base; _ss_cut = ss_cut; _products = PRODUCTS; _db = Float64.(DB_OBS)
 _gamma=GAMMA; _beta=BETA; _r=R_RATE; _nq=N_QUAD; _cf=C_FLOOR; _hm=Float64.(HAZARD_MULT); _hn=HAZARD_NORMALIZE
 _theta=THETA_DFJ; _kappa=KAPPA_DFJ; _fc=FIXED_COST; _minp=MIN_PURCHASE
 _infl=INFLATION; _psi=SURVIVAL_PESSIMISM; _cd=CONSUMPTION_DECLINE
@@ -77,6 +77,7 @@ t0 = time()
 results = parallel_solve(tasks) do task
     prod = _products[task.prod]
     ss_val = task.scen === :base ? _ss_base[task.band] : _ss_cut[task.band]
+    db_val = _db[task.band]
     payout = prod.mwr * _fair_nom
     p = ModelParams(; gamma=_gamma, beta=_beta, r=_r, stochastic_health=true,
         n_health_states=3, n_quad=_nq, c_floor=_cf, hazard_mult=_hm, hazard_normalize=_hn,
@@ -84,7 +85,8 @@ results = parallel_solve(tasks) do task
         min_purchase=_minp, inflation_rate=_infl, medical_enabled=true,
         health_mortality_corr=true, survival_pessimism=_psi,
         consumption_decline=_cd, health_utility=_hu, chi_ltc=_chi, _gkw...)
-    sol = solve_lifecycle_health(p, _grids, _bs, (age, q) -> ss_val)
+    sol = solve_lifecycle_health(p, _grids, _bs,
+                                 build_ss_func(ss_val - db_val, db_val, p.age_start))
     res = compute_ownership_rate_health(sol, _popband[task.band], payout; base_surv=_bs)
     @printf("    [done] %s band %d %s: own=%.2f%%\n", prod.key, task.band,
             String(task.scen), res.ownership_rate * 100); flush(stdout)

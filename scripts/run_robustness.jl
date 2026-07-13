@@ -86,6 +86,7 @@ base_kw = Dict{Symbol,Any}(
     :survival_pessimism => SURVIVAL_PESSIMISM,
     :min_wealth => MIN_WEALTH,
     :ss_levels => SS_LEVELS,
+    :db_levels => Float64.(DB_OBS),
     # All headline preference AND structural channels must be in base_kw;
     # otherwise robustness sweeps evaluate a different model than the
     # production headline. chi_ltc (the ninth structural channel) is required
@@ -331,7 +332,7 @@ for mp in min_purchase_vals
         min_purchase=mp,
         grid_kw...)
     rate = solve_and_evaluate(p_mp, grids, base_surv, SS_LEVELS,
-        pop_h, loaded_pr; verbose=false).ownership
+        pop_h, loaded_pr; verbose=false, db_levels=Float64.(DB_OBS)).ownership
     label = mp == 0.0 ? "\$0 (any purchase)" : @sprintf("\$%s", string(round(Int, mp)))
     @printf("  %-30s  %10.1f%%\n", label, rate * 100)
     push!(all_results, ("Min purchase", label, @sprintf("%.1f%%", rate * 100)))

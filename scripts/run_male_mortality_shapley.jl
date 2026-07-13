@@ -64,7 +64,7 @@ _cf=C_FLOOR; _hm=Float64.(HAZARD_MULT); _nq=N_QUAD; _cd=CONSUMPTION_DECLINE
 _hu=Float64.(HEALTH_UTILITY); _chi=CHI_LTC; _lw=LAMBDA_W; _pp=PSI_PURCHASE; _ppc=PSI_PURCHASE_C_REF
 _psi=SURVIVAL_PESSIMISM
 _bs=base_surv; _pop=population; _fair=fair; _fairn=fair_nom; _minw=MIN_WEALTH; _gkw=gkw
-_topup_vec=topup_vec
+_topup_vec=topup_vec; _db=Float64.(DB_OBS)
 
 println("Solving 512 nine-channel subsets under the prior mortality convention..."); flush(stdout)
 t0 = time()
@@ -74,7 +74,8 @@ results = parallel_solve([(m=m,) for m in 0:511]) do spec
         theta_dfj=_theta, kappa_dfj=_kappa, mwr_loaded=_mwr, fixed_cost=_fc,
         min_purchase=_minp, inflation_val=_infl, survival_pessimism=_psi,
         ss_quartile_levels=_ssq, consumption_decline=_cd, health_utility=_hu,
-        chi_ltc_val=_chi, lambda_w_val=_lw, psi_purchase_val=_pp, psi_purchase_c_ref_val=_ppc)
+        chi_ltc_val=_chi, lambda_w_val=_lw, psi_purchase_val=_pp, psi_purchase_c_ref_val=_ppc,
+        db_levels=_db)
     has_loads = cfg.mwr < 1.0; has_infl = cfg.inflation_rate > 0
     pr = has_loads && has_infl ? cfg.mwr * _fairn : has_loads ? cfg.mwr * _fair : has_infl ? _fairn : _fair
     common = (gamma=_gamma, beta=_beta, r=_r, stochastic_health=true, n_health_states=3,
@@ -88,7 +89,7 @@ results = parallel_solve([(m=m,) for m in 0:511]) do spec
         health_utility=cfg.health_utility, chi_ltc=cfg.chi_ltc, _gkw...)
     pop = _minw > 0 ? _pop[_pop[:, 1] .>= _minw, :] : _pop
     res = solve_and_evaluate(p, grids, _bs, cfg.ss_levels, pop, pr; verbose=false,
-        wealth_topup_hh = cfg.commute_ss ? _topup_vec : nothing)
+        wealth_topup_hh = cfg.commute_ss ? _topup_vec : nothing, db_levels=cfg.db_levels)
     (mask=mask, ownership=res.ownership)
 end
 @printf("  done in %.0fs\n", time() - t0); flush(stdout)

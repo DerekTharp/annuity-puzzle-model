@@ -137,6 +137,9 @@ results = parallel_solve(specs) do spec
     # fair nominal rate). Per-household top-up vectors, summed over whichever
     # components the coalition leaves OFF; nothing when all income is ON.
     topup = nothing
+    # DB (nominal, eroding) component of the ON-state flow; SS stays constant
+    # real. Zero unless a DB-bearing player is ON below.
+    db_on = [0.0, 0.0, 0.0, 0.0]
     theta = 0.0; kappa = 0.0
     medical = false; corr = false
     psi = 1.0; cd = 0.0; hu = [1.0, 1.0, 1.0]
@@ -145,6 +148,7 @@ results = parallel_solve(specs) do spec
     if part == :medrs
         # Single SS+DB player: on -> combined level; off -> commute both.
         bit(0) ? (ss_levels = copy(_ss_comb)) : (topup = _topup_ss .+ _topup_db)
+        bit(0) && (db_on = copy(_db_obs))
         bit(1) && (theta = _theta; kappa = _kappa)
         bit(2) && (medical = true)
         bit(3) && (corr = true)
@@ -160,6 +164,8 @@ results = parallel_solve(specs) do spec
         bit(0) ? (s .+= _ss_obs) : push!(comps, _topup_ss)   # SS off -> commute real
         bit(1) ? (s .+= _db_obs) : push!(comps, _topup_db)   # DB off -> commute nominal
         ss_levels = s
+        # DB on -> it erodes in the value function (constant real SS + eroding DB).
+        bit(1) && (db_on = copy(_db_obs))
         isempty(comps) || (topup = reduce(.+, comps))
         bit(2) && (theta = _theta; kappa = _kappa)
         bit(3) && (medical = true; corr = true)
@@ -197,7 +203,8 @@ results = parallel_solve(specs) do spec
     end
 
     res = solve_and_evaluate(p, grids, _base_surv, ss_levels, pop, pr;
-                             step_name="", verbose=false, wealth_topup_hh=topup)
+                             step_name="", verbose=false, wealth_topup_hh=topup,
+                             db_levels=db_on)
     (partition=part, mask=mask, ownership=res.ownership)
 end
 

@@ -61,7 +61,8 @@ cfg = build_subset_config(Set(1:9);
     min_purchase=MIN_PURCHASE, inflation_val=INFLATION, survival_pessimism=SURVIVAL_PESSIMISM,
     ss_quartile_levels=Float64.(SS_QUARTILE_LEVELS), consumption_decline=CONSUMPTION_DECLINE,
     health_utility=Float64.(HEALTH_UTILITY), chi_ltc_val=CHI_LTC,
-    lambda_w_val=LAMBDA_W, psi_purchase_val=PSI_PURCHASE, psi_purchase_c_ref_val=PSI_PURCHASE_C_REF)
+    lambda_w_val=LAMBDA_W, psi_purchase_val=PSI_PURCHASE, psi_purchase_c_ref_val=PSI_PURCHASE_C_REF,
+    db_levels=Float64.(DB_OBS))
 @assert !cfg.commute_ss "full model has SS on; no commuted-PV top-up expected"
 
 common = (gamma=GAMMA, beta=BETA, r=R_RATE, stochastic_health=true, n_health_states=3,
@@ -78,7 +79,9 @@ t0 = time()
 sols = Vector{Any}(undef, 4)
 for q in 1:4
     ss_val = cfg.ss_levels[q]
-    sols[q] = solve_lifecycle_health(p_model, grids, base_surv, (age, p) -> ss_val)
+    db_val = cfg.db_levels[q]
+    sols[q] = solve_lifecycle_health(p_model, grids, base_surv,
+                                     build_ss_func(ss_val - db_val, db_val, AGE_START))
 end
 @printf("  done in %.0fs\n", time() - t0); flush(stdout)
 

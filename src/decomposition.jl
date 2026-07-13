@@ -86,6 +86,12 @@ SS commutes at the fair REAL rate (SS is COLA-protected); DB commutes at the
 fair NOMINAL rate (most DB pensions lack a COLA), unless
 `commute_db_nominal=false`, which commutes DB at the real rate too (sensitivity).
 
+The ON state is resource-consistent with this: solve_and_evaluate builds the
+SS-on income via build_ss_func with SS constant real and DB (db_levels) eroding
+at the model inflation rate, so the ON-state DB PV equals DB_OBS/fpr_db here.
+Under `commute_db_nominal=false` the ON state passes db_levels=0 (DB constant
+real) so both sides use the real rate.
+
 For household i with observed age a_i and wealth band q_i (by ORIGINAL
 non-annuitized wealth, population[:,1]),
     topup_i = SS_OBS[q_i] / fpr_real(a_i) + DB_OBS[q_i] / fpr_db(a_i).
@@ -138,7 +144,12 @@ function solve_and_evaluate(
     payout_rate::Float64;
     step_name::String="",
     verbose::Bool=true,
+    db_levels::Vector{Float64}=zeros(4),
 )
+    # db_levels is accepted but unused here: this overload is the legacy path
+    # where SS (and any DB) ride the A grid via population[:,2] rather than
+    # ss_func, so there is no separate DB stream to erode. The kwarg keeps call
+    # sites uniform with the ss_levels overload.
     t0 = time()
     sol = solve_lifecycle_health(p, grids, base_surv, ss_func)
     solve_time = time() - t0
@@ -164,8 +175,14 @@ end
 """
 Solve per SS quartile and aggregate ownership.
 
-When all ss_levels are equal (including all zeros), solves once.
+When all ss_levels and db_levels are equal (including all zeros), solves once.
 Otherwise solves 4 times (one per wealth quartile with different SS).
+
+`db_levels` is the nominal DB pension component of each band's pre-existing
+annuitized income (default zeros). SS enters as a constant real flow
+`ss_levels[q] - db_levels[q]`; DB enters as `db_levels[q]` eroding at the model
+inflation rate (build_ss_func), so the ON-state DB PV matches the OFF-state
+nominal commutation. `db_levels = 0` reproduces the constant-real-flow behavior.
 """
 function solve_and_evaluate(
     p::ModelParams,
@@ -177,6 +194,7 @@ function solve_and_evaluate(
     step_name::String="",
     verbose::Bool=true,
     wealth_topup_hh::Union{Nothing,Vector{Float64}}=nothing,
+    db_levels::Vector{Float64}=zeros(4),
 )
     t0 = time()
 
@@ -185,7 +203,7 @@ function solve_and_evaluate(
     n_q = zeros(4)
     topup_active = wealth_topup_hh !== nothing
 
-    if all(x -> x == ss_levels[1], ss_levels)
+    if all(x -> x == ss_levels[1], ss_levels) && all(x -> x == db_levels[1], db_levels)
         # All quartiles identical: solve once. When pre-existing annuitization
         # is toggled OFF in the cooperative game, its actuarial PV is returned
         # to each household as an equal-PV liquid endowment (wealth_topup_hh,
@@ -195,7 +213,8 @@ function solve_and_evaluate(
         # population's wealth shifts, so a single solve suffices. Band
         # membership stays pinned to ORIGINAL non-annuitized wealth.
         ss_val = ss_levels[1]
-        ss_func_uniform = (age, p) -> ss_val
+        db_val = db_levels[1]
+        ss_func_uniform = build_ss_func(ss_val - db_val, db_val, p.age_start)
         sol = solve_lifecycle_health(p, grids, base_surv, ss_func_uniform)
         nq_eval = zeros(4)
         contract_q = zeros(4)
@@ -243,10 +262,12 @@ function solve_and_evaluate(
         _p = p; _grids = grids; _bs = base_surv; _pop = population; _pr = payout_rate
         _topup_hh = wealth_topup_hh
         _topup_active = topup_active
+        _db_levels = db_levels
 
         quartile_results = parallel_solve(quartile_tasks) do q
             ss_val_q = ss_levels[q]
-            ss_func_q = (age, p) -> ss_val_q
+            db_val_q = _db_levels[q]
+            ss_func_q = build_ss_func(ss_val_q - db_val_q, db_val_q, _p.age_start)
             sol_q = solve_lifecycle_health(_p, _grids, _bs, ss_func_q)
 
             mask_q = _filter_quartile_mask(_pop, q, SS_QUARTILE_BREAKS)
@@ -369,6 +390,7 @@ function run_decomposition(
     survival_pessimism::Float64=1.0,
     min_wealth::Float64=0.0,
     ss_levels::Vector{Float64}=Float64[],
+    db_levels::Vector{Float64}=zeros(4),
     consumption_decline_val::Float64=0.0,
     health_utility_vals::Vector{Float64}=[1.0, 1.0, 1.0],
     min_purchase_val::Float64=0.0,
@@ -381,6 +403,9 @@ function run_decomposition(
     ss_zero(age, p) = 0.0
     ss_enabled = !isempty(ss_levels)
     ss_levels_zero = [0.0, 0.0, 0.0, 0.0]
+    # DB (nominal, eroding) component of the SS-on flow. Zero in the SS-off /
+    # legacy A-grid path so ss_func stays a constant real level there.
+    db_arg = ss_enabled ? db_levels : zeros(4)
 
     # Common grid parameters
     grid_kw = (n_wealth=n_wealth, n_annuity=n_annuity, n_alpha=n_alpha,
@@ -484,7 +509,8 @@ function run_decomposition(
             grid_kw...)
         res_ss = solve_and_evaluate(p_ss, grids, base_surv, ss_levels,
             pop, fair_pr;
-            step_name="$step_num. + Social Security pre-annuitization", verbose=verbose)
+            step_name="$step_num. + Social Security pre-annuitization", verbose=verbose,
+            db_levels=db_arg)
         push!(steps, DecompositionStep("+ Social Security",
             res_ss.ownership, res_ss.mean_alpha, res_ss.ownership - prev_rate, res_ss.solve_time))
         prev_rate = res_ss.ownership
@@ -501,7 +527,7 @@ function run_decomposition(
         grid_kw...)
     res_beq = solve_and_evaluate(p_beq, grids, base_surv, ss_arg,
         pop, fair_pr;
-        step_name="$step_num. + Bequest motives", verbose=verbose)
+        step_name="$step_num. + Bequest motives", verbose=verbose, db_levels=db_arg)
     push!(steps, DecompositionStep("+ Bequest motives",
         res_beq.ownership, res_beq.mean_alpha, res_beq.ownership - prev_rate, res_beq.solve_time))
     prev_rate = res_beq.ownership
@@ -514,7 +540,8 @@ function run_decomposition(
         grid_kw...)
     res_med = solve_and_evaluate(p_med, grids, base_surv, ss_arg,
         pop, fair_pr;
-        step_name="$step_num. + Medical expenditure risk (uncorrelated)", verbose=verbose)
+        step_name="$step_num. + Medical expenditure risk (uncorrelated)", verbose=verbose,
+        db_levels=db_arg)
     push!(steps, DecompositionStep("+ Medical expenditure risk (uncorrelated)",
         res_med.ownership, res_med.mean_alpha, res_med.ownership - prev_rate, res_med.solve_time))
     prev_rate = res_med.ownership
@@ -527,7 +554,8 @@ function run_decomposition(
         grid_kw...)
     res_rs = solve_and_evaluate(p_rs, grids, base_surv, ss_arg,
         pop, fair_pr;
-        step_name="$step_num. + Health-mortality correlation (R-S)", verbose=verbose)
+        step_name="$step_num. + Health-mortality correlation (R-S)", verbose=verbose,
+        db_levels=db_arg)
     push!(steps, DecompositionStep("+ Health-mortality correlation (R-S)",
         res_rs.ownership, res_rs.mean_alpha, res_rs.ownership - prev_rate, res_rs.solve_time))
     prev_rate = res_rs.ownership
@@ -541,7 +569,8 @@ function run_decomposition(
         grid_kw...)
     res_pess = solve_and_evaluate(p_pess, grids, base_surv, ss_arg,
         pop, fair_pr;
-        step_name="$step_num. + Survival pessimism (psi=$(survival_pessimism))", verbose=verbose)
+        step_name="$step_num. + Survival pessimism (psi=$(survival_pessimism))", verbose=verbose,
+        db_levels=db_arg)
     push!(steps, DecompositionStep("+ Survival pessimism",
         res_pess.ownership, res_pess.mean_alpha, res_pess.ownership - prev_rate, res_pess.solve_time))
     prev_rate = res_pess.ownership
@@ -564,7 +593,8 @@ function run_decomposition(
             grid_kw...)
         res_hu = solve_and_evaluate(p_hu, grids, base_surv, ss_arg,
             pop, fair_pr;
-            step_name="$step_num. + State-dependent utility (FLN)", verbose=verbose)
+            step_name="$step_num. + State-dependent utility (FLN)", verbose=verbose,
+            db_levels=db_arg)
         push!(steps, DecompositionStep("+ State-dependent utility",
             res_hu.ownership, res_hu.mean_alpha, res_hu.ownership - prev_rate, res_hu.solve_time))
         prev_rate = res_hu.ownership
@@ -584,7 +614,8 @@ function run_decomposition(
             grid_kw...)
         res_cd = solve_and_evaluate(p_cd, grids, base_surv, ss_arg,
             pop, fair_pr;
-            step_name="$step_num. + Age-varying consumption needs (dc=$(consumption_decline_val))", verbose=verbose)
+            step_name="$step_num. + Age-varying consumption needs (dc=$(consumption_decline_val))", verbose=verbose,
+            db_levels=db_arg)
         push!(steps, DecompositionStep("+ Age-varying consumption needs",
             res_cd.ownership, res_cd.mean_alpha, res_cd.ownership - prev_rate, res_cd.solve_time))
         prev_rate = res_cd.ownership
@@ -612,7 +643,7 @@ function run_decomposition(
         "$step_num. + Realistic pricing loads (MWR=$mwr_loaded)"
     res_loads = solve_and_evaluate(p_loads, grids, base_surv, ss_arg,
         pop, loaded_pr;
-        step_name=loads_label, verbose=verbose)
+        step_name=loads_label, verbose=verbose, db_levels=db_arg)
     push!(steps, DecompositionStep("+ Realistic pricing loads",
         res_loads.ownership, res_loads.mean_alpha, res_loads.ownership - prev_rate, res_loads.solve_time))
     prev_rate = res_loads.ownership
@@ -634,7 +665,8 @@ function run_decomposition(
         grid_kw...)
     res_infl = solve_and_evaluate(p_infl, grids, base_surv, ss_arg,
         pop, loaded_pr_nom;
-        step_name="$step_num. + Inflation erosion ($(inflation_val*100)%)", verbose=verbose)
+        step_name="$step_num. + Inflation erosion ($(inflation_val*100)%)", verbose=verbose,
+        db_levels=db_arg)
     push!(steps, DecompositionStep("+ Inflation erosion",
         res_infl.ownership, res_infl.mean_alpha, res_infl.ownership - prev_rate, res_infl.solve_time))
     prev_rate = res_infl.ownership
@@ -665,7 +697,7 @@ function run_decomposition(
         res_ltc = solve_and_evaluate(p_ltc, grids, base_surv, ss_arg,
             pop, loaded_pr_nom;
             step_name="$step_num. + Public-care aversion (chi_ltc=$(cur_chi_ltc))",
-            verbose=verbose)
+            verbose=verbose, db_levels=db_arg)
         push!(steps, DecompositionStep("+ Public-care aversion",
             res_ltc.ownership, res_ltc.mean_alpha, res_ltc.ownership - prev_rate, res_ltc.solve_time))
         prev_rate = res_ltc.ownership
@@ -694,7 +726,7 @@ function run_decomposition(
         res_sdu = solve_and_evaluate(p_sdu, grids, base_surv, ss_arg,
             pop, loaded_pr_nom;
             step_name="$step_num. + Source-dependent utility (lambda_w=$(cur_lambda_w))",
-            verbose=verbose)
+            verbose=verbose, db_levels=db_arg)
         push!(steps, DecompositionStep("+ Source-dependent utility",
             res_sdu.ownership, res_sdu.mean_alpha, res_sdu.ownership - prev_rate, res_sdu.solve_time))
         prev_rate = res_sdu.ownership
@@ -721,7 +753,7 @@ function run_decomposition(
         res_ped = solve_and_evaluate(p_ped, grids, base_surv, ss_arg,
             pop, loaded_pr_nom;
             step_name="$step_num. + Narrow-framing penalty (psi=$(cur_psi_purchase))",
-            verbose=verbose)
+            verbose=verbose, db_levels=db_arg)
         push!(steps, DecompositionStep("+ Narrow-framing at-purchase penalty",
             res_ped.ownership, res_ped.mean_alpha, res_ped.ownership - prev_rate, res_ped.solve_time))
         prev_rate = res_ped.ownership
@@ -771,6 +803,7 @@ function run_multiplicative_analysis(
     survival_pessimism::Float64=1.0,
     min_wealth::Float64=0.0,
     ss_levels::Vector{Float64}=Float64[],
+    db_levels::Vector{Float64}=zeros(4),
     consumption_decline_val::Float64=0.0,
     health_utility_vals::Vector{Float64}=[1.0, 1.0, 1.0],
     lambda_w_val::Float64=1.0,
@@ -841,11 +874,13 @@ function run_multiplicative_analysis(
     # Helper: evaluate a channel in isolation
     # When ss_enabled, isolated channels (other than SS) use no SS
     ss_arg_off = ss_enabled ? ss_levels_zero : ss_zero
+    # DB (nominal, eroding) component of the SS-on flow; zero for SS-off channels.
+    db_arg = ss_enabled ? db_levels : zeros(4)
 
-    function _eval_channel(name, p_ch, pr, ss_arg_ch)
+    function _eval_channel(name, p_ch, pr, ss_arg_ch; db_arg_ch=zeros(4))
         if ss_enabled
             res = solve_and_evaluate(p_ch, grids, base_surv, ss_arg_ch,
-                pop, pr; step_name=name, verbose=false)
+                pop, pr; step_name=name, verbose=false, db_levels=db_arg_ch)
         else
             res = solve_and_evaluate(p_ch, grids, base_surv, ss_zero,
                 pop, pr; step_name=name, verbose=false)
@@ -864,7 +899,7 @@ function run_multiplicative_analysis(
             theta=0.0, kappa=0.0, mwr=1.0, fixed_cost=0.0, inflation_rate=0.0,
             medical_enabled=false, health_mortality_corr=false,
             grid_kw...)
-        _eval_channel("SS pre-annuitization", p_ss, fair_pr, ss_levels)
+        _eval_channel("SS pre-annuitization", p_ss, fair_pr, ss_levels; db_arg_ch=db_arg)
     end
 
     # Bequests only
@@ -967,7 +1002,8 @@ function run_multiplicative_analysis(
         grid_kw...)
     if ss_enabled
         res_full = solve_and_evaluate(p_full, grids, base_surv, ss_levels,
-            pop, loaded_pr_nom; step_name="All channels combined", verbose=false)
+            pop, loaded_pr_nom; step_name="All channels combined", verbose=false,
+            db_levels=db_arg)
     else
         res_full = solve_and_evaluate(p_full, grids, base_surv, ss_zero,
             pop, loaded_pr_nom; step_name="All channels combined", verbose=false)
@@ -1036,6 +1072,7 @@ function run_pairwise_interactions(
     survival_pessimism::Float64=1.0,
     min_wealth::Float64=0.0,
     ss_levels::Vector{Float64}=Float64[],
+    db_levels::Vector{Float64}=zeros(4),
     consumption_decline_val::Float64=0.0,
     health_utility_vals::Vector{Float64}=[1.0, 1.0, 1.0],
     lambda_w_val::Float64=1.0,
@@ -1177,12 +1214,17 @@ function run_pairwise_interactions(
     channel_names = [c[1] for c in channel_specs]
 
     # Helper to evaluate with appropriate SS arg
+    # DB (nominal, eroding) component of the SS-on flow; zero for SS-off.
+    db_arg = ss_enabled ? db_levels : zeros(4)
+
     function _pw_eval(p_ch, pr, use_ss; label="")
         if ss_enabled
             ss_arg = use_ss ? ss_levels : ss_levels_zero
             topup = use_ss ? nothing : topup_vec
+            db_ch = use_ss ? db_arg : zeros(4)
             return solve_and_evaluate(p_ch, grids, base_surv, ss_arg,
-                pop, pr; step_name=label, verbose=false, wealth_topup_hh=topup)
+                pop, pr; step_name=label, verbose=false, wealth_topup_hh=topup,
+                db_levels=db_ch)
         else
             return solve_and_evaluate(p_ch, grids, base_surv, ss_zero,
                 pop, pr; step_name=label, verbose=false)
@@ -1229,6 +1271,8 @@ function run_pairwise_interactions(
     _pop_pw = pop
     _ssl = ss_enabled ? ss_levels : Float64[]
     _sslz = ss_levels_zero
+    _dbl = ss_enabled ? db_levels : zeros(4)
+    _age_start = age_start
     _tv = topup_vec
     _mw = min_wealth
 
@@ -1308,7 +1352,8 @@ function run_pairwise_interactions(
             tot_own = 0.0; tot_n = 0.0
             for q in 1:4
                 sv = ss_arg[q]
-                sf = (age, p) -> sv
+                dv = _dbl[q]
+                sf = build_ss_func(sv - dv, dv, _age_start)
                 sol = solve_lifecycle_health(p_pair, build_grids(ModelParams(; _ckw..., _gkw..., mwr=1.0), max(_fpr, _fprn)), _bs_pw, sf)
                 pq = _filter_quartile(local_pop, q, SS_QUARTILE_BREAKS)
                 nq = size(pq, 1)
@@ -1319,8 +1364,10 @@ function run_pairwise_interactions(
             end
             own = tot_n > 0 ? tot_own / tot_n : 0.0
         else
+            # SS off (or uniform): DB rides the top-up, so the on-state flow is a
+            # constant real level (db component zero).
             sv = isempty(ss_arg) ? 0.0 : ss_arg[1]
-            sf = (age, p) -> sv
+            sf = build_ss_func(sv, 0.0, _age_start)
             sol = solve_lifecycle_health(p_pair, build_grids(ModelParams(; _ckw..., _gkw..., mwr=1.0), max(_fpr, _fprn)), _bs_pw, sf)
             if topup !== nothing
                 # SS off: return its actuarial PV as an equal-PV per-household

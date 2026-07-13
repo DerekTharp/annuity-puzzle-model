@@ -52,9 +52,16 @@ function build_subset_config(active::Set{Int};
         theta_dfj, kappa_dfj, mwr_loaded, fixed_cost, min_purchase, inflation_val,
         survival_pessimism, ss_quartile_levels,
         consumption_decline, health_utility, chi_ltc_val,
-        lambda_w_val, psi_purchase_val, psi_purchase_c_ref_val)
+        lambda_w_val, psi_purchase_val, psi_purchase_c_ref_val,
+        db_levels=zeros(4))
 
     ss_levels = [0.0, 0.0, 0.0, 0.0]
+    # DB (nominal, eroding) component of the SS-on flow. When the SS+DB player
+    # is ON, the caller passes DB_OBS here so solve_and_evaluate erodes DB in
+    # the value function (SS constant real, DB eroding), matching the OFF-state
+    # nominal commutation. Set to zeros for the real-DB sensitivity so DB stays
+    # constant real (folded into ss_levels). Off (below) it is zero.
+    db_out = [0.0, 0.0, 0.0, 0.0]
     # When the pre-existing-annuitization (SS+DB) player is OFF, commute_ss is
     # true: the caller returns each household's SS+DB income as an equal-PV
     # liquid endowment (commuted_topup_vector, priced at the household's
@@ -81,6 +88,7 @@ function build_subset_config(active::Set{Int};
 
     if CH_SS in active
         ss_levels = copy(ss_quartile_levels)
+        db_out = copy(db_levels)
     end
     # SS off (commute_ss true): the caller applies the per-household
     # commuted-PV endowment via wealth_topup_hh; ss_levels stays zero here.
@@ -129,6 +137,7 @@ function build_subset_config(active::Set{Int};
     end
 
     return (ss_levels=ss_levels,
+            db_levels=db_out,
             commute_ss=commute_ss,
             theta=theta, kappa=kappa,
             medical_enabled=medical_enabled,

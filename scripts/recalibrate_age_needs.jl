@@ -68,8 +68,9 @@ band_of(w) = w < SS_QUARTILE_BREAKS[1] ? 1 :
 
 const BAND_IDX = [findall(w -> band_of(w) == q, wealth_all) for q in 1:4]
 const BAND_N = [length(BAND_IDX[q]) for q in 1:4]
-const SS_FUNCS = [let ss_q = Float64(SS_QUARTILE_LEVELS[q]); (age, pp) -> ss_q; end
-                  for q in 1:4]
+# SS constant real; nominal DB component erodes in the ON state (build_ss_func).
+const SS_FUNCS = [build_ss_func(Float64(SS_QUARTILE_LEVELS[q]) - Float64(DB_OBS[q]),
+                                Float64(DB_OBS[q]), AGE_START) for q in 1:4]
 
 # Uniform replication factor: one K for all bands preserves the pooled
 # population weighting (replicated counts stay proportional to true band sizes).
@@ -183,6 +184,7 @@ if abs(target_delta - CONSUMPTION_DECLINE) > 5e-4
     @warn "Calibrated delta_c differs from config CONSUMPTION_DECLINE" calibrated=target_delta config=CONSUMPTION_DECLINE
 end
 
+mkpath(joinpath(@__DIR__, "..", "tables", "csv"))
 out = joinpath(@__DIR__, "..", "tables", "csv", "age_needs_calibration.csv")
 open(out, "w") do io
     println(io, "target_decline,baseline_slope_delta0,calibrated_delta_c,achieved_slope,age_lo,age_hi")

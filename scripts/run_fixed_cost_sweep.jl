@@ -83,7 +83,7 @@ _cf=C_FLOOR; _hm=Float64.(HAZARD_MULT); _hn=HAZARD_NORMALIZE; _nq=NQ; _cd=CONSUM
 _hu=Float64.(HEALTH_UTILITY); _chi=CHI_LTC; _lw=LAMBDA_W; _pp=PSI_PURCHASE; _ppc=PSI_PURCHASE_C_REF
 _pess=SURVIVAL_PESSIMISM
 _bs=base_surv; _pop=population; _fair=fair; _fairn=fair_nom; _minw=MIN_WEALTH; _gkw=gkw
-_topup_vec=topup_vec
+_topup_vec=topup_vec; _db=Float64.(DB_OBS)
 
 # Fixed cost travels with the spec (fed to build_subset_config, so it only bites
 # when the Loads channel is active in the coalition).
@@ -96,7 +96,8 @@ results = parallel_solve(specs) do spec
         theta_dfj=_theta, kappa_dfj=_kappa, mwr_loaded=_mwr, fixed_cost=spec.fc,
         min_purchase=_minp, inflation_val=_infl, survival_pessimism=_pess,
         ss_quartile_levels=_ssq, consumption_decline=_cd, health_utility=_hu,
-        chi_ltc_val=_chi, lambda_w_val=_lw, psi_purchase_val=_pp, psi_purchase_c_ref_val=_ppc)
+        chi_ltc_val=_chi, lambda_w_val=_lw, psi_purchase_val=_pp, psi_purchase_c_ref_val=_ppc,
+        db_levels=_db)
     has_loads = cfg.mwr < 1.0; has_infl = cfg.inflation_rate > 0
     pr = has_loads && has_infl ? cfg.mwr * _fairn : has_loads ? cfg.mwr * _fair : has_infl ? _fairn : _fair
     common = (gamma=_gamma, beta=_beta, r=_r, stochastic_health=true, n_health_states=3,
@@ -109,7 +110,7 @@ results = parallel_solve(specs) do spec
         health_utility=cfg.health_utility, chi_ltc=cfg.chi_ltc, _gkw...)
     pop = _minw > 0 ? _pop[_pop[:, 1] .>= _minw, :] : _pop
     res = solve_and_evaluate(p, grids, _bs, cfg.ss_levels, pop, pr; verbose=false,
-        wealth_topup_hh = cfg.commute_ss ? _topup_vec : nothing)
+        wealth_topup_hh = cfg.commute_ss ? _topup_vec : nothing, db_levels=cfg.db_levels)
     (fc=spec.fc, mask=mask, ownership=res.ownership)
 end
 @printf("  done in %.0fs\n", time() - t0); flush(stdout)
@@ -178,7 +179,7 @@ open(texp, "w") do io
     println(io, raw"\end{tabular}")
     println(io, raw"\begin{tablenotes}")
     println(io, raw"\small")
-    println(io, "\\item Exact Shapley values over all \$2^{9}=512\$ subsets of the nine-channel game, recomputed at each fixed cost. The proportional MWR wedge and minimum-purchase requirement in the Loads player are held at their production values; only the fixed cost varies. Rank~1 is the strongest suppressor. Pricing loads remain the dominant suppressor across the full Lockwood (2012) \\\$500--\\\$2,000 range and the \\\$2,500 production value, so the channel ranking does not depend on the author-chosen fixed cost.")
+    println(io, "\\item Exact Shapley values over all \$2^{9}=512\$ subsets of the nine-channel game, recomputed at each fixed cost. The proportional MWR wedge and minimum-purchase requirement in the Loads player are held at production values; only the fixed cost varies across the Lockwood (2012) \\\$500--\\\$2,000 range and the \\\$2,500 production value. Rank~1 is the strongest suppressor. The Loads rank column shows the channel's sensitivity to the fixed-cost assumption; the manuscript reads it from the values.")
     println(io, raw"\end{tablenotes}")
     println(io, raw"\end{threeparttable}")
     println(io, raw"\end{table}")

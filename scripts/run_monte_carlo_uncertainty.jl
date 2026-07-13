@@ -17,10 +17,10 @@
 #                                       CPI uncertainty)
 #   MWR           ~ U(0.83, 0.91)     (production 0.87 = midpoint; Mitchell
 #                                       1999 to Wettstein 2021 modern range)
-#   pessimism psi ~ U(0.92, 1.00)     (production 0.96 = midpoint; spans
+#   pessimism psi ~ U(0.96, 1.00)     (production 0.981; reported [0.96,1.0] range,
 #                                       stronger Heimer-Payne pessimism to
 #                                       no-pessimism boundary)
-#   delta_c       ~ U(0.01, 0.03)     (production 0.02 = midpoint; Aguiar-
+#   delta_c       ~ U(0.00, 0.015)    (recalibrated 0.0081; seed/window
 #                                       Hurst sensitivity)
 #
 # Note: this Monte Carlo characterizes uncertainty in the nine-channel
@@ -98,8 +98,8 @@ for i in 1:N_DRAWS
     hp     = 2.5   + (5.0   - 2.5  ) * rand(rng)
     pi_    = 0.015 + (0.025 - 0.015) * rand(rng)
     m      = 0.83  + (0.91  - 0.83 ) * rand(rng)
-    psi    = 0.92  + (1.00  - 0.92 ) * rand(rng)
-    dc     = 0.01  + (0.03  - 0.01 ) * rand(rng)
+    psi    = 0.96  + (1.00  - 0.96 ) * rand(rng)
+    dc     = 0.0   + (0.015 - 0.0  ) * rand(rng)
     draws[i] = (hazard_poor=hp, inflation=pi_, mwr=m,
                 pessimism=psi, delta_c=dc)
 end
@@ -151,8 +151,10 @@ _agp = A_GRID_POW
 
 results = parallel_solve(draws) do d
     # Headline 4-band SS schedule: solve per quartile, aggregate on the
-    # population, matching the production evaluation convention.
+    # population, matching the production evaluation convention. The DB
+    # component erodes in the ON state (constant real SS, nominal eroding DB).
     _ss_levels = Float64.(SS_QUARTILE_LEVELS)
+    _db_levels = Float64.(DB_OBS)
 
     hm = [0.50, 1.0, d.hazard_poor]
 
@@ -195,7 +197,7 @@ results = parallel_solve(draws) do d
         grid_kw...)
 
     res = solve_and_evaluate(p_full, grids, _bs, _ss_levels, _pop,
-                             loaded_pr_nom; verbose=false)
+                             loaded_pr_nom; verbose=false, db_levels=_db_levels)
     own = res.ownership * 100
 
     # Liveness heartbeat: one line per completed draw in the master log.

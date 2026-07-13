@@ -86,6 +86,7 @@ println("    (HRS SRH: [0.57,1.0,2.70]; R-S functional: [0.45,1.0,3.5])")
 # SS enters through ss_func in the Bellman equation (COLA-protected).
 # Step 0 is a true Yaari benchmark (no SS). Step 1 adds SS as a channel.
 const SS_LEVELS = SS_QUARTILE_LEVELS  # SS_OBS + DB_OBS = [18284, 21188, 25924, 26873] by wealth quartile (2014 dollars, SS retirement + DB pension)
+const DB_LEVELS = Float64.(DB_OBS)    # nominal DB component; erodes in the ON state
 
 println()
 decomp = run_decomposition(
@@ -105,6 +106,7 @@ decomp = run_decomposition(
     survival_pessimism=SURVIVAL_PESSIMISM,
     min_wealth=MIN_WEALTH,
     ss_levels=SS_LEVELS,
+    db_levels=DB_LEVELS,
     consumption_decline_val=CONSUMPTION_DECLINE,
     health_utility_vals=Float64.(HEALTH_UTILITY),
     chi_ltc_val=CHI_LTC,
@@ -135,6 +137,7 @@ if RUN_MULTIPLICATIVE
         survival_pessimism=SURVIVAL_PESSIMISM,
         min_wealth=MIN_WEALTH,
         ss_levels=SS_LEVELS,
+        db_levels=DB_LEVELS,
         verbose=true,
     )
 else
@@ -216,6 +219,7 @@ if RUN_DIAG_ROBUSTNESS
             :survival_pessimism => SURVIVAL_PESSIMISM,
             :min_wealth => MIN_WEALTH,
             :ss_levels => SS_LEVELS,
+            :db_levels => DB_LEVELS,
             :verbose => false,
         )
         for (k, v) in pairs(overrides)
@@ -248,6 +252,7 @@ if RUN_DIAG_ROBUSTNESS
         survival_pessimism=SURVIVAL_PESSIMISM,
         min_wealth=0.0,
         ss_levels=SS_LEVELS,
+        db_levels=DB_LEVELS,
         verbose=false,
     )
     full_rate = full_sample.steps[end].ownership_rate
@@ -342,6 +347,7 @@ pw = run_pairwise_interactions(
     survival_pessimism=SURVIVAL_PESSIMISM,
     min_wealth=MIN_WEALTH,
     ss_levels=SS_LEVELS,
+    db_levels=DB_LEVELS,
     consumption_decline_val=CONSUMPTION_DECLINE,
     health_utility_vals=Float64.(HEALTH_UTILITY),
     verbose=true,

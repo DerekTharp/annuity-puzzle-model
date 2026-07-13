@@ -68,6 +68,7 @@ for g in gammas
         survival_pessimism=SURVIVAL_PESSIMISM,
         min_wealth=MIN_WEALTH,
         ss_levels=SS_QUARTILE_LEVELS,
+        db_levels=Float64.(DB_OBS),
         verbose=true,
     )
     dt = time() - t0

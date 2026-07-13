@@ -68,7 +68,7 @@ CONFIGS = [
 _gamma=GAMMA; _beta=BETA; _r=R_RATE; _nq=N_QUAD; _cf=C_FLOOR; _hm=Float64.(HAZARD_MULT); _hn=HAZARD_NORMALIZE
 _theta=THETA_DFJ; _kappa=KAPPA_DFJ; _mwr=MWR_LOADED; _fc=FIXED_COST; _minp=MIN_PURCHASE
 _infl=INFLATION; _psi=SURVIVAL_PESSIMISM; _cd=CONSUMPTION_DECLINE; _hu=Float64.(HEALTH_UTILITY); _chi=CHI_LTC
-_ssq=Float64.(SS_QUARTILE_LEVELS); _fair=fair; _fairn=fair_nom; _g=grids; _bs=base_surv
+_ssq=Float64.(SS_QUARTILE_LEVELS); _db=Float64.(DB_OBS); _fair=fair; _fairn=fair_nom; _g=grids; _bs=base_surv
 _pban=pop_band; _gkw=gkw; _configs=CONFIGS
 
 tasks = [(band=b, ci=ci) for b in 2:3 for ci in 1:length(CONFIGS)]
@@ -88,6 +88,7 @@ results = parallel_solve(tasks) do task
     hu      = g(:hu, _hu)
     chi     = g(:chi, _chi)
     ss_val  = g(:ss_off, false) ? 0.0 : _ssq[b]
+    db_val  = g(:ss_off, false) ? 0.0 : _db[b]
 
     has_loads = mwr < 1.0; has_infl = infl > 0
     pr = has_loads && has_infl ? mwr * _fairn : has_loads ? mwr * _fair : has_infl ? _fairn : _fair
@@ -97,7 +98,8 @@ results = parallel_solve(tasks) do task
         theta=theta, kappa=_kappa, mwr=mwr, fixed_cost=_fc, min_purchase=minp,
         inflation_rate=infl, medical_enabled=medical, health_mortality_corr=corr,
         survival_pessimism=psi, consumption_decline=cd, health_utility=hu, chi_ltc=chi, _gkw...)
-    sol = solve_lifecycle_health(p, _g, _bs, (age, pp) -> ss_val)
+    sol = solve_lifecycle_health(p, _g, _bs,
+                                 build_ss_func(ss_val - db_val, db_val, p.age_start))
     fs = compute_indiff_fixed_cost_health(sol, _pban[b], pr; base_surv=_bs)
     # count/length, not mean: Statistics is loaded on the master, not on workers.
     costfree = isempty(fs.F_star) ? 0.0 : count(>(0.0), fs.F_star) / length(fs.F_star)

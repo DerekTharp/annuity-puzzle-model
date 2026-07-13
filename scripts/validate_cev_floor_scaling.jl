@@ -138,7 +138,8 @@ function main()
     # low-wealth cells face the most floor exposure. compute_bequest_decomp=true
     # supplies the exact bequest component B for the closed form.
     ss_band1 = Float64(SS_QUARTILE_LEVELS[1])
-    ss_func = (age, q) -> ss_band1
+    db_band1 = Float64(DB_OBS[1])   # nominal DB component; erodes in the ON state
+    ss_func = build_ss_func(ss_band1 - db_band1, db_band1, AGE_START)
     p = ModelParams(; gamma=GAMMA, beta=BETA, r=R_RATE,
         theta=THETA_DFJ, kappa=KAPPA_DFJ,
         mwr=MWR_LOADED, fixed_cost=FIXED_COST, min_purchase=MIN_PURCHASE,

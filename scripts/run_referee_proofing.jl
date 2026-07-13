@@ -70,7 +70,7 @@ _infl=INFLATION; _ssq=Float64.(SS_QUARTILE_LEVELS); _beta=BETA; _r=R_RATE
 _cf=C_FLOOR; _hm=Float64.(HAZARD_MULT); _hn=HAZARD_NORMALIZE; _nq=N_QUAD; _cd=CONSUMPTION_DECLINE
 _hu=Float64.(HEALTH_UTILITY); _chi=CHI_LTC; _lw=LAMBDA_W; _pp=PSI_PURCHASE; _ppc=PSI_PURCHASE_C_REF
 _bs=base_surv; _pop=population; _fair=fair; _fairn=fair_nom; _minw=MIN_WEALTH; _gkw=gkw
-_topup_vec=topup_vec
+_topup_vec=topup_vec; _db=Float64.(DB_OBS)
 _psi=SURVIVAL_PESSIMISM; _games=GAMES
 
 specs = [(g=g, m=m) for g in 1:length(GAMES) for m in 0:511]
@@ -83,7 +83,8 @@ results = parallel_solve(specs) do spec
         theta_dfj=_theta, kappa_dfj=_kappa, mwr_loaded=game.mwr, fixed_cost=_fc,
         min_purchase=_minp, inflation_val=_infl, survival_pessimism=_psi,
         ss_quartile_levels=_ssq, consumption_decline=_cd, health_utility=_hu,
-        chi_ltc_val=_chi, lambda_w_val=_lw, psi_purchase_val=_pp, psi_purchase_c_ref_val=_ppc)
+        chi_ltc_val=_chi, lambda_w_val=_lw, psi_purchase_val=_pp, psi_purchase_c_ref_val=_ppc,
+        db_levels=_db)
     has_loads = cfg.mwr < 1.0; has_infl = cfg.inflation_rate > 0
     pr = has_loads && has_infl ? cfg.mwr * _fairn : has_loads ? cfg.mwr * _fair : has_infl ? _fairn : _fair
     common = (gamma=game.gamma, beta=_beta, r=_r, stochastic_health=true, n_health_states=3,
@@ -96,7 +97,7 @@ results = parallel_solve(specs) do spec
         health_utility=cfg.health_utility, chi_ltc=cfg.chi_ltc, _gkw...)
     pop = _minw > 0 ? _pop[_pop[:, 1] .>= _minw, :] : _pop
     res = solve_and_evaluate(p, grids, _bs, cfg.ss_levels, pop, pr; verbose=false,
-        wealth_topup_hh = cfg.commute_ss ? _topup_vec : nothing)
+        wealth_topup_hh = cfg.commute_ss ? _topup_vec : nothing, db_levels=cfg.db_levels)
     if mask % 64 == 0
         @printf("    [heartbeat] game %d subset %d solved\n", spec.g, mask); flush(stdout)
     end
@@ -142,7 +143,8 @@ open(csv2, "w") do io
             min_purchase=MIN_PURCHASE, inflation_val=INFLATION, survival_pessimism=SURVIVAL_PESSIMISM,
             ss_quartile_levels=Float64.(SS_QUARTILE_LEVELS), consumption_decline=CONSUMPTION_DECLINE,
             health_utility=Float64.(HEALTH_UTILITY), chi_ltc_val=CHI_LTC, lambda_w_val=LAMBDA_W,
-            psi_purchase_val=PSI_PURCHASE, psi_purchase_c_ref_val=PSI_PURCHASE_C_REF)
+            psi_purchase_val=PSI_PURCHASE, psi_purchase_c_ref_val=PSI_PURCHASE_C_REF,
+            db_levels=Float64.(DB_OBS))
         pr = mwr_pol * fair_nom_p
         p = ModelParams(; gamma=GAMMA, beta=BETA, r=R_RATE, stochastic_health=true,
             n_health_states=3, n_quad=N_QUAD, c_floor=C_FLOOR, hazard_mult=Float64.(HAZARD_MULT), hazard_normalize=HAZARD_NORMALIZE,
@@ -155,7 +157,8 @@ open(csv2, "w") do io
                               max(fair_p, fair_nom_p))
         res = solve_and_evaluate(p, grids_p, base_surv, cfg.ss_levels, pop_prod, pr;
                                  step_name=@sprintf("full model at MWR=%.2f", mwr_pol), verbose=true,
-                                 wealth_topup_hh = cfg.commute_ss ? topup_vec : nothing)
+                                 wealth_topup_hh = cfg.commute_ss ? topup_vec : nothing,
+                                 db_levels=cfg.db_levels)
         @printf("  MWR=%.2f: aggregate %.1f%%, bands %.1f / %.1f / %.1f / %.1f %%\n",
             mwr_pol, res.ownership * 100,
             res.own_q[1] * 100, res.own_q[2] * 100, res.own_q[3] * 100, res.own_q[4] * 100)

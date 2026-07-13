@@ -191,6 +191,11 @@ _min_purchase = MIN_PURCHASE
 _inflation = INFLATION
 _surv_pess = SURVIVAL_PESSIMISM
 _ss_q_levels = Float64.(SS_QUARTILE_LEVELS)
+# DB (nominal, eroding) component of the SS-on flow. Under nominal DB (default),
+# the ON state erodes DB at the model inflation rate so its PV matches the
+# OFF-state nominal commutation. Under ANNUITY_REAL_DB=1 the same flag makes DB
+# constant real on both sides (db_levels=0 here; real commutation in the top-up).
+_db_obs_on = COMMUTE_DB_NOMINAL ? Float64.(DB_OBS) : zeros(4)
 _gamma = GAMMA
 _beta = BETA
 _r_rate = R_RATE
@@ -236,7 +241,8 @@ results = parallel_solve(subset_specs) do spec
         chi_ltc_val=_chi_ltc_val,
         lambda_w_val=_lambda_w_val,
         psi_purchase_val=_psi_purchase_val,
-        psi_purchase_c_ref_val=_psi_purchase_c_ref_val)
+        psi_purchase_c_ref_val=_psi_purchase_c_ref_val,
+        db_levels=_db_obs_on)
 
     gkw = (n_wealth=_n_wealth, n_annuity=_n_annuity, n_alpha=_n_alpha,
            W_max=_w_max, age_start=_age_start, age_end=_age_end,
@@ -292,7 +298,8 @@ results = parallel_solve(subset_specs) do spec
     t0 = time()
     res = solve_and_evaluate(p_model, grids, _base_surv, cfg.ss_levels,
         pop, pr; step_name="", verbose=false,
-        wealth_topup_hh = cfg.commute_ss ? _topup_vec : nothing)
+        wealth_topup_hh = cfg.commute_ss ? _topup_vec : nothing,
+        db_levels = cfg.db_levels)
     st = time() - t0
 
     # Liveness heartbeat: worker stdout is forwarded to the master log, so

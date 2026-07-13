@@ -204,7 +204,8 @@ for (i, cfg) in enumerate(configs)
 
     t0 = time()
     res = solve_and_evaluate(p_model, grids, base_surv, ss_lvls,
-        pop, payout; step_name=cfg.label, verbose=false)
+        pop, payout; step_name=cfg.label, verbose=false,
+        db_levels=Float64.(DB_OBS))
     elapsed = time() - t0
 
     push!(results, CounterfactualResult(

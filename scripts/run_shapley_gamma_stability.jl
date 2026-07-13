@@ -107,7 +107,7 @@ _hazard_mult=Float64.(HAZARD_MULT); _hazard_normalize=HAZARD_NORMALIZE; _n_quad 
 _consumption_decline = CONSUMPTION_DECLINE; _health_utility = Float64.(HEALTH_UTILITY)
 _chi_ltc = CHI_LTC
 _base_surv = base_surv; _population = population; _grids = grids
-_topup_vec = topup_vec
+_topup_vec = topup_vec; _db_obs = Float64.(DB_OBS)
 _fair_pr = fair_pr; _fair_pr_nom = fair_pr_nom
 _gkw = grid_kw
 
@@ -129,7 +129,7 @@ function shapley_at_gamma(gamma::Float64)
             survival_pessimism=_surv_pess, ss_quartile_levels=_ss_q_levels,
             consumption_decline=_consumption_decline, health_utility=_health_utility,
             chi_ltc_val=_chi_ltc, lambda_w_val=1.0, psi_purchase_val=0.0,
-            psi_purchase_c_ref_val=18_000.0)
+            psi_purchase_c_ref_val=18_000.0, db_levels=_db_obs)
 
         ckw = (gamma=gamma, beta=_beta, r=_r_rate,
                stochastic_health=true, n_health_states=3, n_quad=_n_quad,
@@ -156,7 +156,8 @@ function shapley_at_gamma(gamma::Float64)
 
         res = solve_and_evaluate(p_model, _grids, _base_surv, cfg.ss_levels,
             _population, pr; step_name="", verbose=false,
-            wealth_topup_hh = cfg.commute_ss ? _topup_vec : nothing)
+            wealth_topup_hh = cfg.commute_ss ? _topup_vec : nothing,
+            db_levels = cfg.db_levels)
         # Liveness heartbeat (~16 lines per gamma; see run_subset_enumeration).
         if mask % 32 == 0
             @printf("    [heartbeat] gamma=%.2f subset %3d/%d done (%.0fs elapsed)\n",

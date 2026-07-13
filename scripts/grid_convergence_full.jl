@@ -104,7 +104,7 @@ function solve_and_report(label, category, base_surv, population; kw...)
     # aggregated, exactly as in the decomposition/enumeration headline path.
     result = solve_and_evaluate(p_full, grids, base_surv,
                                 Float64.(SS_QUARTILE_LEVELS), pop_filt, loaded_pr_nom;
-                                verbose=false)
+                                verbose=false, db_levels=Float64.(DB_OBS))
 
     own = result.ownership
     mean_a = result.mean_alpha

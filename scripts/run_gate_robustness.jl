@@ -123,6 +123,7 @@ _g = grids; _bs = base_surv; _loaded = loaded; _pban = pop_band; _gkw = gkw
 # Capture top-level scenario/theta bindings as locals so the pmap closure does
 # not resolve them as worker globals (UndefVar under -p; ran fine single-threaded).
 _ss_base = ss_base; _ss_cut = ss_cut; _ss_placebo = ss_placebo; _theta_cells = THETA_CELLS
+_db = Float64.(DB_OBS)   # DB survives every scenario; nominal, so it erodes in the ON state
 
 # Tasks: (band, scen, theta_k). scen in {base, cut} x theta in {1,2,3}; placebo only theta=3.
 tasks = NamedTuple[]
@@ -139,6 +140,7 @@ t0 = time()
 results = parallel_solve(tasks) do task
     b = task.band; s = task.scen; k = task.k
     ss_val = s === :base ? _ss_base[b] : s === :cut ? _ss_cut[b] : _ss_placebo[b]
+    db_val = _db[b]
     theta_k = _theta_cells[k]
     p = ModelParams(; gamma=_p.gamma, beta=_p.beta, r=_p.r, stochastic_health=true,
         n_health_states=3, n_quad=_p.n_quad, c_floor=_p.c_floor,
@@ -147,7 +149,8 @@ results = parallel_solve(tasks) do task
         min_purchase=_p.min_purchase, inflation_rate=_p.inflation, medical_enabled=true,
         health_mortality_corr=true, survival_pessimism=_p.pess, consumption_decline=_p.cd,
         health_utility=_p.hu, chi_ltc=_p.chi, _gkw...)
-    sol = solve_lifecycle_health(p, _g, _bs, (age, pp) -> ss_val)
+    sol = solve_lifecycle_health(p, _g, _bs,
+                                 build_ss_func(ss_val - db_val, db_val, p.age_start))
     fs = compute_indiff_fixed_cost_health(sol, _pban[b], _loaded; base_surv=_bs)
     (band=b, scen=s, k=k, F_star=fs.F_star)
 end

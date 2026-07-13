@@ -171,6 +171,7 @@ for spec in calibrated_specs
         survival_pessimism=SURVIVAL_PESSIMISM,
         min_wealth=MIN_WEALTH,
         ss_levels=SS_LEVELS,
+        db_levels=Float64.(DB_OBS),
         verbose=true,
     )
 

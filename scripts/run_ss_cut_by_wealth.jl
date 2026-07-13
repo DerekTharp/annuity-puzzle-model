@@ -106,6 +106,9 @@ results = parallel_solve(specs) do spec
     if n_q == 0
         return (q=q, cut=cut, ownership=0.0, mean_alpha=0.0, n=0)
     end
+    # SS cut hits the SS component; DB pension survives the cut but is nominal,
+    # so it erodes in the ON state (db_levels below). ss_q is the combined
+    # age-65 level; solve_and_evaluate splits SS (constant real) from DB (eroding).
     ss_q = (1.0 - cut) * _ss_obs[q] + _db_obs[q]
     gkw = (n_wealth=_nw, n_annuity=_na, n_alpha=_nalpha, W_max=_wmax,
            age_start=_astart, age_end=_aend, annuity_grid_power=_apow)
@@ -118,7 +121,7 @@ results = parallel_solve(specs) do spec
         survival_pessimism=_pess, consumption_decline=_cd, health_utility=_hu,
         chi_ltc=_chi, gkw...)
     res = solve_and_evaluate(p_model, _grids, _base_surv, fill(ss_q, 4),
-        pop_q, _lpr; step_name="", verbose=false)
+        pop_q, _lpr; step_name="", verbose=false, db_levels=fill(_db_obs[q], 4))
     @printf("    [heartbeat] bin=%d cut=%.0f%% solved (own=%.1f%%)\n",
             q, cut * 100, res.ownership * 100)
     flush(stdout)

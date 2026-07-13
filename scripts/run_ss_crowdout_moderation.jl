@@ -124,7 +124,7 @@ results = parallel_solve(specs) do spec
         lambda_w=lam, psi_purchase=psi, psi_purchase_c_ref=PSI_PURCHASE_C_REF,
         gkw...)
     res = solve_and_evaluate(p_model, grids, base_surv, ss_lvls,
-        population, loaded_pr_nom; step_name="", verbose=false)
+        population, loaded_pr_nom; step_name="", verbose=false, db_levels=db_obs)
     (label=label, cut=spec.cut, ownership=res.ownership, mean_alpha=res.mean_alpha)
 end
 

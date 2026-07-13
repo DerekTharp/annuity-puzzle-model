@@ -564,6 +564,7 @@ function compute_cev_grid(
     lambda_w::Float64=1.0,
     psi_purchase::Float64=0.0,
     psi_purchase_c_ref::Float64=18_000.0,
+    db_band_levels::Vector{Float64}=Float64.(DB_OBS),
     verbose::Bool=true,
 )
     # Default bequest specs using Lockwood's original DFJ theta (no recalibration)
@@ -636,12 +637,16 @@ function compute_cev_grid(
         end
 
         # One value function per wealth band, each carrying that band's SS+DB
-        # floor. The solves differ only in the (constant) ss_func level.
+        # floor. SS is constant real; the nominal DB component erodes at the
+        # model inflation rate (build_ss_func), matching the production ownership
+        # solve and the OFF-state nominal commutation. db_band_levels=0 restores
+        # a constant real floor (real-DB sensitivity).
         n_bands = length(ss_band_levels)
         band_sols = Vector{HealthSolution}(undef, n_bands)
         for b in 1:n_bands
             ss_b = ss_band_levels[b]
-            ss_func_b = (age, p) -> ss_b
+            db_b = db_band_levels[b]
+            ss_func_b = build_ss_func(ss_b - db_b, db_b, age_start)
             p_model = ModelParams(; common_kw...,
                 theta=bspec.theta, kappa=bspec.kappa,
                 mwr=mwr_loaded, fixed_cost=fixed_cost_val, min_purchase=min_purchase_val,

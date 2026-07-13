@@ -82,6 +82,7 @@ if size(pop, 2) < 4
 end
 
 const SS_LEVELS = SS_QUARTILE_LEVELS
+const DB_LEVELS = Float64.(DB_OBS)   # nominal DB component; erodes in the ON state
 
 @printf("  %-55s  %8s  %8s  %s\n", "Model Specification", "Own(%)", "Mean a", "Time")
 println("  " * "-" ^ 85)
@@ -91,7 +92,7 @@ p0 = ModelParams(; common_kw..., theta=0.0, kappa=0.0, mwr=1.0,
     fixed_cost=0.0, inflation_rate=0.0,
     medical_enabled=false, health_mortality_corr=false, grid_kw...)
 res0 = solve_and_evaluate(p0, grids, base_surv, SS_LEVELS, pop, fair_pr;
-    step_name="0. Yaari benchmark (SS on)", verbose=true)
+    step_name="0. Yaari benchmark (SS on)", verbose=true, db_levels=DB_LEVELS)
 flush(stdout)
 
 # Step 1: + Bequest motives (DFJ)
@@ -99,7 +100,7 @@ p1 = ModelParams(; common_kw..., theta=THETA_DFJ, kappa=KAPPA_DFJ,
     mwr=1.0, fixed_cost=0.0, inflation_rate=0.0,
     medical_enabled=false, health_mortality_corr=false, grid_kw...)
 res1 = solve_and_evaluate(p1, grids, base_surv, SS_LEVELS, pop, fair_pr;
-    step_name="1. + Bequest motives (DFJ)", verbose=true)
+    step_name="1. + Bequest motives (DFJ)", verbose=true, db_levels=DB_LEVELS)
 flush(stdout)
 
 # Step 2: + Minimum purchase ($25K)
@@ -109,7 +110,7 @@ p2 = ModelParams(; common_kw..., theta=THETA_DFJ, kappa=KAPPA_DFJ,
     medical_enabled=false, health_mortality_corr=false,
     min_purchase=MIN_PURCHASE, grid_kw...)
 res2 = solve_and_evaluate(p2, grids, base_surv, SS_LEVELS, pop, fair_pr;
-    step_name="2. + Minimum purchase (\$25K)", verbose=true)
+    step_name="2. + Minimum purchase (\$25K)", verbose=true, db_levels=DB_LEVELS)
 flush(stdout)
 
 # Step 3: + Pricing loads (MWR=0.85, Pashchenko's estimate)
@@ -119,7 +120,7 @@ p3 = ModelParams(; common_kw..., theta=THETA_DFJ, kappa=KAPPA_DFJ,
     medical_enabled=false, health_mortality_corr=false,
     min_purchase=MIN_PURCHASE, grid_kw...)
 res3 = solve_and_evaluate(p3, grids, base_surv, SS_LEVELS, pop, loaded_pr_pash;
-    step_name="3. + Pricing loads (MWR=0.85)", verbose=true)
+    step_name="3. + Pricing loads (MWR=0.85)", verbose=true, db_levels=DB_LEVELS)
 flush(stdout)
 
 println()
@@ -134,7 +135,7 @@ p4 = ModelParams(; common_kw..., theta=THETA_DFJ, kappa=KAPPA_DFJ,
     medical_enabled=true, health_mortality_corr=true,
     min_purchase=MIN_PURCHASE, grid_kw...)
 res4 = solve_and_evaluate(p4, grids, base_surv, SS_LEVELS, pop, loaded_pr_pash;
-    step_name="4. + Medical costs + R-S correlation", verbose=true)
+    step_name="4. + Medical costs + R-S correlation", verbose=true, db_levels=DB_LEVELS)
 flush(stdout)
 
 # Step 5: + Survival pessimism
@@ -144,7 +145,7 @@ p5 = ModelParams(; common_kw..., theta=THETA_DFJ, kappa=KAPPA_DFJ,
     survival_pessimism=SURVIVAL_PESSIMISM,
     min_purchase=MIN_PURCHASE, grid_kw...)
 res5 = solve_and_evaluate(p5, grids, base_surv, SS_LEVELS, pop, loaded_pr_pash;
-    step_name="5. + Survival pessimism (psi=0.96)", verbose=true)
+    step_name="5. + Survival pessimism (psi=0.96)", verbose=true, db_levels=DB_LEVELS)
 flush(stdout)
 
 # Step 6: + Full loads + Inflation (2%) — uses MWR_FULL from config.jl.
@@ -157,7 +158,8 @@ p6 = ModelParams(; common_kw..., theta=THETA_DFJ, kappa=KAPPA_DFJ,
     survival_pessimism=SURVIVAL_PESSIMISM,
     min_purchase=MIN_PURCHASE, grid_kw...)
 res6 = solve_and_evaluate(p6, grids, base_surv, SS_LEVELS, pop, loaded_pr_full_nom;
-    step_name="6. + Full loads (Pashchenko MWR=0.82 historical) + Inflation (2%)", verbose=true)  # ALLOWLIST: historical Pashchenko (2013) reference value
+    step_name="6. + Full loads (Pashchenko MWR=0.82 historical) + Inflation (2%)", verbose=true,  # ALLOWLIST: historical Pashchenko (2013) reference value
+    db_levels=DB_LEVELS)
 flush(stdout)
 
 println()

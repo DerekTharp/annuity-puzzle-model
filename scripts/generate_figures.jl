@@ -337,8 +337,10 @@ function figure_4_policy_functions()
         survival_pessimism = SURVIVAL_PESSIMISM,
     )
 
-    _ss_mean_val = sum(SS_QUARTILE_LEVELS) / length(SS_QUARTILE_LEVELS)
-    ss_mean(age, p) = _ss_mean_val
+    # SS mean constant real; nominal DB mean erodes in the ON state.
+    _ss_mean_real = (sum(SS_QUARTILE_LEVELS) - sum(DB_OBS)) / length(SS_QUARTILE_LEVELS)
+    _db_mean = sum(DB_OBS) / length(DB_OBS)
+    ss_mean = build_ss_func(_ss_mean_real, _db_mean, AGE_START)
 
     # Survival probabilities
     p_base = ModelParams(age_start = AGE_START, age_end = AGE_END)

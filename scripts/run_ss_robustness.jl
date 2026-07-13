@@ -168,8 +168,10 @@ cut_results = parallel_solve(cut_fractions) do cut_frac
         pop = hcat(pop, fill(2.0, size(pop, 1)))
     end
 
+    # DB survives the SS cut but is nominal, so it erodes in the ON state
+    # (constant-real SS after the cut, plus eroding DB).
     res = solve_and_evaluate(p_model, local_grids, _base_surv, ss_lvls,
-        pop, lpr; step_name="", verbose=false)
+        pop, lpr; step_name="", verbose=false, db_levels=_db_obs)
 
     @printf("    [heartbeat] cut=%.0f%% solved (ownership=%.1f%%)\n",
             cut_frac * 100, res.ownership * 100)

@@ -146,7 +146,7 @@ results_raw = parallel_solve(MAPPINGS) do (label, phi)
     t0 = time()
     res = solve_and_evaluate(p_model, _su_grids, _su_base_surv,
         Float64.(SS_QUARTILE_LEVELS), _su_pop, _su_loaded_pr_nom;
-        step_name="", verbose=false)
+        step_name="", verbose=false, db_levels=Float64.(DB_OBS))
     return (label=label, phi_good=phi[1], phi_fair=phi[2], phi_poor=phi[3],
             ownership_pct=res.ownership * 100, mean_alpha=res.mean_alpha,
             solve_time=time() - t0)

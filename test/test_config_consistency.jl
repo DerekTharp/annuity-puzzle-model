@@ -17,6 +17,10 @@ include(joinpath(@__DIR__, "..", "scripts", "config.jl"))
 @testset "Production calibration constants (config.jl)" begin
     @test CHI_LTC == 0.49
     @test C_FLOOR == 6_180.0
+    # DB nominal-erosion rate (src/income.jl) must equal INFLATION: the SS+DB
+    # off-state commutation prices DB at fair_pr_nom (INFLATION), so the on-state
+    # DB must erode at the same rate for resource consistency.
+    @test DB_EROSION_RATE == INFLATION
     @test HEALTH_UTILITY == [1.0, 0.92, 0.82]
     @test MWR_LOADED == 0.87
     @test GAMMA == 2.5

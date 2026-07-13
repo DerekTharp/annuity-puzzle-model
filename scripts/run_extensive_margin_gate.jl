@@ -113,7 +113,7 @@ ss_cut  = (1 - SS_CUT_FRAC) .* Float64.(SS_OBS) .+ Float64.(DB_OBS)
 _p = p_full; _grids = grids; _bs = base_surv; _loaded = loaded; _popband = pop_band
 # Capture scenario SS levels as locals so the pmap closure does not resolve them
 # as worker globals (UndefVar under -p; the single-threaded path masked this).
-_ss_base = ss_base; _ss_cut = ss_cut
+_ss_base = ss_base; _ss_cut = ss_cut; _db = Float64.(DB_OBS)
 tasks = [(band=b, scen=s) for b in 1:4 for s in (:base, :cut)]
 
 println("\nSolving 8 (band x scenario) models and computing F*...")
@@ -122,7 +122,9 @@ t0 = time()
 results = parallel_solve(tasks) do task
     b = task.band; s = task.scen
     ss_val = s === :base ? _ss_base[b] : _ss_cut[b]
-    sol = solve_lifecycle_health(_p, _grids, _bs, (age, p) -> ss_val)
+    # DB survives in both scenarios and is nominal, so it erodes in the ON state.
+    sol = solve_lifecycle_health(_p, _grids, _bs,
+                                 build_ss_func(ss_val - _db[b], _db[b], _p.age_start))
     fs = compute_indiff_fixed_cost_health(sol, _popband[b], _loaded; base_surv=_bs)
     (band=b, scen=s, F_star=fs.F_star, owns_hard=fs.owns_hard, infeasible=fs.infeasible)
 end
