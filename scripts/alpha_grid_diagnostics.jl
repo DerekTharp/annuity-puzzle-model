@@ -2,7 +2,7 @@
 # Ownership is the discontinuous indicator alpha* > 0, so the resolution of the
 # age-65 annuitization grid (n_alpha points on [0,1]) can in principle shift
 # marginal households across the participation threshold. This holds the wealth
-# grid (80x30) and quadrature (9-node GH) at production resolution and sweeps
+# grid (80x30) and quadrature (N_QUAD nodes) at production resolution and sweeps
 # n_alpha, on the headline per-quartile configuration used by
 # grid_convergence_full.jl (so the n_alpha=101 cell matches the headline level).
 #
@@ -38,7 +38,7 @@ println("Data loaded ($n_pop obs)"); flush(stdout)
 results = Tuple{String,Float64,Float64}[]  # (spec, ownership_pct, mean_alpha)
 
 # Production diagnostic configuration (matches grid_convergence_full.jl's
-# 80x30, 9-node GH "Grid (9-node)" production row); only n_alpha varies.
+# 80x30 production row at N_QUAD-node quadrature); only n_alpha varies.
 function solve_alpha(nalpha)
     t0 = time()
     grid_kw = (n_wealth=80, n_annuity=30, n_alpha=nalpha,
@@ -56,7 +56,7 @@ function solve_alpha(nalpha)
 
     p_full = ModelParams(; gamma=2.5, beta=0.97, r=0.02,
         theta=THETA_DFJ, kappa=KAPPA_DFJ,
-        stochastic_health=true, n_health_states=3, n_quad=9,
+        stochastic_health=true, n_health_states=3, n_quad=N_QUAD,
         c_floor=C_FLOOR, hazard_mult=Float64.(HAZARD_MULT), hazard_normalize=HAZARD_NORMALIZE,
         mwr=MWR_LOADED, fixed_cost=FIXED_COST, min_purchase=MIN_PURCHASE, inflation_rate=0.02,
         medical_enabled=true, health_mortality_corr=true,
@@ -82,7 +82,7 @@ function solve_alpha(nalpha)
     push!(results, (@sprintf("n_alpha=%d", nalpha), own * 100, mean_a))
 end
 
-println("\n--- ALPHA-GRID SWEEP (80x30 grid, 9-node GH) ---"); flush(stdout)
+println("\n--- ALPHA-GRID SWEEP (80x30 grid, $(N_QUAD)-node GH) ---"); flush(stdout)
 for nalpha in [51, 101, 201, 401]   # 101 is the production resolution
     solve_alpha(nalpha)
 end

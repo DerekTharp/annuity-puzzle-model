@@ -48,11 +48,16 @@ grids = build_grids(ModelParams(; gamma=GAMMA, beta=BETA, r=R_RATE,
     stochastic_health=true, n_health_states=3, n_quad=N_QUAD, c_floor=C_FLOOR,
     hazard_mult=Float64.(HAZARD_MULT), hazard_normalize=HAZARD_NORMALIZE, mwr=1.0, gkw...), max(fair_pr, fair_pr_nom))
 
+# Per-household commuted-PV top-up built on pop65 (everyone forced to age 65),
+# so the SS+DB commutation uses the age-65 fair PV for every respondent — the
+# consistent counterpart to forcing the private-annuity decision to age 65.
+topup_vec = commuted_topup_vector(pop65, base_surv, p_fair_nom)
+
 @everywhere function solve_one(mask, gkw, GAMMA, BETA, R_RATE, N_QUAD, C_FLOOR,
         HAZARD_MULT, HAZARD_NORMALIZE, THETA_DFJ, KAPPA_DFJ, MWR_LOADED, FIXED_COST, MIN_PURCHASE,
         INFLATION, SURVIVAL_PESSIMISM, SS_QUARTILE_LEVELS, CONSUMPTION_DECLINE,
         HEALTH_UTILITY, CHI_LTC, LAMBDA_W, PSI_PURCHASE, PSI_PURCHASE_C_REF,
-        grids, base_surv, fair_pr, fair_pr_nom, pop65)
+        grids, base_surv, fair_pr, fair_pr_nom, pop65, topup_vec)
     cfg = build_subset_config(bitmask_to_channels(mask);
         theta_dfj=THETA_DFJ, kappa_dfj=KAPPA_DFJ, mwr_loaded=MWR_LOADED,
         fixed_cost=FIXED_COST, min_purchase=MIN_PURCHASE, inflation_val=INFLATION,
@@ -61,7 +66,7 @@ grids = build_grids(ModelParams(; gamma=GAMMA, beta=BETA, r=R_RATE,
         consumption_decline=CONSUMPTION_DECLINE,
         health_utility=Float64.(HEALTH_UTILITY), chi_ltc_val=CHI_LTC,
         lambda_w_val=LAMBDA_W, psi_purchase_val=PSI_PURCHASE,
-        psi_purchase_c_ref_val=PSI_PURCHASE_C_REF, fair_pr=fair_pr)
+        psi_purchase_c_ref_val=PSI_PURCHASE_C_REF)
     has_loads = cfg.mwr < 1.0; has_infl = cfg.inflation_rate > 0
     pr = has_loads && has_infl ? cfg.mwr * fair_pr_nom :
          has_loads              ? cfg.mwr * fair_pr :
@@ -78,7 +83,7 @@ grids = build_grids(ModelParams(; gamma=GAMMA, beta=BETA, r=R_RATE,
         lambda_w=cfg.lambda_w, psi_purchase=cfg.psi_purchase,
         psi_purchase_c_ref=cfg.psi_purchase_c_ref, gkw...)
     return mask => solve_and_evaluate(p, grids, base_surv, cfg.ss_levels, pop65, pr;
-        verbose=false, wealth_topup=cfg.w_commuted).ownership
+        verbose=false, wealth_topup_hh = cfg.commute_ss ? topup_vec : nothing).ownership
 end
 
 println("Enumerating 512 nine-channel subsets at forced age 65 (coarse grid)...")
@@ -88,7 +93,7 @@ pairs = pmap(m -> solve_one(m, gkw, GAMMA, BETA, R_RATE, N_QUAD, C_FLOOR,
         HAZARD_MULT, HAZARD_NORMALIZE, THETA_DFJ, KAPPA_DFJ, MWR_LOADED, FIXED_COST, MIN_PURCHASE,
         INFLATION, SURVIVAL_PESSIMISM, SS_QUARTILE_LEVELS, CONSUMPTION_DECLINE,
         HEALTH_UTILITY, CHI_LTC, LAMBDA_W, PSI_PURCHASE, PSI_PURCHASE_C_REF,
-        grids, base_surv, fair_pr, fair_pr_nom, pop65), 0:511)
+        grids, base_surv, fair_pr, fair_pr_nom, pop65, topup_vec), 0:511)
 lookup = Dict{Int,Float64}(pairs)
 shap = exact_shapley(9, lookup)
 names = ["SS", "Bequests", "Med+R-S", "Pessimism", "Age needs", "State util",

@@ -56,11 +56,21 @@ gkw = (n_wealth=NW, n_annuity=NA, n_alpha=NAL, W_max=W_MAX, age_start=AGE_START,
 fair     = compute_payout_rate(ModelParams(; gamma=GAMMA, beta=BETA, r=R_RATE, mwr=1.0, gkw...), base_surv)
 fair_nom = INFLATION > 0 ? compute_payout_rate(ModelParams(; gamma=GAMMA, beta=BETA, r=R_RATE, mwr=1.0, inflation_rate=INFLATION, gkw...), base_surv) : fair
 
+# Filter to the model-eligible population ONCE so the per-household commuted-PV
+# top-up aligns 1:1 with both the coarse-grid games (part a) and the prod-grid
+# by-band evaluation (part b). The top-up is grid-independent, so build once.
+if MIN_WEALTH > 0.0
+    population = population[population[:, 1] .>= MIN_WEALTH, :]
+end
+p_topup = ModelParams(; gamma=GAMMA, beta=BETA, r=R_RATE, mwr=1.0, inflation_rate=INFLATION, gkw...)
+topup_vec = commuted_topup_vector(population, base_surv, p_topup)
+
 _theta=THETA_DFJ; _kappa=KAPPA_DFJ; _fc=FIXED_COST; _minp=MIN_PURCHASE
 _infl=INFLATION; _ssq=Float64.(SS_QUARTILE_LEVELS); _beta=BETA; _r=R_RATE
 _cf=C_FLOOR; _hm=Float64.(HAZARD_MULT); _hn=HAZARD_NORMALIZE; _nq=N_QUAD; _cd=CONSUMPTION_DECLINE
 _hu=Float64.(HEALTH_UTILITY); _chi=CHI_LTC; _lw=LAMBDA_W; _pp=PSI_PURCHASE; _ppc=PSI_PURCHASE_C_REF
 _bs=base_surv; _pop=population; _fair=fair; _fairn=fair_nom; _minw=MIN_WEALTH; _gkw=gkw
+_topup_vec=topup_vec
 _psi=SURVIVAL_PESSIMISM; _games=GAMES
 
 specs = [(g=g, m=m) for g in 1:length(GAMES) for m in 0:511]
@@ -73,8 +83,7 @@ results = parallel_solve(specs) do spec
         theta_dfj=_theta, kappa_dfj=_kappa, mwr_loaded=game.mwr, fixed_cost=_fc,
         min_purchase=_minp, inflation_val=_infl, survival_pessimism=_psi,
         ss_quartile_levels=_ssq, consumption_decline=_cd, health_utility=_hu,
-        chi_ltc_val=_chi, lambda_w_val=_lw, psi_purchase_val=_pp, psi_purchase_c_ref_val=_ppc,
-        fair_pr=_fair)
+        chi_ltc_val=_chi, lambda_w_val=_lw, psi_purchase_val=_pp, psi_purchase_c_ref_val=_ppc)
     has_loads = cfg.mwr < 1.0; has_infl = cfg.inflation_rate > 0
     pr = has_loads && has_infl ? cfg.mwr * _fairn : has_loads ? cfg.mwr * _fair : has_infl ? _fairn : _fair
     common = (gamma=game.gamma, beta=_beta, r=_r, stochastic_health=true, n_health_states=3,
@@ -87,7 +96,7 @@ results = parallel_solve(specs) do spec
         health_utility=cfg.health_utility, chi_ltc=cfg.chi_ltc, _gkw...)
     pop = _minw > 0 ? _pop[_pop[:, 1] .>= _minw, :] : _pop
     res = solve_and_evaluate(p, grids, _bs, cfg.ss_levels, pop, pr; verbose=false,
-        wealth_topup=cfg.w_commuted)
+        wealth_topup_hh = cfg.commute_ss ? _topup_vec : nothing)
     if mask % 64 == 0
         @printf("    [heartbeat] game %d subset %d solved\n", spec.g, mask); flush(stdout)
     end
@@ -133,7 +142,7 @@ open(csv2, "w") do io
             min_purchase=MIN_PURCHASE, inflation_val=INFLATION, survival_pessimism=SURVIVAL_PESSIMISM,
             ss_quartile_levels=Float64.(SS_QUARTILE_LEVELS), consumption_decline=CONSUMPTION_DECLINE,
             health_utility=Float64.(HEALTH_UTILITY), chi_ltc_val=CHI_LTC, lambda_w_val=LAMBDA_W,
-            psi_purchase_val=PSI_PURCHASE, psi_purchase_c_ref_val=PSI_PURCHASE_C_REF, fair_pr=fair_p)
+            psi_purchase_val=PSI_PURCHASE, psi_purchase_c_ref_val=PSI_PURCHASE_C_REF)
         pr = mwr_pol * fair_nom_p
         p = ModelParams(; gamma=GAMMA, beta=BETA, r=R_RATE, stochastic_health=true,
             n_health_states=3, n_quad=N_QUAD, c_floor=C_FLOOR, hazard_mult=Float64.(HAZARD_MULT), hazard_normalize=HAZARD_NORMALIZE,
@@ -146,7 +155,7 @@ open(csv2, "w") do io
                               max(fair_p, fair_nom_p))
         res = solve_and_evaluate(p, grids_p, base_surv, cfg.ss_levels, pop_prod, pr;
                                  step_name=@sprintf("full model at MWR=%.2f", mwr_pol), verbose=true,
-                                 wealth_topup=cfg.w_commuted)
+                                 wealth_topup_hh = cfg.commute_ss ? topup_vec : nothing)
         @printf("  MWR=%.2f: aggregate %.1f%%, bands %.1f / %.1f / %.1f / %.1f %%\n",
             mwr_pol, res.ownership * 100,
             res.own_q[1] * 100, res.own_q[2] * 100, res.own_q[3] * 100, res.own_q[4] * 100)

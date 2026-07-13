@@ -5,6 +5,8 @@
 
 using DelimitedFiles, Printf
 
+include(joinpath(@__DIR__, "config.jl"))  # N_QUAD (production quadrature node count)
+
 const CSV_DIR = joinpath(@__DIR__, "..", "tables", "csv")
 const TEX_DIR = joinpath(@__DIR__, "..", "tables", "tex")
 const ROW = "\\\\"   # LaTeX row terminator
@@ -38,24 +40,24 @@ function emit_grid_convergence()
     raw_(io, raw"\toprule")
     nl(io, raw"Specification & $n_W \times n_A$ & Nodes & Ownership (\%) & $\bar{\alpha}$ ")
     raw_(io, raw"\midrule")
-    nl(io, raw"\multicolumn{5}{l}{\textit{Panel A: Grid convergence (9-node GH)}} ")
+    nl(io, raw"\multicolumn{5}{l}{\textit{Panel A: Grid convergence (" * string(N_QUAD) * raw"-node GH)}} ")
     for (lab, sz, spec) in [("Medium", raw"$60 \times 20$", "60x20"),
                             ("Production", raw"$80 \times 30$", "80x30"),
                             ("Fine", raw"$100 \times 40$", "100x40"),
                             ("Very fine", raw"$120 \times 50$", "120x50")]
         o, a = g(spec)
         if lab == "Production"
-            nl(io, @sprintf("\\textbf{%s} & \\textbf{%s} & \\textbf{9} & \\textbf{%.2f} & \\textbf{%.4f} ", lab, sz, o, a))
+            nl(io, @sprintf("\\textbf{%s} & \\textbf{%s} & \\textbf{%d} & \\textbf{%.2f} & \\textbf{%.4f} ", lab, sz, N_QUAD, o, a))
         else
-            nl(io, @sprintf("%s & %s & 9 & %.2f & %.4f ", lab, sz, o, a))
+            nl(io, @sprintf("%s & %s & %d & %.2f & %.4f ", lab, sz, N_QUAD, o, a))
         end
     end
     raw_(io, raw"\midrule")
     nl(io, raw"\multicolumn{5}{l}{\textit{Panel B: Quadrature convergence ($80 \times 30$ grid)}} ")
     for n in [3, 5, 7, 9, 11, 13, 15]
         o, a = q("n_quad=$n")
-        if n == 9
-            nl(io, @sprintf(" & \$80 \\times 30\$ & \\textbf{9} & \\textbf{%.2f} & \\textbf{%.4f} ", o, a))
+        if n == N_QUAD
+            nl(io, @sprintf(" & \$80 \\times 30\$ & \\textbf{%d} & \\textbf{%.2f} & \\textbf{%.4f} ", n, o, a))
         else
             nl(io, @sprintf(" & \$80 \\times 30\$ & %d & %.2f & %.4f ", n, o, a))
         end
@@ -73,13 +75,13 @@ function emit_grid_convergence()
             error("alpha row not found: $spec")
         end
         raw_(io, raw"\midrule")
-        nl(io, raw"\multicolumn{5}{l}{\textit{Panel D: Annuitization grid ($80 \times 30$ grid, 9-node GH)}} ")
+        nl(io, raw"\multicolumn{5}{l}{\textit{Panel D: Annuitization grid ($80 \times 30$ grid, " * string(N_QUAD) * raw"-node GH)}} ")
         for n in [51, 101, 201, 401]
             o, a = ag("n_alpha=$n")
             if n == 101
-                nl(io, @sprintf("\\textbf{\$n_\\alpha = %d\$} & \\textbf{\$80 \\times 30\$} & \\textbf{9} & \\textbf{%.2f} & \\textbf{%.4f} ", n, o, a))
+                nl(io, @sprintf("\\textbf{\$n_\\alpha = %d\$} & \\textbf{\$80 \\times 30\$} & \\textbf{%d} & \\textbf{%.2f} & \\textbf{%.4f} ", n, N_QUAD, o, a))
             else
-                nl(io, @sprintf("\$n_\\alpha = %d\$ & \$80 \\times 30\$ & 9 & %.2f & %.4f ", n, o, a))
+                nl(io, @sprintf("\$n_\\alpha = %d\$ & \$80 \\times 30\$ & %d & %.2f & %.4f ", n, N_QUAD, o, a))
             end
         end
     end
@@ -117,7 +119,7 @@ function emit_euler_table()
     raw_(io, raw"\toprule")
     nl(io, raw"Specification & Mean & Median & \% ${>} 1\%$ & \% ${>} 5\%$ ")
     raw_(io, raw"\midrule")
-    nl(io, raw"\multicolumn{5}{l}{\textit{Grid convergence (9-node GH)}} ")
+    nl(io, raw"\multicolumn{5}{l}{\textit{Grid convergence (" * string(N_QUAD) * raw"-node GH)}} ")
     for (disp, lab) in [(raw"$40 \times 15$", "Grid 40x15 (9-node)"),
                         (raw"$60 \times 20$", "Grid 60x20 (9-node)"),
                         (raw"$80 \times 30$ (production)", "Baseline 80x30 (9-node)"),
@@ -129,8 +131,8 @@ function emit_euler_table()
     nl(io, raw"\multicolumn{5}{l}{\textit{Quadrature sensitivity ($80 \times 30$ grid)}} ")
     for (disp, lab) in [("5-node GH", "80x30 5-node GH"),
                         ("7-node GH", "80x30 7-node GH"),
-                        ("9-node GH", "Baseline 80x30 (9-node)"),
-                        ("11-node GH", "80x30 11-node GH")]
+                        ("11-node GH", "80x30 11-node GH"),
+                        (@sprintf("%d-node GH", N_QUAD), "Baseline 80x30 (9-node)")]
         m, md, p1, p5 = euler_row(rows, lab)
         nl(io, @sprintf("%s & %.3f & %.3f & %.1f & %.1f ", disp, m, md, p1, p5))
     end

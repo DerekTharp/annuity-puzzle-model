@@ -35,25 +35,92 @@ const SS_QUARTILE_LEVELS = SS_OBS .+ DB_OBS   # [18284, 21188, 25924, 26873]
 const SS_QUARTILE_BREAKS = [30_000.0, 120_000.0, 350_000.0]
 
 """
+Wealth band index (1-4) for wealth `w` under the fixed SS_QUARTILE_BREAKS.
+Q1 = W < breaks[1], Q2 = breaks[1] <= W < breaks[2], Q3 = breaks[2] <= W <
+breaks[3], Q4 = W >= breaks[3].
+"""
+function _wealth_band(w::Float64, breaks::Vector{Float64})
+    if w < breaks[1]
+        return 1
+    elseif w < breaks[2]
+        return 2
+    elseif w < breaks[3]
+        return 3
+    else
+        return 4
+    end
+end
+
+"""
+Boolean mask selecting rows of `pop` whose wealth falls in band `q`.
+"""
+function _filter_quartile_mask(pop::Matrix{Float64}, q::Int, breaks::Vector{Float64})
+    n = size(pop, 1)
+    mask = falses(n)
+    for i in 1:n
+        mask[i] = _wealth_band(pop[i, 1], breaks) == q
+    end
+    return mask
+end
+
+"""
 Filter population matrix to agents in a given wealth quartile.
 Q1 = W < breaks[1], Q2 = breaks[1] <= W < breaks[2], etc.
 """
 function _filter_quartile(pop::Matrix{Float64}, q::Int, breaks::Vector{Float64})
-    n = size(pop, 1)
-    mask = falses(n)
-    for i in 1:n
-        w = pop[i, 1]
-        if q == 1
-            mask[i] = w < breaks[1]
-        elseif q == 2
-            mask[i] = w >= breaks[1] && w < breaks[2]
-        elseif q == 3
-            mask[i] = w >= breaks[2] && w < breaks[3]
-        else
-            mask[i] = w >= breaks[3]
-        end
+    return pop[_filter_quartile_mask(pop, q, breaks), :]
+end
+
+"""
+    commuted_topup_vector(population, base_surv, p; commute_db_nominal=true)
+
+Per-household commuted-PV top-up for the pre-existing-annuitization (SS+DB)
+counterfactual. When that channel is OFF, each household's fixed SS and DB
+income is returned as an equal-PV liquid endowment, priced at the fair rate
+for a SPIA PURCHASED AT THE HOUSEHOLD'S OBSERVED AGE — the same repricing the
+private annuity receives in compute_ownership_rate_health (payout_rate_at_age).
+The age-65 fair PV per dollar of annual income is ~15.3; the rate rises with
+age, so the PV (and hence the top-up) falls for older respondents.
+
+SS commutes at the fair REAL rate (SS is COLA-protected); DB commutes at the
+fair NOMINAL rate (most DB pensions lack a COLA), unless
+`commute_db_nominal=false`, which commutes DB at the real rate too (sensitivity).
+
+For household i with observed age a_i and wealth band q_i (by ORIGINAL
+non-annuitized wealth, population[:,1]),
+    topup_i = SS_OBS[q_i] / fpr_real(a_i) + DB_OBS[q_i] / fpr_db(a_i).
+
+Population survival (base_surv) prices the commutation — the objective table
+the model already uses, not health-conditioned or pessimistic survival. `p`
+supplies the discount convention: it must carry the nominal inflation rate
+(p.inflation_rate > 0) when commute_db_nominal is true.
+
+Coalition-independent: identical for every SS-off coalition, so precompute once
+per driver and align it 1:1 with the population passed to solve_and_evaluate.
+"""
+function commuted_topup_vector(population::Matrix{Float64},
+        base_surv::Vector{Float64}, p::ModelParams;
+        commute_db_nominal::Bool=true)
+    if commute_db_nominal && !(p.inflation_rate > 0)
+        error("commuted_topup_vector: commute_db_nominal=true requires " *
+              "p.inflation_rate > 0 (the nominal DB discount rate)")
     end
-    return pop[mask, :]
+    p_real = ModelParams(p; mwr=1.0, inflation_rate=0.0)
+    p_db = commute_db_nominal ? ModelParams(p; mwr=1.0) : p_real
+
+    # Fair payout rates by observed age (65-69), computed once per age.
+    ages = sort(unique(Int.(round.(population[:, 3]))))
+    fpr_real = Dict{Int,Float64}(a => payout_rate_at_age(p_real, base_surv, a) for a in ages)
+    fpr_db   = Dict{Int,Float64}(a => payout_rate_at_age(p_db,   base_surv, a) for a in ages)
+
+    n = size(population, 1)
+    topup = zeros(n)
+    for i in 1:n
+        band = _wealth_band(population[i, 1], SS_QUARTILE_BREAKS)
+        a = Int(round(population[i, 3]))
+        topup[i] = SS_OBS[band] / fpr_real[a] + DB_OBS[band] / fpr_db[a]
+    end
+    return topup
 end
 
 """
@@ -109,19 +176,20 @@ function solve_and_evaluate(
     payout_rate::Float64;
     step_name::String="",
     verbose::Bool=true,
-    wealth_topup::Vector{Float64}=zeros(4),
+    wealth_topup_hh::Union{Nothing,Vector{Float64}}=nothing,
 )
     t0 = time()
 
     own_q = zeros(4)
     alpha_q = zeros(4)
     n_q = zeros(4)
-    topup_active = any(wealth_topup .> 0.0)
+    topup_active = wealth_topup_hh !== nothing
 
     if all(x -> x == ss_levels[1], ss_levels)
-        # All quartiles identical: solve once. When SS is toggled OFF in the
-        # cooperative game, its actuarial PV is returned to the household as an
-        # equal-PV liquid endowment (wealth_topup, per band) so the SS player
+        # All quartiles identical: solve once. When pre-existing annuitization
+        # is toggled OFF in the cooperative game, its actuarial PV is returned
+        # to each household as an equal-PV liquid endowment (wealth_topup_hh,
+        # per household, priced at the household's observed age) so the player
         # is a clean pre-annuitization share-shift rather than an income effect.
         # The value function is unchanged (SS=0 uniform); only the evaluated
         # population's wealth shifts, so a single solve suffices. Band
@@ -133,12 +201,13 @@ function solve_and_evaluate(
         contract_q = zeros(4)
         floor_q = zeros(4)
         for q in 1:4
-            pop_q = _filter_quartile(population, q, SS_QUARTILE_BREAKS)
+            mask_q = _filter_quartile_mask(population, q, SS_QUARTILE_BREAKS)
+            pop_q = population[mask_q, :]
             n_q[q] = size(pop_q, 1)
             if n_q[q] > 0
-                if wealth_topup[q] > 0.0
+                if topup_active
                     pop_q = copy(pop_q)
-                    pop_q[:, 1] .+= wealth_topup[q]
+                    pop_q[:, 1] .+= wealth_topup_hh[mask_q]
                 end
                 rq = compute_ownership_rate_health(
                     sol, pop_q, payout_rate; base_surv=base_surv,
@@ -172,27 +241,30 @@ function solve_and_evaluate(
         # Solve per quartile and aggregate (parallel when workers available)
         quartile_tasks = collect(1:4)
         _p = p; _grids = grids; _bs = base_surv; _pop = population; _pr = payout_rate
-        _topup = wealth_topup
+        _topup_hh = wealth_topup_hh
+        _topup_active = topup_active
 
         quartile_results = parallel_solve(quartile_tasks) do q
             ss_val_q = ss_levels[q]
             ss_func_q = (age, p) -> ss_val_q
             sol_q = solve_lifecycle_health(_p, _grids, _bs, ss_func_q)
 
-            pop_q = _filter_quartile(_pop, q, SS_QUARTILE_BREAKS)
+            mask_q = _filter_quartile_mask(_pop, q, SS_QUARTILE_BREAKS)
+            pop_q = _pop[mask_q, :]
             nq = size(pop_q, 1)
             if nq == 0
                 return (ownership=0.0, mean_alpha=0.0,
                         frac_at_kink_contract=0.0, frac_at_grid_floor=0.0, n=0.0)
             end
 
-            # Per-band commuted-PV endowment. Only fires when a partial
-            # pre-annuitization coalition leaves per-band SS levels non-uniform
-            # (SS/DB split game); band membership already pinned to original
-            # wealth by _filter_quartile above.
-            if _topup[q] > 0.0
+            # Per-household commuted-PV endowment, filtered to this band by the
+            # same mask that selects the band's population (band membership is
+            # pinned to ORIGINAL non-annuitized wealth). Fires whenever the
+            # pre-existing-annuitization channel is off: uniform SS=0 with a
+            # top-up, or the SS/DB split game's per-band partial coalitions.
+            if _topup_active
                 pop_q = copy(pop_q)
-                pop_q[:, 1] .+= _topup[q]
+                pop_q[:, 1] .+= _topup_hh[mask_q]
             end
 
             result_q = compute_ownership_rate_health(
@@ -340,15 +412,6 @@ function run_decomposition(
                               inflation_rate=inflation_val, grid_kw...)
     fair_pr_nom = inflation_val > 0 ? compute_payout_rate(p_fair_nom, base_surv) : fair_pr
 
-    # Commuted-PV SS counterfactual. When SS is toggled OFF (Step 0 and any
-    # step before SS enters), its actuarial PV is returned to the household as
-    # an equal-PV liquid endowment, commuted at the fair REAL price
-    # (1/fair_pr per dollar of annual income). The empty coalition is then a
-    # true Yaari benchmark rather than a zero-income state, matching the
-    # exact-Shapley engine (build_subset_config.w_commuted). Zero when SS is not
-    # toggled (non-ss_enabled mode: population carries SS via the A grid).
-    w_commuted = ss_enabled ? (ss_levels ./ fair_pr) : zeros(4)
-
     # Build grids using the LARGER payout rate to cover full A range
     grids = build_grids(p_fair, max(fair_pr, fair_pr_nom))
 
@@ -364,6 +427,18 @@ function run_decomposition(
     if size(pop, 2) < 4
         pop = hcat(pop, fill(2.0, n_pop))
     end
+
+    # Commuted-PV pre-annuitization counterfactual. When SS is toggled OFF
+    # (Step 0 and any step before SS enters), each household's SS+DB income is
+    # returned as an equal-PV liquid endowment, priced at the household's
+    # OBSERVED age (SS at the fair real rate, DB at the fair nominal rate). The
+    # empty coalition is then a true Yaari benchmark rather than a zero-income
+    # state, matching the exact-Shapley engine. Aligned 1:1 with pop (built on
+    # the filtered population). nothing when SS is not toggled (non-ss_enabled
+    # mode: population carries SS via the A grid).
+    topup_vec = ss_enabled ?
+        commuted_topup_vector(pop, base_surv, p_fair_nom;
+                              commute_db_nominal=(inflation_val > 0)) : nothing
 
     steps = DecompositionStep[]
 
@@ -391,7 +466,7 @@ function run_decomposition(
         # SS off here: commuted-PV endowment restores the Yaari benchmark.
         res0 = solve_and_evaluate(p0, grids, base_surv, ss_levels_zero,
             pop, fair_pr; step_name="$step_num. Frictionless population baseline (no SS)", verbose=verbose,
-            wealth_topup=w_commuted)
+            wealth_topup_hh=topup_vec)
     else
         res0 = solve_and_evaluate(p0, grids, base_surv, ss_zero,
             pop, fair_pr; step_name="$step_num. Frictionless population baseline (SS on)", verbose=verbose)
@@ -989,12 +1064,6 @@ function run_pairwise_interactions(
 
     grids = build_grids(p_fair, max(fair_pr, fair_pr_nom))
 
-    # Commuted-PV SS counterfactual (mirrors build_subset_config.w_commuted and
-    # the exact-Shapley engine): any coalition WITHOUT SS receives SS's
-    # actuarial PV back as an equal-PV liquid endowment, commuted at the fair
-    # REAL price. Zero when SS is on, or when SS is not toggled at all.
-    w_commuted = ss_enabled ? (ss_levels ./ fair_pr) : zeros(4)
-
     pop = copy(population_full)
     if min_wealth > 0.0
         mask = pop[:, 1] .>= min_wealth
@@ -1003,6 +1072,15 @@ function run_pairwise_interactions(
     if size(pop, 2) < 4
         pop = hcat(pop, fill(2.0, size(pop, 1)))
     end
+
+    # Commuted-PV pre-annuitization counterfactual (mirrors the exact-Shapley
+    # engine): any coalition WITHOUT SS receives its SS+DB income back as an
+    # equal-PV liquid endowment, priced at each household's observed age (SS at
+    # the fair real rate, DB at the fair nominal rate). Aligned 1:1 with pop.
+    # nothing when SS is on, or when SS is not toggled at all.
+    topup_vec = ss_enabled ?
+        commuted_topup_vector(pop, base_surv, p_fair_nom;
+                              commute_db_nominal=(inflation_val > 0)) : nothing
 
     loaded_pr = mwr_loaded * fair_pr
     loaded_pr_nom = mwr_loaded * fair_pr_nom
@@ -1102,9 +1180,9 @@ function run_pairwise_interactions(
     function _pw_eval(p_ch, pr, use_ss; label="")
         if ss_enabled
             ss_arg = use_ss ? ss_levels : ss_levels_zero
-            topup = use_ss ? zeros(4) : w_commuted
+            topup = use_ss ? nothing : topup_vec
             return solve_and_evaluate(p_ch, grids, base_surv, ss_arg,
-                pop, pr; step_name=label, verbose=false, wealth_topup=topup)
+                pop, pr; step_name=label, verbose=false, wealth_topup_hh=topup)
         else
             return solve_and_evaluate(p_ch, grids, base_surv, ss_zero,
                 pop, pr; step_name=label, verbose=false)
@@ -1151,7 +1229,7 @@ function run_pairwise_interactions(
     _pop_pw = pop
     _ssl = ss_enabled ? ss_levels : Float64[]
     _sslz = ss_levels_zero
-    _wc = w_commuted
+    _tv = topup_vec
     _mw = min_wealth
 
     pair_results = parallel_solve(pair_indices) do (i, j)
@@ -1212,10 +1290,10 @@ function run_pairwise_interactions(
         p_pair = ModelParams(; _ckw..., merged..., _gkw...)
 
         # Inline evaluation (same logic as _pw_eval). A coalition WITHOUT SS
-        # carries the commuted-PV endowment per band; a coalition WITH SS gets
-        # real per-band SS and no top-up. Mirrors the exact-Shapley engine.
+        # carries the per-household commuted-PV endowment; a coalition WITH SS
+        # gets real per-band SS and no top-up. Mirrors the exact-Shapley engine.
         ss_arg = pair_ss_on ? _ssl : _sslz
-        topup = pair_ss_on ? zeros(4) : _wc
+        topup = pair_ss_on ? nothing : _tv
         local_pop = copy(_pop_pw)
         if _mw > 0.0
             mask = local_pop[:, 1] .>= _mw
@@ -1244,19 +1322,19 @@ function run_pairwise_interactions(
             sv = isempty(ss_arg) ? 0.0 : ss_arg[1]
             sf = (age, p) -> sv
             sol = solve_lifecycle_health(p_pair, build_grids(ModelParams(; _ckw..., _gkw..., mwr=1.0), max(_fpr, _fprn)), _bs_pw, sf)
-            if any(topup .> 0.0)
-                # SS off: return its actuarial PV as an equal-PV liquid
-                # endowment. Per-band aggregation (each band's top-up differs);
-                # the single SS=0 solve above suffices (value fn unchanged).
+            if topup !== nothing
+                # SS off: return its actuarial PV as an equal-PV per-household
+                # liquid endowment (priced at each household's observed age).
+                # Per-band aggregation; the single SS=0 solve above suffices
+                # (value fn unchanged). Band membership pinned to original wealth.
                 tot_own = 0.0; tot_n = 0.0
                 for q in 1:4
-                    pq = _filter_quartile(local_pop, q, SS_QUARTILE_BREAKS)
+                    mask_q = _filter_quartile_mask(local_pop, q, SS_QUARTILE_BREAKS)
+                    pq = local_pop[mask_q, :]
                     nq = size(pq, 1)
                     nq == 0 && continue
-                    if topup[q] > 0.0
-                        pq = copy(pq)
-                        pq[:, 1] .+= topup[q]
-                    end
+                    pq = copy(pq)
+                    pq[:, 1] .+= topup[mask_q]
                     rq = compute_ownership_rate_health(sol, pq, pr_pair; base_surv=_bs_pw)
                     tot_own += rq.ownership_rate * rq.n_evaluated
                     tot_n += rq.n_evaluated

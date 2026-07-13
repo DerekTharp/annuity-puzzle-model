@@ -44,11 +44,20 @@ gkw = (n_wealth=NW, n_annuity=NA, n_alpha=NAL, W_max=W_MAX, age_start=AGE_START,
 fair     = compute_payout_rate(ModelParams(; gamma=GAMMA, beta=BETA, r=R_RATE, mwr=1.0, gkw...), base_surv)
 fair_nom = INFLATION > 0 ? compute_payout_rate(ModelParams(; gamma=GAMMA, beta=BETA, r=R_RATE, mwr=1.0, inflation_rate=INFLATION, gkw...), base_surv) : fair
 
+# Filter to the model-eligible population ONCE so the per-household commuted-PV
+# top-up aligns 1:1 (worker's own min-wealth filter then keeps every row).
+if MIN_WEALTH > 0.0
+    population = population[population[:, 1] .>= MIN_WEALTH, :]
+end
+p_topup = ModelParams(; gamma=GAMMA, beta=BETA, r=R_RATE, mwr=1.0, inflation_rate=INFLATION, gkw...)
+topup_vec = commuted_topup_vector(population, base_surv, p_topup)
+
 _theta=THETA_DFJ; _kappa=KAPPA_DFJ; _mwr=MWR_LOADED; _fc=FIXED_COST; _minp=MIN_PURCHASE
 _infl=INFLATION; _ssq=Float64.(SS_QUARTILE_LEVELS); _gamma=GAMMA; _beta=BETA; _r=R_RATE
 _cf=C_FLOOR; _hm=Float64.(HAZARD_MULT); _hn=HAZARD_NORMALIZE; _nq=N_QUAD; _cd=CONSUMPTION_DECLINE
 _hu=Float64.(HEALTH_UTILITY); _chi=CHI_LTC; _lw=LAMBDA_W; _pp=PSI_PURCHASE; _ppc=PSI_PURCHASE_C_REF
 _bs=base_surv; _pop=population; _fair=fair; _fairn=fair_nom; _minw=MIN_WEALTH; _gkw=gkw
+_topup_vec=topup_vec
 _psi=PSI_ENDPOINT
 
 println("Solving 512 nine-channel subsets at psi=$PSI_ENDPOINT..."); flush(stdout)
@@ -59,8 +68,7 @@ results = parallel_solve([(m=m,) for m in 0:511]) do spec
         theta_dfj=_theta, kappa_dfj=_kappa, mwr_loaded=_mwr, fixed_cost=_fc,
         min_purchase=_minp, inflation_val=_infl, survival_pessimism=_psi,
         ss_quartile_levels=_ssq, consumption_decline=_cd, health_utility=_hu,
-        chi_ltc_val=_chi, lambda_w_val=_lw, psi_purchase_val=_pp, psi_purchase_c_ref_val=_ppc,
-        fair_pr=_fair)
+        chi_ltc_val=_chi, lambda_w_val=_lw, psi_purchase_val=_pp, psi_purchase_c_ref_val=_ppc)
     has_loads = cfg.mwr < 1.0; has_infl = cfg.inflation_rate > 0
     pr = has_loads && has_infl ? cfg.mwr * _fairn : has_loads ? cfg.mwr * _fair : has_infl ? _fairn : _fair
     common = (gamma=_gamma, beta=_beta, r=_r, stochastic_health=true, n_health_states=3,
@@ -73,7 +81,7 @@ results = parallel_solve([(m=m,) for m in 0:511]) do spec
         health_utility=cfg.health_utility, chi_ltc=cfg.chi_ltc, _gkw...)
     pop = _minw > 0 ? _pop[_pop[:, 1] .>= _minw, :] : _pop
     res = solve_and_evaluate(p, grids, _bs, cfg.ss_levels, pop, pr; verbose=false,
-        wealth_topup=cfg.w_commuted)
+        wealth_topup_hh = cfg.commute_ss ? _topup_vec : nothing)
     (mask=mask, ownership=res.ownership)
 end
 @printf("  done in %.0fs\n", time() - t0); flush(stdout)
@@ -114,7 +122,8 @@ open(texp, "w") do io
     println(io, raw"Channel & Shapley (pp) " * "\\\\")
     println(io, raw"\midrule")
     for i in vord
-        @printf(io, "%s & %+.1f \\\\\n", NAMES[i], shap[i] * 100)
+        disp = NAMES[i] == "SS" ? "Pre-existing annuitization (SS+DB)" : NAMES[i]
+        @printf(io, "%s & %+.1f \\\\\n", disp, shap[i] * 100)
     end
     println(io, raw"\bottomrule")
     println(io, raw"\end{tabular}")

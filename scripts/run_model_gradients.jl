@@ -71,6 +71,11 @@ fair_pr_nom = INFLATION > 0 ? compute_payout_rate(p_fn, base_surv) : fair_pr
 grids = build_grids(p_fg, max(fair_pr, fair_pr_nom))
 loaded_pr_nom = MWR_LOADED * fair_pr_nom
 
+# Per-household commuted-PV top-up (population pre-filtered above). Applied only
+# when cfg.commute_ss is true; here SS is always on (Set(1:9)) so it is not, but
+# it is built for consistency with the other Shapley drivers.
+topup_vec = commuted_topup_vector(population, base_surv, p_fn)
+
 cfg = build_subset_config(Set(1:9);
     theta_dfj=THETA_DFJ, kappa_dfj=KAPPA_DFJ, mwr_loaded=MWR_LOADED,
     fixed_cost=FIXED_COST, min_purchase=MIN_PURCHASE, inflation_val=INFLATION,
@@ -79,7 +84,7 @@ cfg = build_subset_config(Set(1:9);
     consumption_decline=CONSUMPTION_DECLINE,
     health_utility=Float64.(HEALTH_UTILITY),
     chi_ltc_val=CHI_LTC, lambda_w_val=1.0, psi_purchase_val=0.0,
-    psi_purchase_c_ref_val=18_000.0, fair_pr=fair_pr)
+    psi_purchase_c_ref_val=18_000.0)
 
 p_model = ModelParams(; ckw...,
     theta=cfg.theta, kappa=cfg.kappa, mwr=cfg.mwr, fixed_cost=cfg.fixed_cost,
@@ -96,7 +101,7 @@ println("\nSolving the full structural model...")
 flush(stdout)
 res = solve_and_evaluate(p_model, grids, base_surv, cfg.ss_levels,
     population, loaded_pr_nom; step_name="full structural", verbose=true,
-    wealth_topup=cfg.w_commuted)
+    wealth_topup_hh = cfg.commute_ss ? topup_vec : nothing)
 
 # By-health: re-solve per quartile is unnecessary — evaluate health subgroups
 # against per-quartile solutions is not exposed, so evaluate by health WITHIN
@@ -126,7 +131,7 @@ for h in 1:3
     end
     res_h = solve_and_evaluate(p_model, grids, base_surv, cfg.ss_levels,
         pop_h, loaded_pr_nom; step_name="health=$(labels_h[h])", verbose=true,
-        wealth_topup=cfg.w_commuted)
+        wealth_topup_hh = cfg.commute_ss ? topup_vec : nothing)
     push!(rows, ("health", labels_h[h], res_h.ownership * 100, res_h.mean_alpha))
 end
 

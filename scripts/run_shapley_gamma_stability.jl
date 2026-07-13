@@ -93,6 +93,11 @@ p_fair_nom = ModelParams(; gamma=2.5, beta=BETA, r=R_RATE, mwr=1.0,
 fair_pr_nom = INFLATION > 0 ? compute_payout_rate(p_fair_nom, base_surv) : fair_pr
 grids = build_grids(p_fair, max(fair_pr, fair_pr_nom))
 
+# Per-household commuted-PV top-up for the pre-existing-annuitization (SS+DB)
+# player, priced at each respondent's observed age (SS real, DB nominal).
+# population is already min-wealth filtered above, so it aligns 1:1.
+topup_vec = commuted_topup_vector(population, base_surv, p_fair_nom)
+
 # Capture config constants for worker closures.
 _theta_dfj = THETA_DFJ; _kappa_dfj = KAPPA_DFJ; _mwr_loaded = MWR_LOADED
 _fixed_cost = FIXED_COST; _min_purchase = MIN_PURCHASE; _inflation = INFLATION
@@ -102,6 +107,7 @@ _hazard_mult=Float64.(HAZARD_MULT); _hazard_normalize=HAZARD_NORMALIZE; _n_quad 
 _consumption_decline = CONSUMPTION_DECLINE; _health_utility = Float64.(HEALTH_UTILITY)
 _chi_ltc = CHI_LTC
 _base_surv = base_surv; _population = population; _grids = grids
+_topup_vec = topup_vec
 _fair_pr = fair_pr; _fair_pr_nom = fair_pr_nom
 _gkw = grid_kw
 
@@ -123,7 +129,7 @@ function shapley_at_gamma(gamma::Float64)
             survival_pessimism=_surv_pess, ss_quartile_levels=_ss_q_levels,
             consumption_decline=_consumption_decline, health_utility=_health_utility,
             chi_ltc_val=_chi_ltc, lambda_w_val=1.0, psi_purchase_val=0.0,
-            psi_purchase_c_ref_val=18_000.0, fair_pr=_fair_pr)
+            psi_purchase_c_ref_val=18_000.0)
 
         ckw = (gamma=gamma, beta=_beta, r=_r_rate,
                stochastic_health=true, n_health_states=3, n_quad=_n_quad,
@@ -149,7 +155,8 @@ function shapley_at_gamma(gamma::Float64)
             _gkw...)
 
         res = solve_and_evaluate(p_model, _grids, _base_surv, cfg.ss_levels,
-            _population, pr; step_name="", verbose=false, wealth_topup=cfg.w_commuted)
+            _population, pr; step_name="", verbose=false,
+            wealth_topup_hh = cfg.commute_ss ? _topup_vec : nothing)
         # Liveness heartbeat (~16 lines per gamma; see run_subset_enumeration).
         if mask % 32 == 0
             @printf("    [heartbeat] gamma=%.2f subset %3d/%d done (%.0fs elapsed)\n",

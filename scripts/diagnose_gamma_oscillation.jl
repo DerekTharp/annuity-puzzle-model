@@ -81,6 +81,11 @@ fair_pr_nom = INFLATION > 0 ? compute_payout_rate(p_fn, base_surv) : fair_pr
 grids = build_grids(p_fg, max(fair_pr, fair_pr_nom))
 loaded_pr_nom = MWR_LOADED * fair_pr_nom
 
+# Per-household commuted-PV top-up (population pre-filtered above). Applied only
+# when cfg.commute_ss is true; here SS is always on (Set(1:9)) so it is not, but
+# it is built for consistency with the other Shapley drivers.
+topup_vec = commuted_topup_vector(population, base_surv, p_fn)
+
 # Full 9-channel structural configuration (behavioral off).
 cfg = build_subset_config(Set(1:9);
     theta_dfj=THETA_DFJ, kappa_dfj=KAPPA_DFJ, mwr_loaded=MWR_LOADED,
@@ -88,7 +93,7 @@ cfg = build_subset_config(Set(1:9);
     survival_pessimism=SURVIVAL_PESSIMISM, ss_quartile_levels=Float64.(SS_QUARTILE_LEVELS),
     consumption_decline=CONSUMPTION_DECLINE, health_utility=Float64.(HEALTH_UTILITY),
     chi_ltc_val=CHI_LTC, lambda_w_val=1.0, psi_purchase_val=0.0,
-    psi_purchase_c_ref_val=PSI_PURCHASE_C_REF, fair_pr=fair_pr)
+    psi_purchase_c_ref_val=PSI_PURCHASE_C_REF)
 
 # ===================================================================
 # Sweep gamma (serial outer loop; quartile solves parallelize inside)
@@ -107,7 +112,8 @@ for gamma in GAMMA_GRID
         health_utility=cfg.health_utility, chi_ltc=cfg.chi_ltc, lambda_w=cfg.lambda_w,
         psi_purchase=cfg.psi_purchase, psi_purchase_c_ref=cfg.psi_purchase_c_ref, gkw...)
     res = solve_and_evaluate(p_model, grids, base_surv, cfg.ss_levels,
-        population, loaded_pr_nom; step_name="", verbose=false, wealth_topup=cfg.w_commuted)
+        population, loaded_pr_nom; step_name="", verbose=false,
+        wealth_topup_hh = cfg.commute_ss ? topup_vec : nothing)
     push!(rows, (gamma, res.ownership * 100, res.mean_alpha,
                  res.frac_at_kink_contract, res.frac_at_grid_floor))
     @printf("  gamma=%.2f  ownership=%6.2f%%  mean_alpha=%.4f  kink_contract=%.3f  grid_floor=%.3f  (%.0fs)\n",

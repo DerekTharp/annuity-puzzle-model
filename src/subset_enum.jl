@@ -52,17 +52,17 @@ function build_subset_config(active::Set{Int};
         theta_dfj, kappa_dfj, mwr_loaded, fixed_cost, min_purchase, inflation_val,
         survival_pessimism, ss_quartile_levels,
         consumption_decline, health_utility, chi_ltc_val,
-        lambda_w_val, psi_purchase_val, psi_purchase_c_ref_val,
-        fair_pr::Float64)
+        lambda_w_val, psi_purchase_val, psi_purchase_c_ref_val)
 
     ss_levels = [0.0, 0.0, 0.0, 0.0]
-    # When SS is OFF, its actuarial PV is returned as an equal-PV liquid
-    # endowment so the SS player isolates the annuitized-vs-liquid form of
-    # fixed lifetime resources (a clean pre-annuitization effect) rather than
-    # an income effect. Commuted at the model's own fair real price
-    # (1/fair_pr per dollar of annual income). Zero when SS is ON or when no
-    # fair price is supplied (legacy callers).
-    w_commuted = zeros(4)
+    # When the pre-existing-annuitization (SS+DB) player is OFF, commute_ss is
+    # true: the caller returns each household's SS+DB income as an equal-PV
+    # liquid endowment (commuted_topup_vector, priced at the household's
+    # observed age) so the player isolates the annuitized-vs-liquid form of
+    # fixed lifetime resources rather than an income effect. The per-household
+    # top-up is coalition-independent, so the caller precomputes it once and
+    # passes it to solve_and_evaluate only when commute_ss is true.
+    commute_ss = !(CH_SS in active)
     theta = 0.0
     kappa = 0.0
     medical_enabled = false
@@ -81,12 +81,9 @@ function build_subset_config(active::Set{Int};
 
     if CH_SS in active
         ss_levels = copy(ss_quartile_levels)
-    else
-        # SS off: commute its actuarial PV to an equal-PV liquid endowment.
-        # fair_pr is the coalition's fair REAL payout rate (1/PV per $1/yr).
-        fair_pr > 0.0 || error("build_subset_config: fair_pr must be > 0 for the commuted-PV SS counterfactual")
-        w_commuted = collect(ss_quartile_levels) ./ fair_pr
     end
+    # SS off (commute_ss true): the caller applies the per-household
+    # commuted-PV endowment via wealth_topup_hh; ss_levels stays zero here.
     if CH_BEQUESTS in active
         theta = theta_dfj
         kappa = kappa_dfj
@@ -132,7 +129,7 @@ function build_subset_config(active::Set{Int};
     end
 
     return (ss_levels=ss_levels,
-            w_commuted=w_commuted,
+            commute_ss=commute_ss,
             theta=theta, kappa=kappa,
             medical_enabled=medical_enabled,
             health_mortality_corr=health_mortality_corr,

@@ -70,6 +70,27 @@ fair_pr_nom = INFLATION > 0 ?
     compute_payout_rate(ModelParams(; gamma=GAMMA, beta=BETA, r=R_RATE, mwr=1.0, inflation_rate=INFLATION, grid_kw...), base_surv) :
     fair_pr
 
+# Filter to the model-eligible population ONCE so the per-household commuted-PV
+# components align 1:1 (the worker's own min-wealth filter then keeps every row).
+if MIN_WEALTH > 0.0
+    population = population[population[:, 1] .>= MIN_WEALTH, :]
+end
+
+# Per-household commuted-PV components, priced at each respondent's observed
+# age: SS income at the fair REAL rate, DB pension at the fair NOMINAL rate.
+# The SS/DB split game applies whichever component a coalition leaves OFF.
+p_real_topup = ModelParams(; gamma=GAMMA, beta=BETA, r=R_RATE, mwr=1.0, inflation_rate=0.0, grid_kw...)
+p_nom_topup  = ModelParams(; gamma=GAMMA, beta=BETA, r=R_RATE, mwr=1.0, inflation_rate=INFLATION, grid_kw...)
+_topup_ages = sort(unique(Int.(round.(population[:, 3]))))
+_fpr_real = Dict(a => payout_rate_at_age(p_real_topup, base_surv, a) for a in _topup_ages)
+_fpr_nom  = Dict(a => payout_rate_at_age(p_nom_topup,  base_surv, a) for a in _topup_ages)
+_band(w) = w < SS_QUARTILE_BREAKS[1] ? 1 : w < SS_QUARTILE_BREAKS[2] ? 2 :
+           w < SS_QUARTILE_BREAKS[3] ? 3 : 4
+topup_ss = [Float64.(SS_OBS)[_band(population[i, 1])] / _fpr_real[Int(round(population[i, 3]))]
+            for i in 1:size(population, 1)]
+topup_db = [Float64.(DB_OBS)[_band(population[i, 1])] / _fpr_nom[Int(round(population[i, 3]))]
+            for i in 1:size(population, 1)]
+
 # --- Config values captured for worker closures ---
 _gamma=GAMMA; _beta=BETA; _r=R_RATE; _n_quad=N_QUAD; _c_floor=C_FLOOR
 _hazard_mult=Float64.(HAZARD_MULT); _hazard_normalize=HAZARD_NORMALIZE; _theta=THETA_DFJ; _kappa=KAPPA_DFJ
@@ -79,6 +100,7 @@ _consumption_decline=CONSUMPTION_DECLINE; _health_utility=Float64.(HEALTH_UTILIT
 _chi_ltc=CHI_LTC
 _ss_comb=Float64.(SS_QUARTILE_LEVELS); _ss_obs=Float64.(SS_OBS); _db_obs=Float64.(DB_OBS)
 _base_surv=base_surv; _population=population; _fair_pr=fair_pr; _fair_pr_nom=fair_pr_nom
+_topup_ss=topup_ss; _topup_db=topup_db
 _min_wealth=MIN_WEALTH
 _nw=NW; _na=NA; _nal=NAL; _wmax=W_MAX; _agp=A_GRID_POW
 _age_start=AGE_START; _age_end=AGE_END
@@ -109,19 +131,20 @@ results = parallel_solve(specs) do spec
     bit(i) = (mask >> i) & 1 == 1
 
     ss_levels = [0.0, 0.0, 0.0, 0.0]
-    # Commuted-PV endowment mirroring build_subset_config: pre-annuitized income
-    # that is toggled OFF is returned to the household as its equal-PV liquid
-    # wealth (level / fair REAL payout rate), isolating the annuitized-vs-liquid
-    # form of fixed lifetime resources rather than an income effect. Zero for
-    # every income component left ON.
-    w_commuted = zeros(4)
+    # Commuted-PV endowment: pre-annuitized income that is toggled OFF is
+    # returned to the household as its equal-PV liquid wealth, priced at the
+    # household's OBSERVED age (SS commutes at the fair real rate, DB at the
+    # fair nominal rate). Per-household top-up vectors, summed over whichever
+    # components the coalition leaves OFF; nothing when all income is ON.
+    topup = nothing
     theta = 0.0; kappa = 0.0
     medical = false; corr = false
     psi = 1.0; cd = 0.0; hu = [1.0, 1.0, 1.0]
     mwr = 1.0; fc = 0.0; minp = 0.0; infl = 0.0; chi = 1.0
 
     if part == :medrs
-        bit(0) ? (ss_levels = copy(_ss_comb)) : (w_commuted = _ss_comb ./ _fair_pr)
+        # Single SS+DB player: on -> combined level; off -> commute both.
+        bit(0) ? (ss_levels = copy(_ss_comb)) : (topup = _topup_ss .+ _topup_db)
         bit(1) && (theta = _theta; kappa = _kappa)
         bit(2) && (medical = true)
         bit(3) && (corr = true)
@@ -131,11 +154,13 @@ results = parallel_solve(specs) do spec
         bit(7) && (mwr = _mwr_loaded; fc = _fixed_cost; minp = _min_purchase)
         bit(8) && (infl = _inflation)
         bit(9) && (chi = _chi_ltc)
-    else  # :ssdb
+    else  # :ssdb  — SS income and DB income as separate players
         s = zeros(4)
-        bit(0) ? (s .+= _ss_obs) : (w_commuted .+= _ss_obs ./ _fair_pr)
-        bit(1) ? (s .+= _db_obs) : (w_commuted .+= _db_obs ./ _fair_pr)
+        comps = Vector{Float64}[]
+        bit(0) ? (s .+= _ss_obs) : push!(comps, _topup_ss)   # SS off -> commute real
+        bit(1) ? (s .+= _db_obs) : push!(comps, _topup_db)   # DB off -> commute nominal
         ss_levels = s
+        isempty(comps) || (topup = reduce(.+, comps))
         bit(2) && (theta = _theta; kappa = _kappa)
         bit(3) && (medical = true; corr = true)
         bit(4) && (psi = _surv_pess)
@@ -172,7 +197,7 @@ results = parallel_solve(specs) do spec
     end
 
     res = solve_and_evaluate(p, grids, _base_surv, ss_levels, pop, pr;
-                             step_name="", verbose=false, wealth_topup=w_commuted)
+                             step_name="", verbose=false, wealth_topup_hh=topup)
     (partition=part, mask=mask, ownership=res.ownership)
 end
 

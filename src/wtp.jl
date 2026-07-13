@@ -660,20 +660,11 @@ function compute_ownership_rate_health(
         w_i = weights !== nothing ? weights[i] : 1.0
         n_evaluated += w_i
 
-        # Age-specific payout rate
+        # Age-specific payout rate: re-price the SPIA at the respondent's
+        # observed age. payout_rate_age65 already carries p's MWR and inflation
+        # convention, so the override reuses the same p.
         if base_surv !== nothing && age > p.age_start
-            r_discount = p.inflation_rate > 0 ? (1 + p.r) * (1 + p.inflation_rate) - 1 : p.r
-            remaining_T = p.T - t + 1
-            pv = 1.0
-            for s in 1:(remaining_T - 1)
-                cum_s = 1.0
-                for k in t:(t + s - 1)
-                    k > length(base_surv) && break
-                    cum_s *= base_surv[k]
-                end
-                pv += cum_s / (1.0 + r_discount)^s
-            end
-            payout_rate = p.mwr / pv
+            payout_rate = payout_rate_at_age(p, base_surv, age)
         else
             payout_rate = payout_rate_age65
         end

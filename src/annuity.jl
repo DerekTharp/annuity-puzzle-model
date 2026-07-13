@@ -45,6 +45,30 @@ function compute_payout_rate(p::ModelParams, surv::Vector{Float64})
 end
 
 """
+Fair-or-loaded payout rate for a SPIA purchased at `age` (>= p.age_start),
+using survival `surv` and p's discount convention (real when p.inflation_rate
+== 0, nominal otherwise). The PV runs over survival from the purchase age
+forward, so the rate rises with age. At age == p.age_start this reproduces
+compute_payout_rate(p, surv). This is the same repricing applied to each
+respondent at their observed age in compute_ownership_rate_health.
+"""
+function payout_rate_at_age(p::ModelParams, surv::Vector{Float64}, age::Int)
+    t = age - p.age_start + 1
+    r_discount = p.inflation_rate > 0 ? (1 + p.r) * (1 + p.inflation_rate) - 1 : p.r
+    remaining_T = p.T - t + 1
+    pv = 1.0
+    for s in 1:(remaining_T - 1)
+        cum_s = 1.0
+        for k in t:(t + s - 1)
+            k > length(surv) && break
+            cum_s *= surv[k]
+        end
+        pv += cum_s / (1.0 + r_discount)^s
+    end
+    return p.mwr / pv
+end
+
+"""
 Annuity income given initial wealth W_0 and annuitization fraction alpha.
 A = alpha * W_0 * payout_rate
 """

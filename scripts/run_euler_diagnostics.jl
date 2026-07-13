@@ -77,7 +77,10 @@ function run_euler_check(label, base_surv, ss_func; kw...)
     return euler
 end
 
-# --- 1. Baseline (80x30, 9-node GH) ---
+# --- 1. Baseline (80x30, production quadrature) ---
+# Runs at the default N_QUAD nodes. The "(9-node)" label suffix is a stable CSV
+# row key (read by emit_diagnostic_tables.jl and export_manuscript_numbers.jl);
+# the stored residuals are the production N_QUAD-node values.
 println("\n--- BASELINE ---"); flush(stdout)
 run_euler_check("Baseline 80x30 (9-node)", base_surv, ss_func)
 

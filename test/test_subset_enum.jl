@@ -23,15 +23,15 @@ end
           fixed_cost=2_500.0, min_purchase=10_000.0, inflation_val=0.02,
           survival_pessimism=0.96, ss_quartile_levels=[12_917.0, 15_747.0, 19_298.0, 19_335.0],
           consumption_decline=0.02, health_utility=[1.0, 0.92, 0.82], chi_ltc_val=0.49,
-          lambda_w_val=0.625, psi_purchase_val=0.05, psi_purchase_c_ref_val=18_000.0,
-          fair_pr=0.065)
+          lambda_w_val=0.625, psi_purchase_val=0.05, psi_purchase_c_ref_val=18_000.0)
 
     # Empty coalition: every channel off / neutral.
     off = build_subset_config(Set{Int}(); kw...)
     @test off.ss_levels == [0.0, 0.0, 0.0, 0.0]
-    # SS off: its actuarial PV is commuted to an equal-PV liquid endowment
-    # (ss_quartile_levels / fair_pr), so the SS player is a share-shift.
-    @test off.w_commuted ≈ [12_917.0, 15_747.0, 19_298.0, 19_335.0] ./ 0.065
+    # SS off: commute_ss signals the caller to apply the per-household
+    # commuted-PV endowment (commuted_topup_vector), so the player is a
+    # share-shift rather than an income effect.
+    @test off.commute_ss == true
     @test off.theta == 0.0 && off.kappa == 0.0
     @test off.medical_enabled == false && off.health_mortality_corr == false
     @test off.survival_pessimism == 1.0
@@ -44,16 +44,8 @@ end
     # commutation.
     ss = build_subset_config(Set([1]); kw...)
     @test ss.ss_levels == [12_917.0, 15_747.0, 19_298.0, 19_335.0]
-    @test ss.w_commuted == [0.0, 0.0, 0.0, 0.0]
+    @test ss.commute_ss == false
     @test ss.theta == 0.0
-
-    # fair_pr is required for the commuted-PV counterfactual.
-    @test_throws UndefKeywordError build_subset_config(Set{Int}();
-        theta_dfj=56.96, kappa_dfj=272_628.0, mwr_loaded=0.87, fixed_cost=2_500.0,
-        min_purchase=10_000.0, inflation_val=0.02, survival_pessimism=0.96,
-        ss_quartile_levels=[12_917.0, 15_747.0, 19_298.0, 19_335.0],
-        consumption_decline=0.02, health_utility=[1.0, 0.92, 0.82], chi_ltc_val=0.49,
-        lambda_w_val=0.625, psi_purchase_val=0.05, psi_purchase_c_ref_val=18_000.0)
 
     # Bequests only (channel 2).
     beq = build_subset_config(Set([2]); kw...)
@@ -71,6 +63,38 @@ end
     @test full.survival_pessimism == 0.96
     @test full.consumption_decline == 0.02 && full.health_utility == [1.0, 0.92, 0.82]
     @test full.chi_ltc == 0.49 && full.lambda_w == 0.625 && full.psi_purchase == 0.05
+    @test full.commute_ss == false
+end
+
+@testset "commuted_topup_vector" begin
+    # Two households in the same top wealth band (>350k), ages 65 and 69.
+    pop = [500_000.0 0.0 65.0 2.0;
+           500_000.0 0.0 69.0 2.0]
+    p = ModelParams(gamma=2.5, beta=0.97, r=0.02, mwr=1.0,
+                    inflation_rate=0.02, age_start=65, age_end=110)
+    surv = production_base_survival(p)
+
+    tv = commuted_topup_vector(pop, surv, p)  # nominal DB (headline)
+
+    # Age-65 household commutes SS at the fair real rate and DB at the fair
+    # nominal rate, both priced at age 65 (band 4).
+    p_real = ModelParams(p; mwr=1.0, inflation_rate=0.0)
+    fpr_real_65 = payout_rate_at_age(p_real, surv, 65)
+    fpr_nom_65  = payout_rate_at_age(p, surv, 65)
+    expected_65 = SS_OBS[4] / fpr_real_65 + DB_OBS[4] / fpr_nom_65
+    @test isapprox(tv[1], expected_65; rtol=1e-10)
+
+    # Same band, older age => higher payout rate => lower PV => smaller top-up.
+    @test tv[1] > tv[2]
+
+    # Real-DB sensitivity commutes DB at the (lower) real rate, so DB's PV and
+    # the total top-up rise.
+    tv_realdb = commuted_topup_vector(pop, surv, p; commute_db_nominal=false)
+    @test tv_realdb[1] > tv[1]
+
+    # commute_db_nominal=true requires a positive nominal inflation rate.
+    p_noinfl = ModelParams(p; inflation_rate=0.0)
+    @test_throws ErrorException commuted_topup_vector(pop, surv, p_noinfl)
 end
 
 @testset "exact_shapley on known games" begin

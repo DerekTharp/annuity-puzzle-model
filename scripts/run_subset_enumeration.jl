@@ -151,6 +151,24 @@ fair_pr_nom = INFLATION > 0 ? compute_payout_rate(p_fair_nom, base_surv) : fair_
 @printf("  Fair payout rate (nominal): %.4f\n", fair_pr_nom)
 flush(stdout)
 
+# Filter to the model-eligible population ONCE (up front) so the per-household
+# commuted-PV top-up aligns 1:1 with the evaluated sample; the worker's own
+# min-wealth filter then keeps every row.
+if MIN_WEALTH > 0.0
+    population = population[population[:, 1] .>= MIN_WEALTH, :]
+end
+
+# Per-household commuted-PV top-up for the pre-existing-annuitization (SS+DB)
+# player, priced at each respondent's observed age (SS real, DB nominal).
+# Coalition-independent: applied whenever cfg.commute_ss is true. Set
+# ANNUITY_REAL_DB=1 for the real-DB sensitivity (commute DB at the real rate).
+const COMMUTE_DB_NOMINAL = get(ENV, "ANNUITY_REAL_DB", "0") != "1"
+topup_vec = commuted_topup_vector(population, base_surv, p_fair_nom;
+                                  commute_db_nominal=COMMUTE_DB_NOMINAL)
+@printf("  Commuted-PV top-up: mean \$%.0f/hh (DB %s)\n",
+        sum(topup_vec) / length(topup_vec), COMMUTE_DB_NOMINAL ? "nominal" : "real")
+flush(stdout)
+
 # ===================================================================
 # Channel config + Shapley machinery
 # ===================================================================
@@ -189,6 +207,7 @@ _a_grid_pow = A_GRID_POW
 _min_wealth = MIN_WEALTH
 _base_surv = base_surv
 _population = population
+_topup_vec = topup_vec
 _fair_pr = fair_pr
 _fair_pr_nom = fair_pr_nom
 _consumption_decline = CONSUMPTION_DECLINE
@@ -217,8 +236,7 @@ results = parallel_solve(subset_specs) do spec
         chi_ltc_val=_chi_ltc_val,
         lambda_w_val=_lambda_w_val,
         psi_purchase_val=_psi_purchase_val,
-        psi_purchase_c_ref_val=_psi_purchase_c_ref_val,
-        fair_pr=_fair_pr)
+        psi_purchase_c_ref_val=_psi_purchase_c_ref_val)
 
     gkw = (n_wealth=_n_wealth, n_annuity=_n_annuity, n_alpha=_n_alpha,
            W_max=_w_max, age_start=_age_start, age_end=_age_end,
@@ -273,7 +291,8 @@ results = parallel_solve(subset_specs) do spec
 
     t0 = time()
     res = solve_and_evaluate(p_model, grids, _base_surv, cfg.ss_levels,
-        pop, pr; step_name="", verbose=false, wealth_topup=cfg.w_commuted)
+        pop, pr; step_name="", verbose=false,
+        wealth_topup_hh = cfg.commute_ss ? _topup_vec : nothing)
     st = time() - t0
 
     # Liveness heartbeat: worker stdout is forwarded to the master log, so
@@ -600,8 +619,11 @@ open(shapley_tex_path, "w") do f
 
     for i in 1:N_CHANNELS
         share = total_drop > 0 ? shapley[i] / total_drop * 100 : 0.0
+        # Display label: the SS player is pre-existing annuitization (SS + DB
+        # pension). The CSV/machine key stays "SS" (join key with the exporter).
+        disp = CHANNEL_NAMES[i] == "SS" ? "Pre-existing annuitization (SS+DB)" : CHANNEL_NAMES[i]
         @printf(f, "%s & %+.2f & %.1f \\\\\n",
-            CHANNEL_NAMES[i], shapley[i] * 100, share)
+            disp, shapley[i] * 100, share)
     end
 
     println(f, raw"\midrule")

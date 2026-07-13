@@ -78,9 +78,30 @@ rate_wtd = [w_wtd[b] > 0 ? own_wtd[b] / w_wtd[b] : 0.0 for b in 1:5]
 # ===================================================================
 # Part B: raw RAND file for person-balancing + liquid-wealth bands
 # ===================================================================
-println("\nPart B: loading RAND HRS longitudinal file (person id + h{w}atotf)...")
+# The RAND HRS longitudinal .dta is non-redistributable and is excluded from
+# the AWS bundle. When it is absent, skip Part B (person-balanced ownership and
+# the liquid-wealth band membership) and leave the committed CSVs — generated
+# locally, shipped in the results tarball — untouched, mirroring the
+# skip-on-missing-raw convention of Stages 0c-0e.
 dta_path = joinpath(@__DIR__, "..", "data", "raw", "HRS",
     "randhrs1992_2022v1_STATA", "randhrs1992_2022v1.dta")
+raw_available = isfile(dta_path)
+
+if !raw_available
+    println("\nPart B SKIPPED: raw RAND HRS file not found (non-redistributable;")
+    println("  expected on AWS / non-local machines).")
+    println("  Expected path: $dta_path")
+    println("  Committed CSVs left untouched (using committed CSVs):")
+    println("    tables/csv/hrs_weighting_robustness.csv")
+    println("    tables/csv/hrs_wealth_definition_bands.csv")
+    println("\n" * "=" ^ 70)
+    println("  DONE (Part B skipped; raw HRS absent)")
+    println("=" ^ 70)
+    flush(stdout)
+    return
+end
+
+println("\nPart B: loading RAND HRS longitudinal file (person id + h{w}atotf)...")
 tbl = readstat(dta_path; ntasks=0)
 N = length(tbl[1])
 @printf("  Loaded %d respondents\n", N)

@@ -122,11 +122,11 @@ for nq in [3, 5, 7, 9, 11, 13, 15]
     solve_and_report(label, "Quadrature", base_surv, population; n_quad=nq)
 end
 
-# --- 2. Grid convergence at the production 9-node quadrature (per-quartile) ---
-println("\n--- GRID CONVERGENCE (9-node GH, per-quartile) ---"); flush(stdout)
+# --- 2. Grid convergence at the production quadrature (N_QUAD nodes, per-quartile) ---
+println("\n--- GRID CONVERGENCE ($(N_QUAD)-node GH, per-quartile) ---"); flush(stdout)
 for (nw, na) in [(40, 15), (60, 20), (80, 30), (100, 40), (120, 50)]
-    label = @sprintf("Grid %dx%d (9-node)", nw, na)
-    solve_and_report(label, "Grid (9-node)", base_surv, population; n_wealth=nw, n_annuity=na, n_quad=9)
+    label = @sprintf("Grid %dx%d (%d-node)", nw, na, N_QUAD)
+    solve_and_report(label, "Grid (9-node)", base_surv, population; n_wealth=nw, n_annuity=na, n_quad=N_QUAD)
 end
 
 # --- 3. Reference: finest grid + highest implemented quadrature ---

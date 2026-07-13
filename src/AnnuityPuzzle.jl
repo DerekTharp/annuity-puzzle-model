@@ -38,7 +38,7 @@ export build_health_transition, build_all_health_transitions
 export health_adjusted_survival, build_health_survival
 export production_base_survival
 export medical_expense_params, mean_medical_expense, apply_medicaid_floor
-export compute_payout_rate, annuity_income, post_purchase_wealth
+export compute_payout_rate, payout_rate_at_age, annuity_income, post_purchase_wealth
 export is_feasible_purchase, annuity_income_real, compute_payout_rate_deferred
 export compute_payout_rate_period_certain
 export solve_consumption, terminal_value
@@ -50,7 +50,7 @@ export compute_wtp_health, compute_ownership_rate_health, compute_indiff_fixed_c
 export SimulationResult, simulate_lifecycle, simulate_batch
 export DecompositionStep, DecompositionResult
 export solve_and_evaluate, run_decomposition, run_multiplicative_analysis
-export run_pairwise_interactions
+export run_pairwise_interactions, commuted_topup_vector
 export SS_QUARTILE_LEVELS, SS_QUARTILE_BREAKS, SS_OBS, DB_OBS
 export bitmask_to_channels, build_subset_config, exact_shapley
 export CEVResult, compute_cev, compute_cev_population, compute_cev_grid
