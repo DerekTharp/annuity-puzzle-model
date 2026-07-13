@@ -309,6 +309,25 @@ function main()
         joinpath(SCRIPTS_DIR, "run_grid_robustness_shapley.jl"); parallel=true)
     push!(timings, "Grid-robustness Shapley" => t)
 
+    # --- Stage 10j: Floor-on/off robustness of the nine-channel ranking ---
+    # Produces: floor_robustness_shapley.csv/.tex. Recomputes the 512-subset
+    # game at the production Medicaid floor and a near-zero floor to show the
+    # ranking is invariant to the floor (held fixed outside the game).
+    t = run_stage(
+        "10j. Floor-On/Off Shapley Robustness (2 x 512 subsets)",
+        joinpath(SCRIPTS_DIR, "run_floor_robustness.jl"); parallel=true)
+    push!(timings, "Floor robustness Shapley" => t)
+
+    # --- Stage 10k: Fixed-cost sweep of the nine-channel ranking ---
+    # Produces: fixed_cost_sweep.csv/.tex. Recomputes the 512-subset game at
+    # fixed cost in {500, 1000, 2000, 2500} to show whether Loads stays the top
+    # suppressor across the Lockwood range and the production value. Heaviest new
+    # stage (4 x 512 solves at the production grid).
+    t = run_stage(
+        "10k. Fixed-Cost Sweep Shapley (4 x 512 subsets)",
+        joinpath(SCRIPTS_DIR, "run_fixed_cost_sweep.jl"); parallel=true)
+    push!(timings, "Fixed-cost sweep Shapley" => t)
+
     # --- Stage 10d: Loads-split Shapley (11 players, 2048 subsets) ---
     # Produces: shapley_loads_split.csv/.tex (unbundles MWR wedge, fixed
     # cost, and minimum purchase as separate players)
@@ -362,6 +381,17 @@ function main()
         "11d2. HRS Weighting + Wealth-Definition Robustness",
         joinpath(SCRIPTS_DIR, "run_hrs_weighting_robustness.jl"))
     push!(timings, "HRS weighting robustness" => t)
+
+    # --- Stage 11d3: Model-output HRS weighting robustness ---
+    # Produces: hrs_model_robustness.csv (model-PREDICTED ownership by band under
+    # unweighted / survey-weighted / person-balanced populations; evaluation-only,
+    # four band solves reused across methods). Companion to Stage 11d2, which
+    # reweights the OBSERVED comparator. Person-balanced and the liquid-wealth
+    # band definition are raw-gated (need the RAND person id / h{w}atotf).
+    t = run_stage(
+        "11d3. Model-Output HRS Weighting Robustness",
+        joinpath(SCRIPTS_DIR, "run_hrs_model_robustness.jl"))
+    push!(timings, "HRS model robustness" => t)
 
     # --- Stage 11e: Partition robustness (Med/R-S unbundled; SS/DB split) ---
     # Produces: shapley_partition_{medrs,ssdb}.csv, partition_robustness.tex

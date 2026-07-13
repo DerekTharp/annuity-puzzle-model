@@ -1,21 +1,25 @@
-# CEV floor-scaling diagnostic (Blocker 7b) — DIAGNOSE ONLY.
+# CEV floor-scaling diagnostic bound (Blocker 7b) — DIAGNOSE ONLY.
+#
+# This script does NOT re-solve the lifecycle value function. It places a
+# diagnostic bound on the error in the closed-form compensating variation via an
+# algebraic adjustment of that closed form; the reported CEV numbers are unchanged.
 #
 # The closed-form compensating variation (src/welfare.jl exact_cev_lambda,
 # compute_cev) scales the whole no-access consumption felicity by (1+lambda)^(1-g):
 #
 #   lambda_closed = [(V_with - B_no)/(V_no - B_no)]^(1/(1-g)) - 1,   U_c = V_no - B_no.
 #
-# This is exact only if EVERY consumption dollar, including Medicaid-floor
-# consumption, scales with lambda. The manuscript instead treats floor
-# consumption as a fixed real safety net (invariant to lambda). This script
-# quantifies the error that assumption introduces, WITHOUT changing the formula.
+# The closed form is exact only if EVERY consumption dollar, including Medicaid-
+# floor consumption, scales with lambda. The manuscript instead treats floor
+# consumption as a fixed real safety net (invariant to lambda). This script bounds
+# the closed-form error that assumption introduces, WITHOUT changing the formula.
 #
 # Method. For each floor-exposed cell (low nonhousing net worth, health at age 65),
 # the no-access consumption felicity is decomposed by simulation into a floor-
 # binding share f and a non-floor share (1-f), using the model's own flow utility
 # (flow_utility_sdu / flow_utility_sdu_chi_ltc) reconstructed from simulated paths.
-# U_c = V_no - B_no comes from the solved value function (exact). The numeric
-# (floor-invariant) CEV bisects lambda so the scaled-consumption value function,
+# U_c = V_no - B_no is read directly from the solved value function. The floor-
+# invariant CEV bisects lambda so the scaled-consumption value function,
 # with only the non-floor felicity scaled,
 #
 #   V_scaled(lambda) = (1+lambda)^(1-g) (1-f) U_c + f U_c + B_no,
@@ -26,7 +30,8 @@
 # Output: tables/csv/cev_floor_scaling_diagnostic.csv
 #         (wealth, health, floor_period_freq, floor_felicity_share_f,
 #          cev_closed_pct, cev_numeric_pct, abs_cev_error_pp, converged)
-# Reports the max absolute CEV error across floor-binding cells.
+# Reports a diagnostic bound on the max absolute closed-form CEV error across
+# floor-binding cells.
 #
 # Usage: julia --project=. scripts/validate_cev_floor_scaling.jl
 
@@ -123,7 +128,7 @@ end
 
 function main()
     println("=" ^ 70)
-    println("  CEV FLOOR-SCALING DIAGNOSTIC (closed-form vs floor-invariant)")
+    println("  CEV FLOOR-SCALING DIAGNOSTIC BOUND (closed-form vs floor-invariant)")
     println("=" ^ 70)
 
     p_base = ModelParams(age_start=AGE_START, age_end=AGE_END)
@@ -231,7 +236,7 @@ function main()
     end
 
     println("  " * "-" ^ 82)
-    @printf("\n  MAX |CEV error| across floor-binding cells (floorFreq >= %.0f%%): %.4f pp",
+    @printf("\n  DIAGNOSTIC BOUND on max |CEV error| across floor-binding cells (floorFreq >= %.0f%%): %.4f pp",
         FLOOR_FREQ_THRESHOLD*100, max_err_floor*100)
     isempty(cell_floor) || @printf("  (at %s)", cell_floor)
     println()
@@ -242,7 +247,7 @@ function main()
         println("  introduce any error. Where CEV is positive (higher wealth), the floor")
         println("  essentially never binds. The two regions are disjoint.")
     else
-        @printf("  MAX |CEV error| where floor binds AND CEV > 0.1%%: %.4f pp (at %s)\n",
+        @printf("  DIAGNOSTIC BOUND on max |CEV error| where floor binds AND CEV > 0.1%%: %.4f pp (at %s)\n",
             max_err_interact*100, cell_interact)
     end
     println("\n  Interpretation: the closed-form CEV error from scaling Medicaid-floor")
