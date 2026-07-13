@@ -1239,6 +1239,7 @@ function build_macros!()
         def!("ssCutWealthQtwoResp",   fmt_num(cell(2, 22.0) - cell(2, 0.0); digits=1) * " pp")
         def!("ssCutWealthQthreeResp", fmt_num(cell(3, 22.0) - cell(3, 0.0); digits=1) * " pp")
         def!("ssCutWealthQfourResp",  fmt_num(cell(4, 22.0) - cell(4, 0.0); digits=1) * " pp")
+        def!("ssCutWealthQthreePost", fmt_pct(cell(3, 22.0); digits=1))
     end
 
     # SS-cut top-band response share (Class 4): the top band's fraction of the

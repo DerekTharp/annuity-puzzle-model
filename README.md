@@ -43,11 +43,12 @@ in risk aversion because the extensive margin sits on a fixed-cost threshold
 interacting with the pricing load, while the channel ranking holds across the
 gamma in [2.0, 3.0] range, across wealth bands, and at alternative baseline
 money's worth ratios (boundary cases disclosed in the text). Predicted
-ownership rises with wealth and concentrates in the top band, with near-zero
-predicted demand below it, because the pricing load makes immediate
-annuitization value-destroying for all but the wealthiest. The observed HRS
-gradient also rises with wealth but is interior in the middle of the
-distribution, where the single-product model predicts none. An exploratory
+ownership rises with wealth and concentrates in the upper bands (near-universal
+at the top, partial in the upper-middle, near zero in the bottom two), because
+the pricing load makes immediate annuitization value-destroying for all but the
+wealthier. The observed HRS gradient also rises with wealth but is flatter: the
+model reproduces the direction while overshooting the observed rate in the
+upper-middle band and at the top (the level fragility documented in the paper). An exploratory
 eleven-channel Shapley over 2,048 subsets adds the two behavioral parameters;
 they carry the largest absolute contributions essentially by construction and
 reorder the structural attributions, which is why the ranking is read off the
